@@ -1,5 +1,5 @@
 from django import forms
-from unishare.models import Share
+from bioshareX.models import Share
 
 class ShareForm(forms.ModelForm):
     class Meta:

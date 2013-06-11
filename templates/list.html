@@ -64,7 +64,11 @@
 $(function () {
     'use strict';
     // Change this to the location of your server-side upload handler:
-    var url = '{% url 'upload_file' %}';
+    {% if subdir %}
+    var url = '{% url 'upload_file' share=share subdir=subdir %}';
+    {% else %}
+   	var url = '{% url 'upload_file' share=share %}';
+    {% endif %}
     $('#fileupload').fileupload({
         url: url,
         dataType: 'json',

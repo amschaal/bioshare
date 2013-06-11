@@ -1,4 +1,4 @@
-# Django settings for unishare project.
+# Django settings for bioshareX project.
 import os
 CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir))
 
@@ -14,7 +14,7 @@ MANAGERS = ADMINS
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'unishare',                      # Or path to database file if using sqlite3.
+        'NAME': 'biosharex',                      # Or path to database file if using sqlite3.
         # The following settings are not used with sqlite3:
         'USER': 'dev',
         'PASSWORD': 'dev',
@@ -129,7 +129,7 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-    'unishare',
+    'bioshareX',
     'crispy_forms',
 )
 

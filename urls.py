@@ -6,16 +6,16 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     # Examples:
-    # url(r'^$', 'unishare.views.home', name='home'),
-    # url(r'^unishare/', include('unishare.foo.urls')),
+    # url(r'^$', 'bioshare.views.home', name='home'),
+    # url(r'^bioshare/', include('bioshareX.foo.urls')),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^unishare/', include('unishare.urls')),
+    url(r'^bioshare/', include('bioshareX.urls')),
 )
 # urlpatterns += patterns('',
-#     url(r'^', include('unishare.urls')),
+#     url(r'^', include('bioshareX.urls')),
 # )
