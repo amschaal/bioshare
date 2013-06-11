@@ -1,5 +1,5 @@
 from django.contrib import admin
-from unishare.models import Share
+from bioshareX.models import Share
 
 class ShareAdmin(admin.ModelAdmin):
     fields = ('name', 'notes')
