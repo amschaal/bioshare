@@ -16,6 +16,7 @@ def list_directory(request,share,subdir=None):
     PATH = join(FILES_ROOT,share)
     if subdir is not None:
         PATH = join(PATH,subdir)
+    share_obj = Share.objects.get(id=share)
     file_list=[]
     dir_list=[]
     for name in listdir(PATH):
@@ -26,7 +27,7 @@ def list_directory(request,share,subdir=None):
         else:
             dir={'name':name,'size':getsize(path)}
             dir_list.append(dir)
-    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir})
+    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share_obj,"subdir": subdir})
 
 def create_share(request):
     if request.method == 'POST':
