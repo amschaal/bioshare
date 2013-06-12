@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% load crispy_forms_tags %}
 {% block head %}
 {{block.super}}
 <!-- CSS to style the file input field as button and adjust the Bootstrap progress bars -->
@@ -10,7 +10,8 @@
 
 {% block content %}
 <h2>{{share.name}}</h2>
-  <p>
+{% if subdir %}<h3>{{subdir}}</h3> {% endif %}
+<!--  <p>
     {{ path }}
   </p>
   <p>
@@ -19,6 +20,7 @@
   <p>
     {{ subdir }}
   </p>
+  -->  
   <!-- The fileinput-button span is used to style the file input field as button -->
     <span class="btn btn-success fileinput-button">
         <i class="icon-plus icon-white"></i>
@@ -26,6 +28,7 @@
         <!-- The file input field used as target for the file upload widget -->
         <input id="fileupload" type="file" name="files[]" multiple>
     </span>
+    <a href="#new-folder" role="button" class="btn" data-toggle="modal">New Folder</a>
     <br>
     <br>
     <!-- The global progress bar -->
@@ -48,6 +51,26 @@
 	<tr class="file"><td><i class="fam-page-white"></i>{{ file.name }}</td><td>{{ file.size }}</td></tr>    
   {% endfor %}
   </table>
+
+
+<div class="modal hide fade" id="new-folder">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>New Folder</h3>
+  </div>
+  <div class="modal-body">
+    <form class="form-horizontal" method="POST">
+  <fieldset>
+	    {{ folder_form|crispy }}
+  </fieldset>
+  {% csrf_token %}
+  </form>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <a href="#" class="btn btn-primary">Create</a>
+  </div>
+</div>
 
 {% endblock %}
 
