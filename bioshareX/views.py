@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT
 from models import Share
-from forms import ShareForm, NewFolderForm
+from forms import ShareForm, FolderForm
 
 def index(request):
     # View code here...
@@ -27,7 +27,7 @@ def list_directory(request,share,subdir=None):
         else:
             dir={'name':name,'size':getsize(path)}
             dir_list.append(dir)
-    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share_obj,"subdir": subdir,"folder_form":NewFolderForm()})
+    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share_obj,"subdir": subdir,"folder_form":FolderForm()})
 
 def create_share(request):
     if request.method == 'POST':
