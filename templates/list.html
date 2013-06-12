@@ -9,11 +9,12 @@
 {% block title %}Share contents{% endblock %}
 
 {% block content %}
+<h2>{{share.name}}</h2>
   <p>
     {{ path }}
   </p>
   <p>
-    {{ share }}
+    {{ share.id }}
   </p>
   <p>
     {{ subdir }}
@@ -35,7 +36,7 @@
     <div id="files" class="files"></div>
   <!-- End file upload -->
   
-  <table class="table table-striped table-condensed">
+  <table class="table table-striped table-condensed" id="file-table">
   <thead><tr><th>Name</th><th>Size</th></tr></thead>
   {% if subdir %}
  	<tr class="directory"><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td></tr>
@@ -65,16 +66,18 @@ $(function () {
     'use strict';
     // Change this to the location of your server-side upload handler:
     {% if subdir %}
-    var url = '{% url 'upload_file' share=share subdir=subdir %}';
+    var url = '{% url 'upload_file' share=share.id subdir=subdir %}';
     {% else %}
-   	var url = '{% url 'upload_file' share=share %}';
+   	var url = '{% url 'upload_file' share=share.id %}';
     {% endif %}
     $('#fileupload').fileupload({
         url: url,
         dataType: 'json',
         done: function (e, data) {
+        	console.log('done',data);
             $.each(data.result.files, function (index, file) {
-                $('<p/>').text(file.name).appendTo('#files');
+            	var row = '<tr class="file success"><td><i class="fam-page-white"></i>'+file.name+'</td><td>'+file.size+'</td></tr>';
+                $(row).prependTo('#file-table');
             });
         },
         progressall: function (e, data) {

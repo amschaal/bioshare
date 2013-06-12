@@ -5,7 +5,7 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^create/?$', 'create_share', name='create_share'),
 #     url(r'^list/(?P<share>\w{15})/$', 'list_directory', name='list_directory'),
 #     url(r'^list/(?P<share>\w{15})/(?P<subdir>.*/)$', 'list_directory', name='list_sub_directory'),
-    url(r'^list/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_sub_directory'),
+    url(r'^list/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_directory'),
 )
 
 urlpatterns += patterns('bioshareX.file_views',

@@ -17,9 +17,9 @@ def upload_file(request, share, subdir=None):
     PATH = join(FILES_ROOT,share)
     if subdir is not None:
         PATH = join(PATH,subdir)
-    data = {'share':share,'subdir':subdir}#{key:val for key,val in request.POST.iteritems()}
+    data = {'share':share,'subdir':subdir,'files':[]}#{key:val for key,val in request.POST.iteritems()}
     for name,file in request.FILES.iteritems():
         FILE_PATH = join(PATH,file.name)
         handle_uploaded_file(FILE_PATH,file)
-        data[file.name]=file.size    
+        data['files'].append({'name':file.name,'size':file.size})  
     return HttpResponse(simplejson.dumps(data), mimetype='application/json')
