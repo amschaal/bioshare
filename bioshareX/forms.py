@@ -10,7 +10,7 @@ class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=100)
     file  = forms.FileField()
     
-class NewFolderForm(forms.Form):
+class FolderForm(forms.Form):
     name = forms.CharField(max_length=100)
 
 

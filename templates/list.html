@@ -59,16 +59,14 @@
     <h3>New Folder</h3>
   </div>
   <div class="modal-body">
-    <form class="form-horizontal" method="POST">
-  <fieldset>
+    <form class="form-horizontal" method="POST" id="new-folder-form" action="{% if subdir %}{% url 'create_folder' share=share.id subdir=subdir %}{% else %}{% url 'create_folder' share=share.id %}{% endif %}">
 	    {{ folder_form|crispy }}
-  </fieldset>
   {% csrf_token %}
   </form>
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-    <a href="#" class="btn btn-primary">Create</a>
+    <a href="#" class="btn btn-primary" id="create-folder">Create</a>
   </div>
 </div>
 
@@ -111,6 +109,15 @@ $(function () {
             );
         }
     });
+    $('#create-folder').click(function(){
+    		ajax_form_submit('#new-folder-form',{
+    			'success':function(data){
+    				console.log('',data);
+    			}
+    		});
+    	});
+    //});
+    
 });
 </script>
 {% endblock%}
