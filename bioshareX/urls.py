@@ -13,4 +13,5 @@ urlpatterns += patterns('bioshareX.file_views',
 #     url(r'^upload/?$', 'upload_file', name='upload_file'),
     url(r'^upload/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'upload_file', name='upload_file'),
     url(r'^create_folder/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'create_folder', name='create_folder'),
+    url(r'^delete/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'delete_paths', name='delete_paths'),
 )

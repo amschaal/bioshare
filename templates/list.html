@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% load crispy_forms_tags %}
 {% block head %}
 {{block.super}}
@@ -38,17 +39,22 @@
     <!-- The container for the uploaded files -->
     <div id="files" class="files"></div>
   <!-- End file upload -->
-  
+  <select id="action">
+  	<option selected disabled>Action</option>
+  	<option value="download">Download</option>
+  	<option value="delete">Delete</option>
+  </select>
+  <a id="launch-action" role="button" class="btn" data-toggle="modal">Go</a>
   <table class="table table-striped table-condensed" id="file-table">
-  <thead><tr><th>Name</th><th>Size</th></tr></thead>
+  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Size</th></tr></thead>
   {% if subdir %}
- 	<tr class="directory"><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td></tr>
+ 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td></tr>
   {% endif %}
   {% for dir in directories %}
-	<tr class="directory"><td><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td></td></tr>    
+	<tr class="directory real-directory" data-id="{{dir.name}}"><td><input class="action-check" type="checkbox"/></td><td><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td></td></tr>    
   {% endfor %}
   {% for file in files %}
-	<tr class="file"><td><i class="fam-page-white"></i>{{ file.name }}</td><td>{{ file.size }}</td></tr>    
+	<tr class="file" data-id="{{file.name}}"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i>{{ file.name }}</td><td>{{ file.size }}</td></tr>    
   {% endfor %}
   </table>
 
@@ -83,41 +89,13 @@
 <script>
 /*jslint unparam: true */
 /*global window, $ */
-$(function () {
-    'use strict';
-    // Change this to the location of your server-side upload handler:
     {% if subdir %}
-    var url = '{% url 'upload_file' share=share.id subdir=subdir %}';
+    var upload_file_url = '{% url 'upload_file' share=share.id subdir=subdir %}';
+    var delete_paths_url = '{% url 'delete_paths' share=share.id subdir=subdir %}';
     {% else %}
-   	var url = '{% url 'upload_file' share=share.id %}';
+   	var upload_file_url = '{% url 'upload_file' share=share.id %}';
+   	var delete_paths_url = '{% url 'delete_paths' share=share.id %}';
     {% endif %}
-    $('#fileupload').fileupload({
-        url: url,
-        dataType: 'json',
-        done: function (e, data) {
-        	console.log('done',data);
-            $.each(data.result.files, function (index, file) {
-            	var row = '<tr class="file success"><td><i class="fam-page-white"></i>'+file.name+'</td><td>'+file.size+'</td></tr>';
-                $(row).prependTo('#file-table');
-            });
-        },
-        progressall: function (e, data) {
-            var progress = parseInt(data.loaded / data.total * 100, 10);
-            $('#progress .bar').css(
-                'width',
-                progress + '%'
-            );
-        }
-    });
-    $('#create-folder').click(function(){
-    		ajax_form_submit('#new-folder-form',{
-    			'success':function(data){
-    				console.log('',data);
-    			}
-    		});
-    	});
-    //});
-    
-});
 </script>
+<script src="{% static "js/share/main.js" %}"></script>
 {% endblock%}
