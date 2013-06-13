@@ -24,7 +24,7 @@ def list_directory(request,share,subdir=None):
         if isfile(path):
             file={'name':name,'size':getsize(path)}
             file_list.append(file)
-        else:
+        elif name != '.removed':
             dir={'name':name,'size':getsize(path)}
             dir_list.append(dir)
     return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share_obj,"subdir": subdir,"folder_form":FolderForm()})

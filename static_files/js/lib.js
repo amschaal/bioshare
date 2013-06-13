@@ -3,7 +3,8 @@ function ajax_form_submit(form,options){
 			'ajax':
 			{
 				'type':'POST',
-				'url':$(form).attr('action')
+				'url':$(form).attr('action'),
+				'data':$(form).serialize()
 			}
 	}
 	var options = $.extend({},defaults,options);
