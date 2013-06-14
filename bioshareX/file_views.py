@@ -7,6 +7,7 @@ from settings.settings import FILES_ROOT
 from models import Share
 from django.utils import simplejson
 from forms import UploadFileForm, FolderForm
+import os
 
 def handle_uploaded_file(path,file):
     with open(path, 'wb+') as destination:
@@ -50,13 +51,49 @@ def create_folder(request, share, subdir=None):
         data['objects']=[{'name':form.cleaned_data['name']}]
     return HttpResponse(simplejson.dumps(data), mimetype='application/json')
 
-def delete_paths(request, share, subdir=None):
+
+class JSONDecorator(object):
+        def __init__(self, orig_func):
+                self.orig_func = orig_func
+        def __call__(self,  *args, **kwargs):
+                import json
+                json_arg = args[0].REQUEST.get('json',None)
+                if json_arg is not None:
+                    kwargs['json']=json.loads(json_arg)
+                return self.orig_func(*args, **kwargs)
+
+@JSONDecorator
+def delete_paths(request, share, subdir=None, json={}):
     share = Share.objects.get(id=share)
-    if share.delete_path(subdir):
-        data={'status':'success'}
-    else:
-        data={'status':'error'}
-    return HttpResponse(simplejson.dumps(data), mimetype='application/json')
+    response={'deleted':[],'failed':[]}
+    for item in json['selection']:
+        item_path = item if subdir is None else os.path.join(subdir,item)
+        try:
+            if share.delete_path(item_path):
+                response['deleted'].append(item)
+            else:
+                response['failed'].append(item)
+        except:
+            response['failed'].append(item)
+    return HttpResponse(simplejson.dumps(response), mimetype='application/json')
+
+@JSONDecorator
+def archive_files(request, share, subdir=None, json={}):
+    share = Share.objects.get(id=share)
+    response={}
+    details = share.create_archive(items=json['selection'],subdir=subdir)
+    response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
+    return HttpResponse(simplejson.dumps(response), mimetype='application/json')
+
+def download_file(request, share, subpath=None):
+    from sendfile import sendfile
+    share = Share.objects.get(id=share)
+    file_path = os.path.join(share.get_path(),subpath)
+    response={'path':file_path}
+    return sendfile(request, file_path)
+    return HttpResponse(simplejson.dumps(response), mimetype='application/json')
+    
+#     return HttpResponse(simplejson.dumps(data), mimetype='application/json')
 #     if request.method == 'POST':
 #         form = FolderForm(request.POST)
 #         if form.is_valid():
