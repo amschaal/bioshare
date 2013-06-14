@@ -45,6 +45,26 @@ class Share(models.Model):
                 os.makedirs(delete_path)
             shutil.move(path, delete_path)
             return True
+    def create_archive(self,items,subdir=None):
+        path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
+        if not os.path.exists(path):
+            raise Exception('Invalid subdirectory provided')
+        archive_path = os.path.join(self.get_path(),'.archives')
+        if not os.path.exists(archive_path):
+            os.makedirs(archive_path)
+        from datetime import datetime
+        zip_name = 'archive_'+datetime.now().strftime('%Y_%m_%d__%H_%M_%S')+'.zip'
+        zip_path = os.path.join(archive_path,zip_name)
+        from zipfile import ZipFile
+        with ZipFile(zip_path, 'w') as archive:
+            for item in items:
+                item_path = os.path.join(path,item)
+                if not os.path.exists(item_path):
+                    raise Exception("File or folder: '%s' does not exist" % (item))
+                archive.write(item_path)
+            details = {'namelist':archive.namelist(),'name':zip_name}
+            archive.close()
+            return {'name':zip_name,'subpath':'.archives/'+zip_name}
 def share_post_save(sender, **kwargs):
     if kwargs['created']:
         path = kwargs['instance'].get_path()

@@ -8,7 +8,7 @@ from forms import ShareForm, FolderForm
 
 def index(request):
     # View code here...
-    return render_to_response('index.html', {"message": "Hi there"})
+    return render(request,'index.html', {"message": "Hi there"})
 
 def list_directory(request,share,subdir=None):
     from os import listdir
@@ -24,7 +24,7 @@ def list_directory(request,share,subdir=None):
         if isfile(path):
             file={'name':name,'size':getsize(path)}
             file_list.append(file)
-        elif name != '.removed':
+        elif name not in ['.removed']:#,'.archives'
             dir={'name':name,'size':getsize(path)}
             dir_list.append(dir)
     return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share_obj,"subdir": subdir,"folder_form":FolderForm()})

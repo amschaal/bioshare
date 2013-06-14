@@ -172,3 +172,6 @@ LOGGING = {
         },
     }
 }
+
+SENDFILE_BACKEND='sendfile.backends.simple'
+
