@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load guardian_tags %}
+{% block title %}Permissions: {{share.name}}{% endblock %}
+
+{% block content %}
+<style>
+.verticalText
+{
+text-align: center;
+vertical-align: middle;
+width: 20px;
+margin: 0px;
+padding: 0px;
+padding-left: 3px;
+padding-right: 3px;
+padding-top: 10px;
+white-space: nowrap;
+-webkit-transform: rotate(-90deg);
+-moz-transform: rotate(-90deg);
+}
+table.permissions tr td{
+border: thin solid #ccc;
+text-align:center;
+}
+table.permissions tr td input{
+margin:0px;
+}
+table.permissions tr.modified{
+background-color:yellow;
+}
+</style>
+<h1>Permissions: {{share.name}}</h1> 
+<!-- 
+{% for user,permissions in users.items%}
+	{{user.username}}: {% for perm in permissions %}{{perm}}{% endfor %}
+{% endfor %}
+ -->
+ <br><br><br>
+<table id="user_permissions" class="permissions">
+<thead>
+<tr><th>User</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th></tr>
+</thead>
+<tbody>
+<!-- <tr><td>Username</td><td><input type="checkbox"></td><td><input type="checkbox"></td><td><input type="checkbox"></td></tr> -->
+</tbody>
+</table>
+<button class="btn">Update</button>
+<br><br><br>
+<table id="group_permissions" class="permissions">
+<thead>
+<tr><th>Group</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th></tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+<button class="btn">Update</button>
+
+{% endblock %}
+
+{% block scripts %}
+{{block.super}}
+<script>
+var get_permissions_url = '{% url 'api_get_permissions' share=share.id %}';
+</script>
+<script src="{% static "js/share/permissions.js" %}"></script>
+{% endblock %}
