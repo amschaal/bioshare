@@ -1,22 +1,38 @@
 # Create your views here.
-from django.shortcuts import render_to_response, render
+from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT
 from models import Share
 from forms import ShareForm, FolderForm
+from guardian.shortcuts import get_perms, get_users_with_perms
+from django.utils import simplejson
+from bioshareX.utils import share_access_decorator
+from django.contrib.auth.decorators import login_required
 
 def index(request):
     # View code here...
     return render(request,'index.html', {"message": "Hi there"})
 
+def forbidden(request):
+    # View code here...
+    return render(request,'index.html', {"message": "You have tried to access a forbidden resource."})
+
+@share_access_decorator(['admin'])
+def share_permissions(request,share):
+#     users = get_users_with_perms(share,attach_perms=True, with_group_users=False)
+    return render(request,'share/permissions.html', {"share":share,"request":request})
+
+@share_access_decorator(['view_share_files'])
 def list_directory(request,share,subdir=None):
     from os import listdir
     from os.path import isfile, join, getsize
-    PATH = join(FILES_ROOT,share)
+    PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
-    share_obj = Share.objects.get(id=share)
+    share_perms = share.get_user_permissions(request.user)
+    if not share.secure:
+        share_perms = list(set(share_perms+['view_share_files','download_share_files']))
     file_list=[]
     dir_list=[]
     for name in listdir(PATH):
@@ -27,8 +43,9 @@ def list_directory(request,share,subdir=None):
         elif name not in ['.removed']:#,'.archives'
             dir={'name':name,'size':getsize(path)}
             dir_list.append(dir)
-    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share_obj,"subdir": subdir,"folder_form":FolderForm()})
+    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,"folder_form":FolderForm(),"request":request,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
 
+@login_required
 def create_share(request):
     if request.method == 'POST':
         form = ShareForm(request.POST)

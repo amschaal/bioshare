@@ -58,8 +58,16 @@ $(function () {
         done: function (e, data) {
         	console.log('done',data);
             $.each(data.result.files, function (index, file) {
-            	var row = '<tr class="file success" data-id="'+file.name+'"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i>'+file.name+'</td><td>'+file.size+'</td></tr>';
-                $(row).insertAfter('#file-table .directory:last');
+            	var old = $('#file-table tr[data-id="'+file.name+'"]');
+            	if(old.length!=0)
+            		old.addClass('warning');
+            	else{
+            		var row = '<tr class="file success" data-id="'+file.name+'"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i><a href="'+file.url+'">'+file.name+'</a></td><td>'+file.size+'</td></tr>';
+            		if($('#file-table .directory').length==0)
+                    	$(row).prependTo('#file-table tbody');
+                    else
+                    	$(row).insertAfter('#file-table .directory:last');	
+            	}
             });
             $('#progress').hide();
         },

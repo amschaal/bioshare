@@ -1,3 +1,9 @@
 #file-table tr td:first-child{
 	width:10px;
 }
+select{
+	margin: 0px;
+}
+input.no-margin{
+	margin: 0px;
+}

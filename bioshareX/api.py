@@ -1,0 +1,71 @@
+# Create your views here.
+from django.shortcuts import render_to_response, render, redirect
+from django.core.urlresolvers import reverse
+from django.http.response import HttpResponseRedirect, HttpResponse
+from settings.settings import FILES_ROOT
+from models import Share
+from forms import ShareForm, FolderForm
+from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
+from django.utils import simplejson
+from utils import JSONDecorator, json_response, json_error, share_access_decorator
+from django.contrib.auth.models import User, Group
+from django.db.models import Q
+
+
+def get_user(request):
+    query = request.REQUEST.get('query')
+    try:
+        user = User.objects.get(Q(username=query)|Q(email=query))
+        return json_response({'user':{'username':user.username,'email':user.email}})
+    except Exception, e:
+        return json_error([e.message])
+    
+def get_group(request):
+    query = request.REQUEST.get('query')
+    try:
+        group = Group.objects.get(name=query)
+        return json_response({'group':{'name':group.name}})
+    except Exception, e:
+        return json_error([e.message])
+    
+@share_access_decorator(['admin'])
+def get_permissions(request,share):
+    data = share.get_permissions(user_specific=True)
+    return json_response(data)
+
+
+@share_access_decorator(['admin'])
+@JSONDecorator
+def update_share(request,share,json=None):
+    share.secure = json['secure']
+    share.save()
+    return json_response({'status':'okay'})
+
+@share_access_decorator(['admin'])
+@JSONDecorator
+def set_permissions(request,share,json=None):
+#     if not request.user.has_perm('admin',share_obj):
+#         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
+    if json.has_key('groups'):
+        for group, permissions in json['groups'].iteritems():
+            g = Group.objects.get(name=group)
+            current_perms = get_perms(g,share)
+            removed_perms = list(set(current_perms) - set(permissions))
+            added_perms = list(set(permissions) - set(current_perms))
+            for perm in removed_perms:
+                remove_perm(perm,g,share)
+            for perm in added_perms:
+                assign_perm(perm,g,share)
+    if json.has_key('users'):
+        for username, permissions in json['users'].iteritems():
+            u = User.objects.get(username=username)
+            current_perms = share.get_user_permissions(u,user_specific=True)
+            removed_perms = list(set(current_perms) - set(permissions))
+            added_perms = list(set(permissions) - set(current_perms))
+            for perm in removed_perms:
+                remove_perm(perm,u,share)
+            for perm in added_perms:
+                assign_perm(perm,u,share)
+    data = share.get_permissions(user_specific=True)
+    data['json']=json
+    return json_response(data)

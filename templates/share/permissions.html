@@ -20,6 +20,9 @@ white-space: nowrap;
 -webkit-transform: rotate(-90deg);
 -moz-transform: rotate(-90deg);
 }
+table.permissions{
+margin-top: 50px;
+}
 table.permissions tr td{
 border: thin solid #ccc;
 text-align:center;
@@ -31,38 +34,51 @@ table.permissions tr.modified{
 background-color:yellow;
 }
 </style>
-<h1>Permissions: {{share.name}}</h1> 
-<!-- 
-{% for user,permissions in users.items%}
-	{{user.username}}: {% for perm in permissions %}{{perm}}{% endfor %}
-{% endfor %}
- -->
- <br><br><br>
+<h1>Permissions: <a href="{% url 'list_directory' share.id %}">{{share.name}}</a></h1>
+<div class="row">
+  <div class="span5">
+    <legend>General Settings</legend>
+ 	<label class="checkbox" data-toggle="tooltip" title="If this is not selected, anyone with the URL may view or download files."><input id="secure" type="checkbox" {% if share.secure %}checked{%endif%}/>Secure share</label>
+  	<button class="btn" id="updateGeneralSettings">Update</button>
+  </p>
+
+ <legend>User Permissions</legend>
+ <input id="addUser" class="no-margin" type="text" placeholder="Username or email"><button id="addUserButton" class="btn btn-small">Add User</button>
 <table id="user_permissions" class="permissions">
 <thead>
-<tr><th>User</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th></tr>
+<tr><th>User</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th><th><div class="verticalText">Administer</div></th></tr>
 </thead>
 <tbody>
 <!-- <tr><td>Username</td><td><input type="checkbox"></td><td><input type="checkbox"></td><td><input type="checkbox"></td></tr> -->
 </tbody>
 </table>
-<button class="btn">Update</button>
+<button class="btn" id="updateUserPermissions">Update</button>
 <br><br><br>
+<legend>Group Permissions</legend>
+<input id="addGroup" type="text" placeholder="Group name" class="no-margin"><button id="addGroupButton" class="btn btn-small">Add Group</button>
 <table id="group_permissions" class="permissions">
 <thead>
-<tr><th>Group</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th></tr>
+<tr><th>Group</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th><th><div class="verticalText">Administer</div></th></tr>
 </thead>
 <tbody>
 </tbody>
 </table>
-<button class="btn">Update</button>
+<button class="btn" id="updateGroupPermissions">Update</button>
 
+</div>
+  <div class="span7"><div id="messages"></div></div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 {{block.super}}
 <script>
 var get_permissions_url = '{% url 'api_get_permissions' share=share.id %}';
+var set_permissions_url = '{% url 'api_set_permissions' share=share.id %}';
+var get_user_url = '{% url 'api_get_user' %}';
+var get_group_url = '{% url 'api_get_group' %}';
+var update_share_url = '{% url 'api_update_share' share=share.id %}'; 
+
 </script>
 <script src="{% static "js/share/permissions.js" %}"></script>
 {% endblock %}
