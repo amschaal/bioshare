@@ -104,6 +104,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.static",
     "django.core.context_processors.tz",
     "django.contrib.messages.context_processors.messages",
+    "django.core.context_processors.request",
     "bioshareX.contexts.user_contexts",
 )
 
@@ -142,6 +143,8 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
     'bioshareX',
     'crispy_forms',
+    'guardian',
+    'django_extensions',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -175,3 +178,9 @@ LOGGING = {
 
 SENDFILE_BACKEND='sendfile.backends.simple'
 
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend', # this is default
+    'guardian.backends.ObjectPermissionBackend',
+)
+
+ANONYMOUS_USER_ID = -1
