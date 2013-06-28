@@ -69,3 +69,16 @@ def set_permissions(request,share,json=None):
     data = share.get_permissions(user_specific=True)
     data['json']=json
     return json_response(data)
+
+@share_access_decorator(['view_share_files'])
+def search_share(request,share,subdir=None):
+    from utils import find
+    query = request.GET.get('query',False)
+    response={}
+    if query:
+        from os.path import join
+        path = share.get_path() if subdir is None else join(share.get_path(),subdir)
+        response['results'] = find(path,query)
+    else:
+        response = {'status':'error'}
+    return json_response(response)
