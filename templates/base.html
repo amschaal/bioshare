@@ -44,9 +44,9 @@
           <p class="navbar-text pull-right">
           {% if request.user.is_authenticated %}
               Logged in as <a href="#" class="navbar-link">{{request.user.username}}</a>  
-              <a href="{% url 'logout' %}" class="navbar-link">Logout</a>
+              <a href="{% url 'auth_logout' %}" class="navbar-link">Logout</a>
           {% else %}
-          	  <a href="{% url 'login' %}" class="navbar-link">Login</a>
+          	  <a href="{% url 'auth_login' %}" class="navbar-link">Login</a>
           {% endif %}
             </p>
             <ul class="nav">

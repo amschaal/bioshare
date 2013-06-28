@@ -4,6 +4,7 @@
 
 {% block content %}
 <form method="post" action=".">
+  <legend>Login</legend>
   {% csrf_token %} 
   {{ form|crispy }}
 
@@ -12,5 +13,5 @@
 </form>
 
 <p>{% trans "Forgot password" %}? <a href="{% url 'auth_password_reset' %}">{% trans "Reset it" %}</a>!</p>
-<p>{% trans "Not member" %}? <a href="{ url 'registration_register' }">{% trans "Register" %}</a>!</p>
+<p>{% trans "Not member" %}? <a href="{% url 'registration_register' %}">{% trans "Register" %}</a>!</p>
 {% endblock %}

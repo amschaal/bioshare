@@ -24,46 +24,59 @@
   </p>
   -->  
   <!-- {{share_perms}} <br>-->
-  
-  <select id="action">
-  	<option selected disabled>Action</option>
-  	{% if "download_share_files" in share_perms %}<option value="download">Download</option>{% endif %}
-  	{% if "delete_share_files" in share_perms %}<option value="delete">Delete</option>{% endif %}
-  </select>
-  <a id="launch-action" role="button" class="btn" data-toggle="modal">Go</a>
-  {% if "write_to_share" in share_perms %}
-  <!-- The fileinput-button span is used to style the file input field as button -->
-    <span class="btn btn-success fileinput-button">
-        <i class="icon-plus icon-white"></i>
-        <span>Files</span>
-        <!-- The file input field used as target for the file upload widget -->
-        <input id="fileupload" type="file" name="files[]" multiple>
-    </span>
-    <a href="#new-folder" role="button" class="btn btn-warning" data-toggle="modal"><i class="icon-plus icon-white"></i>Folder</a>
-    {% if "admin" in share_perms %}<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary"><i class="fam-user-add"></i> Permissions</a>{% endif %}
-    <br>
-    <!-- The global progress bar -->
-    <div id="progress" class="progress progress-success progress-striped" style="display:none">
-        <div class="bar"></div>
-    </div>
-    <!-- The container for the uploaded files -->
-    <div id="files" class="files"></div>
-  <!-- End file upload -->
-  {% endif %}
-  <div id="messages"></div>
-  <table class="table table-striped table-condensed" id="file-table">
-  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Size</th></tr></thead>
-  {% if subdir %}
- 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td></tr>
-  {% endif %}
-  {% for dir in directories %}
-	<tr class="directory real-directory" data-id="{{dir.name}}"><td><input class="action-check" type="checkbox"/></td><td><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td></td></tr>    
-  {% endfor %}
-  {% for file in files %}
-	<tr class="file" data-id="{{file.name}}"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}</td><td>{{ file.size }}</td></tr>    
-  {% endfor %}
-  </table>
-
+ <ul class="nav nav-tabs" id="page-tabs">
+  <li class="active"><a href="#file-tab" data-toggle="tab">Files</a></li>
+  <li><a href="#search-tab" data-toggle="tab">Search</a></li>
+</ul>
+<div class="tab-content">
+  <div class="tab-pane active" id="file-tab">
+	  <select id="action">
+	  	<option selected disabled>Action</option>
+	  	{% if "download_share_files" in share_perms %}<option value="download">Download</option>{% endif %}
+	  	{% if "delete_share_files" in share_perms %}<option value="delete">Delete</option>{% endif %}
+	  </select>
+	  <a id="launch-action" role="button" class="btn" data-toggle="modal">Go</a>
+	  {% if "write_to_share" in share_perms %}
+	  <!-- The fileinput-button span is used to style the file input field as button -->
+	    <span class="btn btn-success fileinput-button">
+	        <i class="icon-plus icon-white"></i>
+	        <span>Files</span>
+	        <!-- The file input field used as target for the file upload widget -->
+	        <input id="fileupload" type="file" name="files[]" multiple>
+	    </span>
+	    <a href="#new-folder" role="button" class="btn btn-warning" data-toggle="modal"><i class="icon-plus icon-white"></i>Folder</a>
+	    {% if "admin" in share_perms %}<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary"><i class="fam-user-add"></i> Permissions</a>{% endif %}
+	    <br>
+	    <!-- The global progress bar -->
+	    <div id="progress" class="progress progress-success progress-striped" style="display:none">
+	        <div class="bar"></div>
+	    </div>
+	    <!-- The container for the uploaded files -->
+	    <div id="files" class="files"></div>
+	  <!-- End file upload -->
+	  {% endif %}
+	  <div id="messages"></div>
+	  <table class="table table-striped table-condensed" id="file-table">
+	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Size</th></tr></thead>
+	  <tbody>
+	  {% if subdir %}
+	 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td></tr>
+	  {% endif %}
+	  {% for dir in directories %}
+		<tr class="directory real-directory" data-id="{{dir.name}}"><td><input class="action-check" type="checkbox"/></td><td><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td></td></tr>    
+	  {% endfor %}
+	  {% for file in files %}
+		<tr class="file" data-id="{{file.name}}"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}</td><td>{{ file.size }}</td></tr>    
+	  {% endfor %}
+	  </tbody>
+	  </table>
+  </div>
+  <div class="tab-pane" id="search-tab">
+  		<input id="searchBox"><button class="btn" id="searchButton">Search</button>
+  		<div id="searchResults">
+  		</div>
+  </div>
+</div>
 
 <div class="modal hide fade" id="new-folder">
   <div class="modal-header">
@@ -99,13 +112,18 @@
     var upload_file_url = '{% url 'upload_file' share=share.id subdir=subdir %}';
     var delete_paths_url = '{% url 'delete_paths' share=share.id subdir=subdir %}';
     var archive_files_url = '{% url 'archive_files' share=share.id subdir=subdir %}';
+    var search_url = '{% url 'api_search_share' share=share.id subdir=subdir %}';
     {% else %}
    	var upload_file_url = '{% url 'upload_file' share=share.id %}';
    	var delete_paths_url = '{% url 'delete_paths' share=share.id %}';
    	var archive_files_url = '{% url 'archive_files' share=share.id %}';
+   	var search_url = '{% url 'api_search_share' share=share.id %}';
    	{% endif %}
    	var download_file_url = '{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:"__file__" %}';
-	var share_perms = {{share_perms_json|safe}};
+   	var goto_url = '{% url 'go_to_file_or_folder' share='000000000000000' %}';
+   	var goto_url_replace = '/000000000000000/';
+   	var share_perms = {{share_perms_json|safe}};
+	
 </script>
 <script src="{% static "js/share/main.js" %}"></script>
 {% endblock%}

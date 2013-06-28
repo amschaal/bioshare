@@ -57,4 +57,12 @@ def create_share(request):
     else:
         form = ShareForm()
     return render(request, 'share/new_share.html', {'form': form})
-    
+
+@share_access_decorator(['view_share_files'])    
+def go_to_file_or_folder(request, share, subpath=None):
+    from os.path import isdir, isfile, join
+    path = share.get_path() if subpath is None else join(share.get_path(),subpath)
+    if isdir(path):
+        return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id,'subdir':subpath}))
+    else:# isfile(path)
+        return HttpResponseRedirect(reverse('download_file',kwargs={'share':share.id,'subpath':subpath}))

@@ -8,6 +8,7 @@ urlpatterns = patterns('bioshareX.views',
 #     url(r'^list/(?P<share>\w{15})/(?P<subdir>.*/)$', 'list_directory', name='list_sub_directory'),
     url(r'^list/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_directory'),
     url(r'^permissions/(?P<share>\w{15})/?$', 'share_permissions', name='share_permissions'),
+    url(r'^goto/(?P<share>\w{15})/(?:(?P<subpath>.*/?))?$', 'go_to_file_or_folder', name='go_to_file_or_folder'),
     
 )
 urlpatterns += patterns('bioshareX.api',
@@ -16,7 +17,7 @@ urlpatterns += patterns('bioshareX.api',
     url(r'^api/update/(?P<share>\w{15})/?$', 'update_share', name='api_update_share'),
     url(r'^api/get_user/?$', 'get_user', name='api_get_user'),
     url(r'^api/get_group/?$', 'get_group', name='api_get_group'),
-    
+    url(r'^api/search/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'search_share', name='api_search_share'),
 )
 
 urlpatterns += patterns('bioshareX.file_views',

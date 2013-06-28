@@ -1,3 +1,18 @@
+function search_share(query){
+	$.get(search_url,{query:query},function(data){
+		//console.log(data);
+		$('#searchResults').html('');
+		$.each(data.results,function(index,result){
+			var split_at = result.lastIndexOf("/")+1;
+			var directory = result.substring(0, split_at-1);
+			var dir_link = '<a href="'+goto_url.replace(goto_url_replace,directory+'/')+'">'+directory+'</a> /';
+			var file = result.substring(split_at);
+			var file_link = file == '' ? '' : '<a href="'+goto_url.replace(goto_url_replace,result)+'">'+file+'</a>';
+			$('#searchResults').append('<div>'+dir_link+' '+file_link+'</div>');
+		});
+	});
+}
+
 function get_selected_names(){
 	var selection = [];
 	$('.action-check:checked').each(function(){
@@ -110,5 +125,5 @@ $(function () {
     			break;
     	}
     });
-    
+    $('#searchButton').click(function(){search_share($('#searchBox').val())});
 });
