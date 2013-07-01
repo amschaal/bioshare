@@ -104,15 +104,15 @@ class Share(models.Model):
         zip_name = 'archive_'+datetime.now().strftime('%Y_%m_%d__%H_%M_%S')+'.zip'
         zip_path = os.path.join(archive_path,zip_name)
         from zipfile import ZipFile
-        with ZipFile(zip_path, 'w') as archive:
-            for item in items:
-                item_path = os.path.join(path,item)
-                if not os.path.exists(item_path):
-                    raise Exception("File or folder: '%s' does not exist" % (item))
-                archive.write(item_path)
-            details = {'namelist':archive.namelist(),'name':zip_name}
-            archive.close()
-            return {'name':zip_name,'subpath':'.archives/'+zip_name}
+        archive =  ZipFile(zip_path, 'w')
+        for item in items:
+            item_path = os.path.join(path,item)
+            if not os.path.exists(item_path):
+                raise Exception("File or folder: '%s' does not exist" % (item))
+            archive.write(item_path)
+        details = {'namelist':archive.namelist(),'name':zip_name}
+        archive.close()
+        return {'name':zip_name,'subpath':'.archives/'+zip_name}
 def share_post_save(sender, **kwargs):
     if kwargs['created']:
         path = kwargs['instance'].get_path()
