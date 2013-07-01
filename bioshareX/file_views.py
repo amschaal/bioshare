@@ -45,7 +45,7 @@ def json_form_validate(form,save=False,html=True,template='ajax/crispy_form.html
                 pass
     else:
         data['status']='error'
-        data['errors']={k: v for k, v in form.errors.items()}
+        data['errors']=dict((key, value) for (key, value) in form.errors.items())
         data['html']= render_to_string(template,{'form':form})
     return data
 
