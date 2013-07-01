@@ -103,7 +103,8 @@ def find(path, pattern):
     from settings.settings import FILES_ROOT
     import subprocess
 #     @todo: use -prune option to get rid of .archive and .removed directories 
-    output = subprocess.check_output(['find',path,'-name',pattern])
+    output = subprocess.Popen(['find',path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0]
+#     output = subprocess.check_output(['find',path,'-name',pattern])
     paths = output.split('\n')
 #     return paths
     results=[]
