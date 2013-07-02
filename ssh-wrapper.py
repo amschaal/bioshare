@@ -11,8 +11,8 @@ logger.setLevel(logging.INFO)
 
 logger.info('Test message')
 try:
+    logger.info('SSH_ORIGINAL_COMMAND: '+os.environ['SSH_ORIGINAL_COMMAND'])
     os.execvp('ls', ['ls', '/var/www'])
-    os.environ['SSH_ORIGINAL_COMMAND']
 except Exception, e:
     logger.error('Bad or missing parameter "SSH_ORIGINAL_COMMAND"')
 # r = re.compile('^hg -R (S%2B) serve --stdio$')
