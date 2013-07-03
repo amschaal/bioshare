@@ -3,14 +3,6 @@ import os
 import sys
 import re
 import logging
-logger = logging.getLogger('bioshare')
-hdlr = logging.FileHandler('/var/log/sshwrapper.log')
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-hdlr.setFormatter(formatter)
-logger.addHandler(hdlr) 
-logger.setLevel(logging.INFO)
-from os.path import join, isfile
-logger.info('Test message')
 
 TOKEN_DIR = '/tmp/tokens'
 ORIGINAL_COMMAND = None
@@ -94,6 +86,7 @@ def main():
 
 if __name__ == '__main__':
     #Should probably use argument parsing library, but trying to keep dependencies to a minumum
+    
     if len(sys.argv)==2:
         user = sys.argv[1]
     elif len(sys.argv)==3:
@@ -102,4 +95,12 @@ if __name__ == '__main__':
         TEST = True
     if ORIGINAL_COMMAND is None:
         ORIGINAL_COMMAND = os.environ['SSH_ORIGINAL_COMMAND']
+    logger = logging.getLogger('bioshare')
+    hdlr = logging.FileHandler('/var/log/sshwrapper.log')
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    hdlr.setFormatter(formatter)
+    logger.addHandler(hdlr) 
+    logger.setLevel(logging.INFO)
+    from os.path import join, isfile
+    logger.info('Test message')
     main()
