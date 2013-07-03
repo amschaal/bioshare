@@ -14,15 +14,7 @@ logger.info('Test message')
 
 TOKEN_DIR = '/tmp/tokens'
 ORIGINAL_COMMAND = None
-
-if len(sys.argv)==2:
-    user = sys.argv[1]
-elif len(sys.argv)==3:
-    user = sys.argv[1]
-    ORIGINAL_COMMAND = sys.argv[2] #for testing: ssh-wrapper.py username 'rsync /local/file remote:/TOKEN/subdir
-if ORIGINAL_COMMAND is None:
-    ORIGINAL_COMMAND = os.environ['SSH_ORIGINAL_COMMAND']
-
+TEST = False
 
 # r = re.compile('^hg -R (S%2B) serve --stdio$')
 # match = re.search(r, os.environ['SSH_ORIGINAL_COMMAND'])
@@ -40,21 +32,43 @@ def get_token_data(token_file):
     return {'directory':directory,'user':user}
 
 def transform_path(path):
-    match = re.match('/(?P<token>[a-zA-Z0-9]{10})/(?:(?P<subpath>.*))', path)
-    token_file = join(TOKEN_DIR,match.group('token'))
-    if isfile(token_file):
-        data = get_token_data(token_file)
-        return data['directory']
-    else:
-        return None    
+    match = re.match('/(?P<token>[a-zA-Z0-9]{10})(?:/(?P<subpath>.*))', path)
+    try:
+        matches = match.groupdict()
+        if not matches.has_key('token'):
+            return None
+        if matches.has_key('subpath'):
+            if '..' in matches['subpath']:
+                print 'Illegal subpath: %s' % matches['subpath']
+                return None
+        token_file = join(TOKEN_DIR,match.group('token'))
+        if isfile(token_file):
+            data = get_token_data(token_file)
+            if match.groupdict().has_key('subpath'):
+                return join(data['directory'],match.group('subpath'))
+            return data['directory']
+        else:
+            return None    
+    except:
+        print 'Bad path: %s' % path
+        return None
+    
 
 def handle_rsync(parts):
-    paths = parts[parts.index('.')+1:]
+    paths = [transform_path(path) for path in parts[parts.index('.')+1:]]
+    if None in paths:
+        print 'Bad command'
+        return
     if '--sender' in parts:#server->client
-        paths = parts[parts.index('.')+1:]
+        command = ['rsync', '--server', '--sender', '-vogDtprze.iLsf', '.'] + paths
     else:#client->server
-        paths = parts[parts.index('.')+1:]
-    
+        # --no-p --no-g --chmod=ugo=rwX  //destination default permissions
+        command = ['rsync', '--server', '-voDtrze.iLsf', '.'] + paths
+    if TEST:
+        print command
+    else:
+        os.execvp('rsync', command)
+        
 def handle_ls(parts):
     path = transform_path(parts[1])
     if path is not None:
@@ -62,17 +76,30 @@ def handle_ls(parts):
     else:
         print 'Bad command'
 
-        
+def main():
+    try:
+        parts = re.split('\s+',ORIGINAL_COMMAND)
+        logger.info('SSH_ORIGINAL_COMMAND: '+ORIGINAL_COMMAND)
+        if parts[0] == 'rsync':
+            handle_rsync(parts)
+        elif parts[0] == 'ls':
+            handle_ls(parts)
+        else:
+            print 'Unsupported command: %s' % parts[0]
+    #     os.execvp('ls', ['ls', '/var/www'])
+    except Exception, e:
+        logger.error('Bad or missing parameter "SSH_ORIGINAL_COMMAND"')
 
 
 
-try:
-    parts = re.split('\s+',ORIGINAL_COMMAND)
-    logger.info('SSH_ORIGINAL_COMMAND: '+ORIGINAL_COMMAND)
-    if parts[0] == 'rsync':
-        handle_rsync(parts)
-    elif parts[0] == 'ls':
-        handle_ls(parts)
-#     os.execvp('ls', ['ls', '/var/www'])
-except Exception, e:
-    logger.error('Bad or missing parameter "SSH_ORIGINAL_COMMAND"')
+if __name__ == '__main__':
+    #Should probably use argument parsing library, but trying to keep dependencies to a minumum
+    if len(sys.argv)==2:
+        user = sys.argv[1]
+    elif len(sys.argv)==3:
+        user = sys.argv[1]
+        ORIGINAL_COMMAND = sys.argv[2] #for testing: ssh-wrapper.py username 'rsync /local/file remote:/TOKEN/subdir
+        TEST = True
+    if ORIGINAL_COMMAND is None:
+        ORIGINAL_COMMAND = os.environ['SSH_ORIGINAL_COMMAND']
+    main()
