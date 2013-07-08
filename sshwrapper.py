@@ -3,10 +3,18 @@ import os
 import sys
 import re
 import logging
+import urllib2
+import json
 
 TOKEN_DIR = '/tmp/tokens'
+SHARE_DIR = '/var/www/virtualenv/bioshare/include/bioshare/media/files/'
 ORIGINAL_COMMAND = None
+USER = None
 TEST = False
+PERMISSIONS = {}
+WRITE_PERMISSIONS = ['write_to_share','delete_share_files']
+READ_PERMISSIONS = ['download_share_files']
+
 
 # r = re.compile('^hg -R (S%2B) serve --stdio$')
 # match = re.search(r, os.environ['SSH_ORIGINAL_COMMAND'])
@@ -22,6 +30,27 @@ def get_token_data(token_file):
     directory = config.get('details','directory')
     user = config.get('details','user')
     return {'directory':directory,'user':user}
+
+def get_permissions(username,share):
+    if not PERMISSIONS.has_key(share):
+        response = urllib2.urlopen('http://bowie.genomecenter.ucdavis.edu:8000/bioshare/api/get_user_permissions/%s/?username=%s' % (share,username))
+        response = json.load(response)
+        PERMISSIONS[share]= response['permissions']
+    return PERMISSIONS[share]
+
+def can_write(username,share):
+    perms = get_permissions(username,share)
+    for perm in WRITE_PERMISSIONS:
+        if perm not in perms:
+            return False
+    return True
+
+def can_read(username,share):
+    perms = get_permissions(username,share)
+    for perm in READ_PERMISSIONS:
+        if perm not in perms:
+            return False
+    return True
 
 def transform_path(path):
     match = re.match('/(?P<token>[a-zA-Z0-9]{10})(?:/(?P<subpath>.*))', path)
@@ -44,7 +73,27 @@ def transform_path(path):
     except:
         print 'Bad path: %s' % path
         return None
-    
+
+def analyze_path(path):
+    match = re.match('/(?P<share>[a-zA-Z0-9]{15})(?:/(?P<subpath>.*))', path)
+    try:
+        matches = match.groupdict()
+        if not matches.has_key('token'):
+            return None
+        if matches.has_key('subpath'):
+            if '..' in matches['subpath']:
+                print 'Illegal subpath: %s' % matches['subpath']
+                return None
+        if match.groupdict().has_key('subpath'):
+            path = join(SHARE_DIR, matches['share'], match.group('subpath'))
+        else:
+            path = join(SHARE_DIR, matches['share'])
+        return {'share':matches['share'],'path':path}
+    except:
+        print 'Bad path: %s' % path
+        return None
+
+
 
 def handle_rsync(parts):
     paths = [transform_path(path) for path in parts[parts.index('.')+1:]]
@@ -62,9 +111,10 @@ def handle_rsync(parts):
         os.execvp('rsync', command)
         
 def handle_ls(parts):
-    path = transform_path(parts[1])
-    if path is not None:
-        os.execvp('ls', ['ls', path])
+    path_data = analyze_path(parts[1])
+    if path_data is not None:
+        if can_read(USER, path_data['share']):
+            os.execvp('ls', ['ls', path_data['path']])
     else:
         print 'Bad command'
 
@@ -88,9 +138,9 @@ if __name__ == '__main__':
     #Should probably use argument parsing library, but trying to keep dependencies to a minumum
     
     if len(sys.argv)==2:
-        user = sys.argv[1]
+        USER = sys.argv[1]
     elif len(sys.argv)==3:
-        user = sys.argv[1]
+        USER = sys.argv[1]
         ORIGINAL_COMMAND = sys.argv[2] #for testing: ssh-wrapper.py username 'rsync /local/file remote:/TOKEN/subdir
         TEST = True
     if ORIGINAL_COMMAND is None:

@@ -33,6 +33,14 @@ def get_permissions(request,share):
     data = share.get_permissions(user_specific=True)
     return json_response(data)
 
+def get_user_permissions(request,share):
+    try:
+        share = Share.objects.get(id=share)
+        user = User.objects.get(username=request.GET.get('username'))
+        data = share.get_user_permissions(user)
+        return json_response({'permissions':data, 'status':'success'})
+    except Exception, e:
+        return json_response({'permissions':[], 'status':'error'})
 
 @share_access_decorator(['admin'])
 @JSONDecorator
