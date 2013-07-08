@@ -115,10 +115,11 @@ def handle_rsync(parts):
             for share in shares:
                 if not can_write(USER, share):
                     raise Exception, 'User %s cannot write to share %s' % (USER,share)
-            command = ['rsync', '--server', '-voDtrze.iLsf', '.'] + paths
+            command = ['rsync', '--server', parts[2] , '.'] + paths#'-voDtrze.iLsf'
         if TEST:
             print command
         else:
+            logger.info('running rsync command: ' + command)
             os.execvp('rsync', command)
     except Exception, e:
         logger.info('handle_rsync exception: %s' % e.message)
