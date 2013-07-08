@@ -64,7 +64,7 @@ def transform_path(path):
             return None
         if matches.has_key('subpath'):
             if '..' in matches['subpath']:
-                print 'Illegal subpath: %s' % matches['subpath']
+                logger.info('Illegal subpath: %s' % matches['subpath'])
                 return None
         token_file = join(TOKEN_DIR,match.group('token'))
         if isfile(token_file):
@@ -75,7 +75,7 @@ def transform_path(path):
         else:
             return None    
     except:
-        print 'Bad path: %s' % path
+        logger.info('Bad path: %s' % path)
         return None
 
 def analyze_path(path):
@@ -127,19 +127,17 @@ def handle_rsync(parts):
         
 def handle_ls(parts):
     path_data = analyze_path(parts[1])
-    print path_data
     if path_data is not None:
         if can_read(USER, path_data['share']):
-            print 'can read'
             command = ['ls', path_data['path']]
 #             if TEST:
 #                 print command
 #             else:
             os.execvp('ls', command)
         else:
-            print 'Permission denied'
+            logger.info( 'ls: Permission denied')
     else:
-        print 'Bad command'
+        logger.info( 'ls: Bad command')
 
 def main():
     try:
@@ -150,7 +148,7 @@ def main():
         elif parts[0] == 'ls':
             handle_ls(parts)
         else:
-            print 'Unsupported command: %s' % parts[0]
+            logger.info( 'Unsupported command: %s' % parts[0])
     #     os.execvp('ls', ['ls', '/var/www'])
     except Exception, e:
         logger.error('Bad or missing parameter "SSH_ORIGINAL_COMMAND"')
