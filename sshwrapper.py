@@ -84,21 +84,19 @@ def analyze_path(path):
     try:
         matches = match.groupdict()
         if not matches.has_key('share'):
-            return None
+            raise Exception, 'analyze_path: Bad path: %s' % path
         if matches.has_key('subpath'):
 #             print matches['subpath']
             if '..' in matches['subpath']:
-                print 'Illegal subpath: %s' % matches['subpath']
-                return None
+                raise Exception, 'Illegal subpath: %s' % matches['subpath']
         if matches.has_key('subpath'):
             path = join(config.get('config','share_dir'), matches['share'], match.group('subpath'))
         else:
             path = join(config.get('config','share_dir'), matches['share'])
         return {'share':matches['share'],'path':path}
     except Exception, e:
-        print 'Bad path: %s' % path
+        raise Exception, 'analyze_path: Bad path: %s' % path
         logger.info('analyze_path exception: %s' % e.message)
-        return None
 
 
 
@@ -107,18 +105,15 @@ def handle_rsync(parts):
         paths_data = [analyze_path(path) for path in parts[parts.index('.')+1:]]
         paths = [path_data['path'] for path_data in paths_data]
         shares = [path_data['share'] for path_data in paths_data]
-        if None in paths_data:
-            print 'Bad command'
-            return
         if '--sender' in parts:#server->client
             for share in shares:
-                if not can_read(USER, path['share']):
+                if not can_read(USER, share):
                     raise Exception, 'User %s cannot read from share %s' % (USER,share)
             command = ['rsync', '--server', '--sender', '-vogDtprze.iLsf', '.'] + paths
         else:#client->server
             # --no-p --no-g --chmod=ugo=rwX  //destination default permissions
             for share in shares:
-                if not can_write(USER, path['share']):
+                if not can_write(USER, share):
                     raise Exception, 'User %s cannot write to share %s' % (USER,share)
             command = ['rsync', '--server', '-voDtrze.iLsf', '.'] + paths
         if TEST:
