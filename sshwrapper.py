@@ -115,7 +115,7 @@ def handle_rsync(parts):
             for share in shares:
                 if not can_write(USER, share):
                     raise Exception, 'User %s cannot write to share %s' % (USER,share)
-            command = ['rsync', '--server', '-vrzpe.iLsf', '--chmod=ug=rwX,o=rX' , '.'] + paths
+            command = ['rsync', '--server', '-vrze.iLsf', '.'] + paths
 #             command = parts[:4]+paths
         if TEST:
             print command
