@@ -119,7 +119,7 @@ def handle_rsync(parts):
         if TEST:
             print command
         else:
-            logger.info('running rsync command: ' + command)
+            logger.info('running rsync command: %s' % ' '.join(command))
             os.execvp('rsync', command)
     except Exception, e:
         logger.info('handle_rsync exception: %s' % e.message)
