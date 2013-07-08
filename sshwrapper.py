@@ -109,13 +109,13 @@ def handle_rsync(parts):
             for share in shares:
                 if not can_read(USER, share):
                     raise Exception, 'User %s cannot read from share %s' % (USER,share)
-            command = ['rsync', '--server', '--sender', '-vogDtprze.iLsf', '.'] + paths
+            command = ['rsync', '--server', '--sender', '-vrze.iLsf', '.'] + paths
         else:#client->server
             # --no-p --no-g --chmod=ugo=rwX  //destination default permissions
             for share in shares:
                 if not can_write(USER, share):
                     raise Exception, 'User %s cannot write to share %s' % (USER,share)
-            command = ['rsync', '--server', '-vrze.iLsf' , '.'] + paths
+            command = ['rsync', '--server', '-vrze.iLsf', '--chmod=ugo=rwX' , '.'] + paths
 #             command = parts[:4]+paths
         if TEST:
             print command
