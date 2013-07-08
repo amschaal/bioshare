@@ -166,7 +166,6 @@ if __name__ == '__main__':
     logger.addHandler(hdlr) 
     logger.setLevel(logging.INFO)
     from os.path import join, isfile
-    logger.info('Test message')
-
-    
+    logger.info('user: %s' % USER)
+    logger.info('command: %s' % ORIGINAL_COMMAND)
     main()
