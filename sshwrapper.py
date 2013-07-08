@@ -15,6 +15,9 @@ PERMISSIONS = {}
 WRITE_PERMISSIONS = ['write_to_share','delete_share_files']
 READ_PERMISSIONS = ['download_share_files']
 
+import ConfigParser
+config = ConfigParser.ConfigParser()
+config.read('sshwrapper.config')
 
 # r = re.compile('^hg -R (S%2B) serve --stdio$')
 # match = re.search(r, os.environ['SSH_ORIGINAL_COMMAND'])
@@ -33,7 +36,8 @@ def get_token_data(token_file):
 
 def get_permissions(username,share):
     if not PERMISSIONS.has_key(share):
-        response = urllib2.urlopen('http://bowie.genomecenter.ucdavis.edu:8000/bioshare/api/get_user_permissions/%s/?username=%s' % (share,username))
+        url  = config.get('config','perm_api_url') % (share,username)
+        response = urllib2.urlopen(url)
         response = json.load(response)
         PERMISSIONS[share]= response['permissions']
     return PERMISSIONS[share]
@@ -75,19 +79,21 @@ def transform_path(path):
         return None
 
 def analyze_path(path):
+#     print path
     match = re.match('/(?P<share>[a-zA-Z0-9]{15})(?:/(?P<subpath>.*))', path)
     try:
         matches = match.groupdict()
-        if not matches.has_key('token'):
+        if not matches.has_key('share'):
             return None
         if matches.has_key('subpath'):
+#             print matches['subpath']
             if '..' in matches['subpath']:
                 print 'Illegal subpath: %s' % matches['subpath']
                 return None
         if match.groupdict().has_key('subpath'):
-            path = join(SHARE_DIR, matches['share'], match.group('subpath'))
+            path = join(config.get('config','share_dir'), matches['share'], match.group('subpath'))
         else:
-            path = join(SHARE_DIR, matches['share'])
+            path = join(config.get('config','share_dir'), matches['share'])
         return {'share':matches['share'],'path':path}
     except:
         print 'Bad path: %s' % path
@@ -112,9 +118,17 @@ def handle_rsync(parts):
         
 def handle_ls(parts):
     path_data = analyze_path(parts[1])
+    print path_data
     if path_data is not None:
         if can_read(USER, path_data['share']):
-            os.execvp('ls', ['ls', path_data['path']])
+            print 'can read'
+            command = ['ls', path_data['path']]
+#             if TEST:
+#                 print command
+#             else:
+            os.execvp('ls', command)
+        else:
+            print 'Permission denied'
     else:
         print 'Bad command'
 
@@ -153,4 +167,6 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     from os.path import join, isfile
     logger.info('Test message')
+
+    
     main()
