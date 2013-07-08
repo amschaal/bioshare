@@ -103,19 +103,30 @@ def analyze_path(path):
 
 
 def handle_rsync(parts):
-    paths = [transform_path(path) for path in parts[parts.index('.')+1:]]
-    if None in paths:
-        print 'Bad command'
-        return
-    if '--sender' in parts:#server->client
-        command = ['rsync', '--server', '--sender', '-vogDtprze.iLsf', '.'] + paths
-    else:#client->server
-        # --no-p --no-g --chmod=ugo=rwX  //destination default permissions
-        command = ['rsync', '--server', '-voDtrze.iLsf', '.'] + paths
-    if TEST:
-        print command
-    else:
-        os.execvp('rsync', command)
+    try:
+        paths_data = [analyze_path(path) for path in parts[parts.index('.')+1:]]
+        paths = [path_data['path'] for path_data in paths_data]
+        shares = [path_data['share'] for path_data in paths_data]
+        if None in paths_data:
+            print 'Bad command'
+            return
+        if '--sender' in parts:#server->client
+            for share in shares:
+                if not can_read(USER, path['share']):
+                    raise Exception, 'User %s cannot read from share %s' % (USER,share)
+            command = ['rsync', '--server', '--sender', '-vogDtprze.iLsf', '.'] + paths
+        else:#client->server
+            # --no-p --no-g --chmod=ugo=rwX  //destination default permissions
+            for share in shares:
+                if not can_write(USER, path['share']):
+                    raise Exception, 'User %s cannot write to share %s' % (USER,share)
+            command = ['rsync', '--server', '-voDtrze.iLsf', '.'] + paths
+        if TEST:
+            print command
+        else:
+            os.execvp('rsync', command)
+    except Exception, e:
+        logger.info('handle_rsync exception: %s' % e.message)
         
 def handle_ls(parts):
     path_data = analyze_path(parts[1])
