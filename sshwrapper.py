@@ -90,13 +90,14 @@ def analyze_path(path):
             if '..' in matches['subpath']:
                 print 'Illegal subpath: %s' % matches['subpath']
                 return None
-        if match.groupdict().has_key('subpath'):
+        if matches.has_key('subpath'):
             path = join(config.get('config','share_dir'), matches['share'], match.group('subpath'))
         else:
             path = join(config.get('config','share_dir'), matches['share'])
         return {'share':matches['share'],'path':path}
-    except:
+    except Exception, e:
         print 'Bad path: %s' % path
+        logger.info('analyze_path exception: %s' % e.message)
         return None
 
 
