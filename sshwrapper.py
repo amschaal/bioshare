@@ -93,7 +93,7 @@ def analyze_path(path):
             path = join(config.get('config','share_dir'), matches['share'], match.group('subpath'))
         else:
             path = join(config.get('config','share_dir'), matches['share'])
-        return {'share':matches['share'],'path':'"'+path+'"'}
+        return {'share':matches['share'],'path':path.replace(' ','\ ')}
     except Exception, e:
         raise Exception, 'analyze_path: Bad path: %s' % path
         logger.info('analyze_path exception: %s' % e.message)
