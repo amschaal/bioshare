@@ -21,11 +21,19 @@ function get_selected_names(){
 	return selection;
 }
 function generate_rsync_strings(share,subpath){
+	var re = new RegExp(' ', 'g');
 	var selection = get_selected_names();
+	for(var i in selection){
+		if (selection[i].indexOf(' ') > -1)
+			selection[i] = "'"+selection[i].replace(re,'\\ ')+"'";
+	}
+	
 	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
+	if (path.indexOf(' ') > -1)
+		path = "'"+path.replace(re,'\\ ')+"'";
 	var files = selection.length > 0 ? '{'+selection.join(',')+'}' : '';
-	var download_string = "rsync -vrz 'adam@phymaptest:"+path+files+"' /to/my/local/directory";
-	var upload_string = "rsync -vrz /path/to/my/files  'adam@phymaptest:"+path+"'";
+	var download_string = "rsync -vrz adam@phymaptest:"+path+files+" /to/my/local/directory";
+	var upload_string = "rsync -vrz /path/to/my/files  adam@phymaptest:"+path;
 	
 	$('#rsync-download-command').text(download_string);
 	$('#rsync-upload-command').text(upload_string);
