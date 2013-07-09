@@ -93,7 +93,7 @@ def analyze_path(path):
             path = join(config.get('config','share_dir'), matches['share'], match.group('subpath'))
         else:
             path = join(config.get('config','share_dir'), matches['share'])
-        return {'share':matches['share'],'path':path}
+        return {'share':matches['share'],'path':'"'+path+'"'}
     except Exception, e:
         raise Exception, 'analyze_path: Bad path: %s' % path
         logger.info('analyze_path exception: %s' % e.message)
@@ -118,9 +118,10 @@ def handle_rsync(parts):
             command = ['rsync', '--server', '-vrze.iLsf', '.'] + paths
 #             command = parts[:4]+paths
         if TEST:
+            logger.info('running rsync command: %s' % ', '.join(command))
             print command
         else:
-            logger.info('running rsync command: %s' % ' '.join(command))
+            logger.info('running rsync command: %s' % ', '.join(command))
             os.execvp('rsync', command)
     except Exception, e:
         logger.info('handle_rsync exception: %s' % e.message)
