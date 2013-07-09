@@ -104,9 +104,9 @@
   </div>
   <div class="modal-body">
     <h3>Download command</h3>
-    <b id="rsync-download-command" style="word-break: break-all;"></b>
+    <b id="rsync-download-command" style="word-wrap: break-word;"></b>
     <h3>Upload command</h3>
-    <b id="rsync-upload-command" style="word-break: break-all;">rsync -vrz /path/to/my/files  adam@phymaptest:{{path}}</b>
+    <b id="rsync-upload-command" style="word-wrap: break-word;"></b>
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
@@ -141,7 +141,8 @@
    	var goto_url = '{% url 'go_to_file_or_folder' share='000000000000000' %}';
    	var goto_url_replace = '/000000000000000/';
    	var share_perms = {{share_perms_json|safe}};
-   	var path = '{{ path }}';
+   	var share = '{{ share.id }}';
+   	var subpath = '{{ subdir }}';
 	
 </script>
 <script src="{% static "js/share/main.js" %}"></script>
