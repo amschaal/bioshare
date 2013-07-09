@@ -145,6 +145,7 @@ def main():
         import shlex
         parts = shlex.split(ORIGINAL_COMMAND)
         logger.info('SSH_ORIGINAL_COMMAND: '+ORIGINAL_COMMAND)
+        logger.info('SPLIT: '+', '.join(parts))
         if parts[0] == 'rsync':
             handle_rsync(parts)
         elif parts[0] == 'ls':
