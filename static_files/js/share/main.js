@@ -20,11 +20,15 @@ function get_selected_names(){
 	});
 	return selection;
 }
-function generate_rsync_string(path){
+function generate_rsync_strings(share,subpath){
 	var selection = get_selected_names();
-//	var path = subpath ? share + '/' + subpath : share;
-	var string = 'rsync -vrz adam@phymaptest:'+path+'{'+selection.join(',')+'} /to/my/local/directory';
-	$('#rsync-download-command').text(string);
+	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
+	var files = selection.length > 0 ? '{'+selection.join(',')+'}' : '';
+	var download_string = "rsync -vrz 'adam@phymaptest:"+path+files+"' /to/my/local/directory";
+	var upload_string = "rsync -vrz /path/to/my/files  'adam@phymaptest:"+path+"'";
+	
+	$('#rsync-download-command').text(download_string);
+	$('#rsync-upload-command').text(upload_string);
 	$('#rsync-download').modal('show');
 }
 function delete_paths(url,selection){
@@ -131,7 +135,7 @@ $(function () {
     				delete_paths(delete_paths_url,get_selected_names());
     			break;
     		case 'rsync':
-    			generate_rsync_string(path);
+    			generate_rsync_strings(share,subpath);
     	}
     });
     $('#searchButton').click(function(){search_share($('#searchBox').val())});
