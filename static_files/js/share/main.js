@@ -39,6 +39,34 @@ function generate_rsync_strings(share,subpath){
 	$('#rsync-upload-command').text(upload_string);
 	$('#rsync-download').modal('show');
 }
+function generate_rsync_download(share,subpath){
+	var re = new RegExp(' ', 'g');
+	var selection = get_selected_names();
+	for(var i in selection){
+		if (selection[i].indexOf(' ') > -1)
+			selection[i] = "'"+selection[i].replace(re,'\\ ')+"'";
+	}
+	
+	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
+	if (path.indexOf(' ') > -1)
+		path = "'"+path.replace(re,'\\ ')+"'";
+	var files = selection.length > 0 ? '{'+selection.join(',')+'}' : '';
+	var download_all_string = "rsync -vrz adam@phymaptest:"+path+" /to/my/local/directory";
+	var download_string = "rsync -vrz adam@phymaptest:"+path+files+" /to/my/local/directory";
+	
+	$('#rsync-download-selected').text(download_string);
+	$('#rsync-download-all').text(download_all_string);
+	$('#rsync-download').modal('show');
+}
+function generate_rsync_upload(share,subpath){
+	var re = new RegExp(' ', 'g');
+	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
+	if (path.indexOf(' ') > -1)
+		path = "'"+path.replace(re,'\\ ')+"'";
+	var upload_string = "rsync -vrz /path/to/my/files  adam@phymaptest:"+path;
+	$('#rsync-upload-command').text(upload_string);
+	$('#rsync-upload').modal('show');
+}
 function delete_paths(url,selection){
 	BC.ajax(
 		{
@@ -131,6 +159,19 @@ $(function () {
     	});
     $('#toggle-checkbox').change(function(){
 		$('.action-check').prop('checked',$(this).prop('checked'));
+    });
+    $('#download-zip').click(function(){
+    	archive_files(archive_files_url,get_selected_names());
+    });
+    $('#download-rsync').click(function(){
+    	generate_rsync_download(share,subpath);
+    });
+    $('#upload-rsync').click(function(){
+    	generate_rsync_upload(share,subpath);
+    });
+    $('#delete-button').click(function(){
+    	if(confirm('Are you sure you want to delete these files/folders?'))
+			delete_paths(delete_paths_url,get_selected_names());
     });
     $('#launch-action').click(function(){
     	switch($('#action').val()){
