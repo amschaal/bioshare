@@ -20,6 +20,13 @@ function get_selected_names(){
 	});
 	return selection;
 }
+function generate_rsync_string(path){
+	var selection = get_selected_names();
+//	var path = subpath ? share + '/' + subpath : share;
+	var string = 'rsync -vrz adam@phymaptest:'+path+'{'+selection.join(',')+'} /to/my/local/directory';
+	$('#rsync-download-command').text(string);
+	$('#rsync-download').modal('show');
+}
 function delete_paths(url,selection){
 	BC.ajax(
 		{
@@ -123,6 +130,8 @@ $(function () {
     			if(confirm('Are you sure you want to delete these files/folders?'))
     				delete_paths(delete_paths_url,get_selected_names());
     			break;
+    		case 'rsync':
+    			generate_rsync_string(path);
     	}
     });
     $('#searchButton').click(function(){search_share($('#searchBox').val())});
