@@ -99,7 +99,7 @@ def analyze_path(path):
         return {'share':matches['share'],'path':path}
     except Exception, e:
         raise Exception('analyze_path: Bad path: %s' % path)
-        logger.info('analyze_path exception: %s' % str(e))
+
 
 
 
@@ -127,6 +127,7 @@ def handle_rsync(parts):
             logger.info('running rsync command: %s' % ', '.join(command))
             os.execvp('rsync', command)
     except Exception, e:
+        print >> sys.stderr, 'handle_rsync exception: %s' % str(e)
         logger.info('handle_rsync exception: %s' % str(e))
         
 def handle_ls(parts):
