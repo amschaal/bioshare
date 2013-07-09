@@ -34,13 +34,16 @@ class Share(models.Model):
         if user_specific:
             from utils import fetchall
             perms = fetchall("SELECT p.codename as permission FROM guardian_userobjectpermission uop join auth_user u on uop.user_id = u.id join auth_permission p on uop.permission_id=p.id where uop.object_pk = %s and u.username = %s",[self.id, user.username])
-            return [perm[0] for perm in perms]
+            perms =  [perm[0] for perm in perms]
         else:
             from guardian.shortcuts import get_perms
             if user.username == self.owner.username:
-                return [perm[0] for perm in self._meta.permissions]
+                perms = [perm[0] for perm in self._meta.permissions]
             else:
-                return get_perms(user, self)
+                perms = get_perms(user, self)
+        if not self.secure:
+            perms = list(set(perms+['view_share_files','download_share_files']))
+        return perms
     def get_all_user_permissions(self,user_specific=False):
         if not user_specific:
             from guardian.shortcuts import get_users_with_perms

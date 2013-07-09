@@ -142,7 +142,7 @@
    	var goto_url_replace = '/000000000000000/';
    	var share_perms = {{share_perms_json|safe}};
    	var share = '{{ share.id }}';
-   	var subpath = '{{ subdir }}';
+   	var subpath = {% if subdir %}'{{ subdir }}' {% else %} null {% endif %};
 	
 </script>
 <script src="{% static "js/share/main.js" %}"></script>
