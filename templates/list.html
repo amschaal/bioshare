@@ -30,23 +30,37 @@
 </ul>
 <div class="tab-content">
   <div class="tab-pane active" id="file-tab">
-	  <select id="action">
-	  	<option selected disabled>Action</option>
-	  	{% if "download_share_files" in share_perms %}<option value="download">Download</option>{% endif %}
-	  	{% if "download_share_files" in share_perms %}<option value="rsync">Rsync</option>{% endif %}
-	  	{% if "delete_share_files" in share_perms %}<option value="delete">Delete</option>{% endif %}
-	  </select>
-	  <a id="launch-action" role="button" class="btn" data-toggle="modal">Go</a>
+	  {% if "download_share_files" in share_perms %}
+	  <div class="btn-group">
+		  <a class="btn dropdown-toggle btn-primary" data-toggle="dropdown" href="#">
+		    Download
+		    <span class="caret"></span>
+		  </a>
+		  <ul class="dropdown-menu">
+		    <li><a href="#" id="download-zip">Zipfile</a></li>
+		    <li><a href="#" id="download-rsync">Rsync</a></li>
+		  </ul>
+	  </div>
+	  {% endif %}
 	  {% if "write_to_share" in share_perms %}
 	  <!-- The fileinput-button span is used to style the file input field as button -->
-	    <span class="btn btn-success fileinput-button">
-	        <i class="icon-plus icon-white"></i>
+	    <div class="btn-group">
+		  <a class="btn dropdown-toggle btn-success" data-toggle="dropdown" href="#">
+		    <i class="icon-plus icon-white"></i>
 	        <span>Files</span>
-	        <!-- The file input field used as target for the file upload widget -->
-	        <input id="fileupload" type="file" name="files[]" multiple>
-	    </span>
-	    <a href="#new-folder" role="button" class="btn btn-warning" data-toggle="modal"><i class="icon-plus icon-white"></i>Folder</a>
-	    {% if "admin" in share_perms %}<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary"><i class="fam-user-add"></i> Permissions</a>{% endif %}
+		    <span class="caret"></span>
+		  </a>
+		  <ul class="dropdown-menu">
+		    <li class="fileinput-button"><a href="#"  >Web</a><input id="fileupload" type="file" name="files[]" multiple></li>
+		    <li><a href="#" id="upload-rsync">Rsync</a></li>
+		  </ul>
+	  </div>
+
+	    <a href="#new-folder" role="button" class="btn btn-success" data-toggle="modal"><i class="icon-plus icon-white"></i>Folder</a>
+	    {% if "delete_share_files" in share_perms %}
+	    <a role="button" class="btn btn-danger" id="delete-button">Delete</a>
+	    {% endif %}
+	    {% if "admin" in share_perms %}<a href="{% url 'share_permissions' share.id%}" class="btn btn-warning"><i class="fam-user-add"></i> Permissions</a>{% endif %}
 	    <br>
 	    <!-- The global progress bar -->
 	    <div id="progress" class="progress progress-success progress-striped" style="display:none">
@@ -103,9 +117,22 @@
     <h3>Rsync files</h3>
   </div>
   <div class="modal-body">
-    <h3>Download command</h3>
-    <b id="rsync-download-command" style="word-wrap: break-word;"></b>
-    <h3>Upload command</h3>
+    <h3>Download all</h3>
+    <b id="rsync-download-all" style="word-wrap: break-word;"></b>
+    <h3>Download selected</h3>
+    <b id="rsync-download-selected" style="word-wrap: break-word;"></b>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+</div>
+
+<div class="modal hide fade" id="rsync-upload">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>Rsync upload</h3>
+  </div>
+  <div class="modal-body">
     <b id="rsync-upload-command" style="word-wrap: break-word;"></b>
   </div>
   <div class="modal-footer">
