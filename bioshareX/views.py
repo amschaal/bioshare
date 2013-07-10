@@ -65,11 +65,19 @@ def list_ssh_keys(request):
 @login_required
 def create_ssh_key(request):
     if request.method == 'POST':
-        form = SSHKeyForm(request.POST)
+        form = SSHKeyForm(request.POST,request.FILES)
         if form.is_valid():
-            key = form.save(commit=False)
-            key.user=request.user
+            key = SSHKey(name=form.cleaned_data['name'],key=form.cleaned_data['rsa_key'],user=request.user)
+#             key = form.save(commit=False)
+#             key.user=request.user
             key.save()
+            from settings.settings import AUTHORIZED_KEYS_FILE
+            import subprocess
+            subprocess.call(['sudo','chmod','660',AUTHORIZED_KEYS_FILE])
+            auth_keys = open(AUTHORIZED_KEYS_FILE, "a")
+            auth_keys.write('\n'+key.create_authorized_key())
+            auth_keys.close()
+            subprocess.call(['sudo','chmod','600',AUTHORIZED_KEYS_FILE])
             return HttpResponseRedirect(reverse('list_ssh_keys'))
     else:
         form = SSHKeyForm()
