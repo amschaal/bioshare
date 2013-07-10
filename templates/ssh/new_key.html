@@ -4,7 +4,7 @@
 
 {% block content %}
   <p>
-  <form class="form-horizontal" method="POST">
+  <form enctype="multipart/form-data" class="form-horizontal" method="POST">
   <fieldset>
 	  <legend>Add an SSH public key</legend>
 	    {{ form|crispy }}

@@ -128,3 +128,10 @@ class SSHKey(models.Model):
     user = models.ForeignKey(User)
     name = models.CharField(max_length=50)
     key = models.TextField(blank=False,null=False)
+    def create_authorized_key(self):
+        import re
+        match = re.match('ssh-rsa (?P<key>[A-Za-z0-9\+\/]{300,}) .*', self.key)
+        if match is None:
+            raise Exception('Unable to generate authorized key for user: %s, key name: %s' % (self.user.username,self.name))
+        matches = match.groupdict()
+        return 'command="/var/www/virtualenv/bioshare/include/bioshare/sshwrapper.py %s" ssh-rsa %s %s' % (self.user.username,matches['key'],self.user.username)
