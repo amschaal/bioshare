@@ -5,9 +5,8 @@ import re
 import logging
 import urllib2
 import json
+from os.path import join
 
-TOKEN_DIR = '/tmp/tokens'
-SHARE_DIR = '/var/www/virtualenv/bioshare/include/bioshare/media/files/'
 ORIGINAL_COMMAND = None
 USER = None
 TEST = False
@@ -59,28 +58,6 @@ def can_read(username,share):
             return False
     return True
 
-def transform_path(path):
-    match = re.match('/(?P<token>[a-zA-Z0-9]{10})(?:/(?P<subpath>.*))', path)
-    try:
-        matches = match.groupdict()
-        if not matches.has_key('token'):
-            return None
-        if matches.has_key('subpath'):
-            if '..' in matches['subpath']:
-                logger.info('Illegal subpath: %s' % matches['subpath'])
-                return None
-        token_file = join(TOKEN_DIR,match.group('token'))
-        if isfile(token_file):
-            data = get_token_data(token_file)
-            if match.groupdict().has_key('subpath'):
-                return join(data['directory'],match.group('subpath'))
-            return data['directory']
-        else:
-            return None    
-    except:
-        logger.info('Bad path: %s' % path)
-        return None
-
 def analyze_path(path):
 #     print path
     match = re.match('/(?P<share>[a-zA-Z0-9]{15})(?:/(?P<subpath>.*))', path)
@@ -99,9 +76,6 @@ def analyze_path(path):
         return {'share':matches['share'],'path':path}
     except Exception, e:
         raise Exception('analyze_path: Bad path: %s' % path)
-
-
-
 
 def handle_rsync(parts):
     try:
@@ -179,7 +153,6 @@ if __name__ == '__main__':
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr) 
     logger.setLevel(logging.INFO)
-    from os.path import join, isfile
     logger.info('user: %s' % USER)
     logger.info('command: %s' % ORIGINAL_COMMAND)
     main()
