@@ -73,7 +73,8 @@ def create_ssh_key(request):
             key.save()
             from settings.settings import AUTHORIZED_KEYS_FILE
             import subprocess
-            subprocess.call(['sudo','/bin/chmod','660',AUTHORIZED_KEYS_FILE])
+            if subprocess.call(['sudo','/bin/chmod','660',AUTHORIZED_KEYS_FILE]) == 1:
+                raise Exception('Could not change permissions for auth keys file')
             auth_keys = open(AUTHORIZED_KEYS_FILE, "a")
             auth_keys.write('\n'+key.create_authorized_key())
             auth_keys.close()
