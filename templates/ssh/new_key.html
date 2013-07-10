@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Hello World!{% endblock %}
+
+{% block content %}
+  <p>
+  <form class="form-horizontal" method="POST">
+  <fieldset>
+	  <legend>Add an SSH public key</legend>
+	    {{ form|crispy }}
+	  <div class="control-group">
+	    <div class="controls">
+	    	<button type="submit" class="btn">Create</button>
+	    </div>
+	  </div>
+  </fieldset>
+  {% csrf_token %}
+  </form>
+  </p>
+{% endblock %}

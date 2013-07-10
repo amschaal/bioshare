@@ -52,7 +52,19 @@
             <ul class="nav">
               <li class="active"><a href="{% url 'home' %}">Home</a></li>
               {% if request.user.is_authenticated %}
-              <li><a href="{% url 'create_share'%}">New Share</a></li>
+              <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Shares <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+							<li><a href="{% url 'create_share'%}">Create</a></li>
+                        </ul>
+                      </li>
+              <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">SSH Keys <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                          <li><a href="{% url 'list_ssh_keys'%}">View</a></li>
+                          <li><a href="{% url 'create_ssh_key'%}">Add SSH Key</a></li>
+                        </ul>
+                      </li>
               {% endif %}
             </ul>
           </div><!--/.nav-collapse -->

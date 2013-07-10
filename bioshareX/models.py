@@ -122,3 +122,9 @@ def share_post_save(sender, **kwargs):
         if not os.path.exists(path):
             os.makedirs(path)
 post_save.connect(share_post_save, sender=Share)
+
+
+class SSHKey(models.Model):
+    user = models.ForeignKey(User)
+    name = models.CharField(max_length=50)
+    key = models.TextField(blank=False,null=False)

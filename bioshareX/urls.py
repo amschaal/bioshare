@@ -9,6 +9,8 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^list/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_directory'),
     url(r'^permissions/(?P<share>\w{15})/?$', 'share_permissions', name='share_permissions'),
     url(r'^goto/(?P<share>\w{15})/(?:(?P<subpath>.*/?))?$', 'go_to_file_or_folder', name='go_to_file_or_folder'),
+    url(r'^ssh_keys/list/?$', 'list_ssh_keys', name='list_ssh_keys'),
+    url(r'^ssh_keys/create/?$', 'create_ssh_key', name='create_ssh_key'),
     
 )
 urlpatterns += patterns('bioshareX.api',
@@ -19,6 +21,7 @@ urlpatterns += patterns('bioshareX.api',
     url(r'^api/get_user/?$', 'get_user', name='api_get_user'),
     url(r'^api/get_group/?$', 'get_group', name='api_get_group'),
     url(r'^api/search/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'search_share', name='api_search_share'),
+    url(r'^api/ssh_keys/delete/?$', 'delete_ssh_key', name='api_delete_ssh_key'),
 )
 
 urlpatterns += patterns('bioshareX.file_views',
