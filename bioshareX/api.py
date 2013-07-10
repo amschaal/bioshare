@@ -3,7 +3,7 @@ from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect, HttpResponse
 from settings.settings import FILES_ROOT
-from models import Share
+from models import Share, SSHKey
 from forms import ShareForm, FolderForm
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
 from django.utils import simplejson
@@ -89,4 +89,14 @@ def search_share(request,share,subdir=None):
         response['results'] = find(path,query)
     else:
         response = {'status':'error'}
+    return json_response(response)
+
+def delete_ssh_key(request):
+    try:
+        id = request.POST.get('id')
+        key = SSHKey.objects.get(user=request.user,id=id)
+        key.delete()
+        response = {'status':'success','deleted':id}
+    except:
+        response = {'status':'error','message':'Unable to delete ssh key'}
     return json_response(response)

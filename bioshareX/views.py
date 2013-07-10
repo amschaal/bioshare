@@ -3,8 +3,8 @@ from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT
-from models import Share
-from forms import ShareForm, FolderForm
+from models import Share, SSHKey
+from forms import ShareForm, FolderForm, SSHKeyForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
 from bioshareX.utils import share_access_decorator
@@ -57,6 +57,25 @@ def create_share(request):
     else:
         form = ShareForm()
     return render(request, 'share/new_share.html', {'form': form})
+
+def list_ssh_keys(request):
+    context ={'keys':SSHKey.objects.filter(user=request.user)}
+    return render(request,'ssh/list_keys.html',context)
+
+@login_required
+def create_ssh_key(request):
+    if request.method == 'POST':
+        form = SSHKeyForm(request.POST)
+        if form.is_valid():
+            key = form.save(commit=False)
+            key.user=request.user
+            key.save()
+            return HttpResponseRedirect(reverse('list_ssh_keys'))
+    else:
+        form = SSHKeyForm()
+    return render(request, 'ssh/new_key.html', {'form': form})
+
+
 
 @share_access_decorator(['view_share_files'])    
 def go_to_file_or_folder(request, share, subpath=None):

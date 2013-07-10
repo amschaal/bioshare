@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block content %}
+<h2>SSH Public Keys</h2>
+<a class="btn btn-success" href="{% url 'create_ssh_key' %}">Add New</a>
+<table class="table" id="ssh-key-table">
+<thead><tr><th></th><th>Name</th><th>Key</th></tr></thead>
+<tbody>
+{% for key in keys%}
+<tr data-id="{{key.id}}"><td><i class="fam-cross" data-action="delete-key"></i></td><td>{{key.name}}</td><td>{{key.key}}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}
+{% block scripts %}
+{{block.super}}
+<script>
+var delete_key_url = '{% url "api_delete_ssh_key" %}';
+</script>
+<script src="{% static "js/ssh/ssh_keys.js" %}"></script>
+{% endblock %}
