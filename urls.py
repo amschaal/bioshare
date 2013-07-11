@@ -3,8 +3,9 @@ from django.conf.urls import patterns, include, url
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 admin.autodiscover()
-from registration.forms import RegistrationFormUniqueEmail
-from registration.views import RegistrationView
+# from registration.forms import RegistrationFormUniqueEmail
+from bioshareX.forms import RegistrationForm
+from registration.backends.default.views import RegistrationView
 
 
 urlpatterns = patterns('',
@@ -20,7 +21,7 @@ urlpatterns = patterns('',
     url(r'^bioshare/', include('bioshareX.urls')),
     url(r'^accounts/', include('registration.backends.default.urls')),
     url(r'^accounts/register/$', RegistrationView.as_view(
-    form_class=RegistrationFormUniqueEmail),
+    form_class=RegistrationForm),
     name='registration_register'),
 )
 # urlpatterns += patterns('',
