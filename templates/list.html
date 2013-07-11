@@ -170,7 +170,7 @@
    	var share_perms = {{share_perms_json|safe}};
    	var share = '{{ share.id }}';
    	var subpath = {% if subdir %}'{{ subdir }}' {% else %} null {% endif %};
-	
+	var rsync_url = '{{rsync_url}}';
 </script>
 <script src="{% static "js/share/main.js" %}"></script>
 {% endblock%}

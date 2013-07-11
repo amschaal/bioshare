@@ -25,6 +25,8 @@ class SSHKeyForm(forms.Form):
         contents = file.read()
         if contents[:7] != 'ssh-rsa':
             raise forms.ValidationError("Only ssh-rsa keys are accepted")
+        if len(SSHKey.objects.filter(key__contains=SSHKey.extract_key(contents))) != 0:
+            raise forms.ValidationError("This key is already in use.")
 #             if "fred@example.com" not in data:
 #                 raise forms.ValidationError("You have forgotten about Fred!")
         
