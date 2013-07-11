@@ -51,8 +51,8 @@ function generate_rsync_download(share,subpath){
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
 	var files = selection.length > 0 ? '{'+selection.join(',')+'}' : '';
-	var download_all_string = "rsync -vrz adam@phymaptest:"+path+" /to/my/local/directory";
-	var download_string = "rsync -vrz adam@phymaptest:"+path+files+" /to/my/local/directory";
+	var download_all_string = "rsync -vrz "+rsync_url+":"+path+" /to/my/local/directory";
+	var download_string = "rsync -vrz "+rsync_url+":"+path+files+" /to/my/local/directory";
 	
 	$('#rsync-download-selected').text(download_string);
 	$('#rsync-download-all').text(download_all_string);
@@ -63,7 +63,7 @@ function generate_rsync_upload(share,subpath){
 	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
-	var upload_string = "rsync -vrz /path/to/my/files  adam@phymaptest:"+path;
+	var upload_string = "rsync -vrz /path/to/my/files "+rsync_url+":"+path;
 	$('#rsync-upload-command').text(upload_string);
 	$('#rsync-upload').modal('show');
 }

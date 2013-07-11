@@ -2,7 +2,7 @@
 from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect, HttpResponse
-from settings.settings import FILES_ROOT
+from settings.settings import FILES_ROOT, AUTHORIZED_KEYS_FILE
 from models import Share, SSHKey
 from forms import ShareForm, FolderForm
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
@@ -95,8 +95,16 @@ def delete_ssh_key(request):
     try:
         id = request.POST.get('id')
         key = SSHKey.objects.get(user=request.user,id=id)
+        import subprocess, re
+        subprocess.call(['sudo','/bin/chmod','660',AUTHORIZED_KEYS_FILE])
+        keystring = key.get_key()
+        remove_me = keystring.replace('/','\/')#re.escape(key.extract_key())
+        command = ['sed','-i','/%s/d'%remove_me,AUTHORIZED_KEYS_FILE]
+        subprocess.call(command)
+        subprocess.call(['sudo','/bin/chmod','600',AUTHORIZED_KEYS_FILE])
         key.delete()
+        SSHKey.objects.filter(key__contains=keystring).delete()
         response = {'status':'success','deleted':id}
-    except:
-        response = {'status':'error','message':'Unable to delete ssh key'}
+    except Exception, e:
+        response = {'status':'error','message':'Unable to delete ssh key'+str(e)}
     return json_response(response)

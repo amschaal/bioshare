@@ -2,7 +2,7 @@
 from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
-from settings.settings import FILES_ROOT
+from settings.settings import FILES_ROOT, RSYNC_URL
 from models import Share, SSHKey
 from forms import ShareForm, FolderForm, SSHKeyForm
 from guardian.shortcuts import get_perms, get_users_with_perms
@@ -43,7 +43,7 @@ def list_directory(request,share,subdir=None):
         elif name not in ['.removed']:#,'.archives'
             dir={'name':name,'size':getsize(path)}
             dir_list.append(dir)
-    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,"folder_form":FolderForm(),"request":request,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
+    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"request":request,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
 
 @login_required
 def create_share(request):
@@ -75,7 +75,7 @@ def create_ssh_key(request):
             import subprocess
             subprocess.call(['sudo','/bin/chmod','660',AUTHORIZED_KEYS_FILE])
             auth_keys = open(AUTHORIZED_KEYS_FILE, "a")
-            auth_keys.write('\n'+key.create_authorized_key())
+            auth_keys.write(key.create_authorized_key()+'\n')
             auth_keys.close()
             subprocess.call(['sudo','/bin/chmod','600',AUTHORIZED_KEYS_FILE])
             return HttpResponseRedirect(reverse('list_ssh_keys'))
