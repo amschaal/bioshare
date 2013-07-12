@@ -136,7 +136,7 @@ class SSHKey(models.Model):
     @staticmethod
     def extract_key(full_key):
         import re
-        match = re.match('ssh-rsa (?P<key>[A-Za-z0-9\+\/]{300,}) .*', full_key)
+        match = re.match('ssh-rsa (?P<key>[A-Za-z0-9\+\/=]{300,}) .*', full_key)
         if match is None:
             raise Exception('Unable to parse key')
         matches = match.groupdict()
