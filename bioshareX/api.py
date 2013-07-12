@@ -134,7 +134,7 @@ def delete_ssh_key(request):
         keystring = key.get_key()
         remove_me = keystring.replace('/','\/')#re.escape(key.extract_key())
         command = ['/bin/sed','-i','/%s/d'%remove_me,AUTHORIZED_KEYS_FILE]
-        raise Exception('Output: '+subprocess.check_output(command,stderr=subprocess.STDOUT,shell=True))
+        subprocess.check_call(command)
         subprocess.call(['sudo','/bin/chmod','600',AUTHORIZED_KEYS_FILE])
         key.delete()
         SSHKey.objects.filter(key__contains=keystring).delete()
