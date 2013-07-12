@@ -1,4 +1,5 @@
 from django.shortcuts import redirect
+from django.core.urlresolvers import reverse
 class JSONDecorator(object):
         def __init__(self, orig_func):
                 self.orig_func = orig_func
@@ -54,6 +55,9 @@ class share_access_decorator(object):
                         if request.is_ajax():
                             return json_error(['You do not have access to this resource.'])
                         else:
+                            if not request.user.is_authenticated():
+                                url = reverse('auth_login') + '?next=%s' % request.get_full_path()
+                                return redirect(url)
                             return redirect('forbidden')
     #                 if not request.user.has_perm('admin',share_obj):
     #                     return json_response({'status':'error','error':'You do not have permission to write to this share.'})

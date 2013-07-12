@@ -9,7 +9,12 @@
   {{ form|crispy }}
 
   <button type="submit" class="btn btn-primary">{% trans 'Log in' %}</button>
+  {% if next%}
+  <input type="hidden" name="next" value="{{next}}" />
+  {% else %}
   <input type="hidden" name="next" value="{% url 'home' %}" />
+  {% endif %}
+  
 </form>
 
 <p>{% trans "Forgot password" %}? <a href="{% url 'auth_password_reset' %}">{% trans "Reset it" %}</a>!</p>
