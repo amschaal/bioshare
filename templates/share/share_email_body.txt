@@ -1,7 +1,7 @@
 {% load i18n %}
 Greetings,<br>
 <p>
-User {{sharer.email}} has shared '{{share.name}}' with you on Bioshare.  You may access the share at the following URL:
+User {{sharer.username}} has shared '{{share.name}}' with you on Bioshare.  You may access the share at the following URL:
 <a href="http://{{ site.domain }}{% url 'list_directory' share.id %}">http://{{ site.domain }}{% url 'list_directory' share.id %}</a>
 </p>
 <p>

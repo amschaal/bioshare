@@ -4,10 +4,10 @@ from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT, RSYNC_URL
 from models import Share, SSHKey
-from forms import ShareForm, FolderForm, SSHKeyForm
+from forms import ShareForm, FolderForm, SSHKeyForm, ChangePasswordForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
-from bioshareX.utils import share_access_decorator
+from bioshareX.utils import share_access_decorator, sizeof_fmt
 from django.contrib.auth.decorators import login_required
 
 def index(request):
@@ -25,8 +25,9 @@ def share_permissions(request,share):
 
 @share_access_decorator(['view_share_files'])
 def list_directory(request,share,subdir=None):
-    from os import listdir
+    from os import listdir, stat
     from os.path import isfile, join, getsize
+    import time, datetime
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
@@ -38,7 +39,8 @@ def list_directory(request,share,subdir=None):
     for name in listdir(PATH):
         path = join(PATH,name)
         if isfile(path):
-            file={'name':name,'size':getsize(path)}
+            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
+            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime)}
             file_list.append(file)
         elif name not in ['.removed']:#,'.archives'
             dir={'name':name,'size':getsize(path)}
@@ -57,6 +59,19 @@ def create_share(request):
     else:
         form = ShareForm()
     return render(request, 'share/new_share.html', {'form': form})
+
+@login_required
+def update_password(request):
+    if request.method == 'POST':
+        form = ChangePasswordForm(request.POST)
+        if form.is_valid():
+            request.user.set_password(form.cleaned_data['password1'])
+            request.user.save()
+            return render(request, 'registration/update_password.html', {'success': True})
+    else:
+        form = ChangePasswordForm()
+    return render(request, 'registration/update_password.html', {'form': form})
+
 
 def list_ssh_keys(request):
     context ={'keys':SSHKey.objects.filter(user=request.user)}

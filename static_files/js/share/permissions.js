@@ -104,7 +104,7 @@ function add_group(query){
 
 function add_user_row(obj){
 	var classes = obj.new_user ? 'new-user ' : '';
-	var warning = obj.new_user ? '<i class="fam-error-add" data-toggle="tooltip" title="An account will automatically be made for this email account"></i>' : '';
+	var warning = obj.new_user ? '<i class="fam-error-add" data-toggle="tooltip" title="An account will automatically be made for this email address"></i>' : '';
 	var row = $('<tr data-username="'+obj.user.username+'" class="'+classes+'"><td>'+warning+obj.user.username+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
 	$.each(obj.permissions,function(i,perm){
 		$('input[data-perm="'+perm+'"]',row).attr('checked',true);

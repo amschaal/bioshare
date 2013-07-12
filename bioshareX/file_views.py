@@ -7,7 +7,7 @@ from settings.settings import FILES_ROOT
 from models import Share
 from django.utils import simplejson
 from forms import UploadFileForm, FolderForm
-from utils import JSONDecorator
+from utils import JSONDecorator, sizeof_fmt
 import os
 from utils import share_access_decorator, json_response
 
@@ -19,6 +19,8 @@ def handle_uploaded_file(path,file):
 @share_access_decorator(['write_to_share'])
 def upload_file(request, share, subdir=None):
     from os.path import join
+    from os import stat
+    import datetime
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
@@ -28,7 +30,8 @@ def upload_file(request, share, subdir=None):
         handle_uploaded_file(FILE_PATH,file)
         subpath = file.name if subdir is None else subdir + file.name
         url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
-        data['files'].append({'name':file.name,'size':file.size, 'url':url}) 
+        (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(FILE_PATH)
+        data['files'].append({'name':file.name,'size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%b %d, %Y %H:%M")}) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
     return json_response(data)
