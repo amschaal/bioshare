@@ -72,16 +72,16 @@
 	  {% endif %}
 	  <div id="messages"></div>
 	  <table class="table table-striped table-condensed" id="file-table">
-	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Size</th></tr></thead>
+	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Size</th><th>Modified</th></tr></thead>
 	  <tbody>
 	  {% if subdir %}
-	 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td></tr>
+	 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td><td></td></tr>
 	  {% endif %}
 	  {% for dir in directories %}
-		<tr class="directory real-directory" data-id="{{dir.name}}"><td><input class="action-check" type="checkbox"/></td><td><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td></td></tr>    
+		<tr class="directory real-directory" data-id="{{dir.name}}"><td><input class="action-check" type="checkbox"/></td><td><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td></td><td></td></tr>    
 	  {% endfor %}
 	  {% for file in files %}
-		<tr class="file" data-id="{{file.name}}"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}</td><td>{{ file.size }}</td></tr>    
+		<tr class="file" data-id="{{file.name}}" data-bytes="{{file.bytes}}"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}</td><td>{{ file.size }}</td><td>{{ file.modified|date:"M j, Y H:i" }}</td></tr>    
 	  {% endfor %}
 	  </tbody>
 	  </table>

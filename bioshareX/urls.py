@@ -11,7 +11,7 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^goto/(?P<share>\w{15})/(?:(?P<subpath>.*/?))?$', 'go_to_file_or_folder', name='go_to_file_or_folder'),
     url(r'^ssh_keys/list/?$', 'list_ssh_keys', name='list_ssh_keys'),
     url(r'^ssh_keys/create/?$', 'create_ssh_key', name='create_ssh_key'),
-    
+    url(r'^account/update_password/?$', 'update_password', name='update_password'),
 )
 urlpatterns += patterns('bioshareX.api',
     url(r'^api/get_permissions/(?P<share>\w{15})/?$', 'get_permissions', name='api_get_permissions'),

@@ -6,7 +6,7 @@ admin.autodiscover()
 # from registration.forms import RegistrationFormUniqueEmail
 from bioshareX.forms import RegistrationForm
 from registration.backends.default.views import RegistrationView
-
+from django.contrib.auth.views import logout_then_login
 
 urlpatterns = patterns('',
     # Examples:
@@ -19,9 +19,8 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
     url(r'^bioshare/', include('bioshareX.urls')),
-    url(r'^accounts/register/$', RegistrationView.as_view(
-    form_class=RegistrationForm),
-    name='registration_register'),
+    url(r'^accounts/register/$', RegistrationView.as_view(form_class=RegistrationForm),name='registration_register'),
+    url(r'^accounts/logout/$', logout_then_login,name='auth_logout'),                   
     url(r'^accounts/', include('registration.backends.default.urls')),
 )
 # urlpatterns += patterns('',
