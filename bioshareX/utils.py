@@ -114,4 +114,23 @@ def find(path, pattern):
             results.append(result[1])
     return results
 
+def validate_email( email ):
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    try:
+        validate_email( email )
+        return True
+    except ValidationError:
+        return False
 
+def email_users(users, subject_template, body_template, ctx_dict):
+    from django.template.loader import render_to_string
+    from settings.settings import DEFAULT_FROM_EMAIL 
+    from django.core.mail import EmailMessage
+    subject = render_to_string(subject_template,ctx_dict)
+    # Email subject *must not* contain newlines
+    subject = ''.join(subject.splitlines())
+    message = render_to_string(body_template, ctx_dict)
+    msg = EmailMessage(subject, message, DEFAULT_FROM_EMAIL, [u.email for u in users])
+    msg.content_subtype = "html"  # Main content is now text/html
+    msg.send()
