@@ -1,0 +1,1 @@
+{% load i18n %}{{sharer.email}} has shared with you on Bioshare

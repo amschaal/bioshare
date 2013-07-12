@@ -189,3 +189,10 @@ ANONYMOUS_USER_ID = -1 #Guardian
 ACCOUNT_ACTIVATION_DAYS = 7 #For Django registration
 
 DEFAULT_FROM_EMAIL = 'no-reply@bioshare.genomecenter.ucdavis.edu'
+
+FILE_UPLOAD_HANDLERS = (
+    "django.core.files.uploadhandler.TemporaryFileUploadHandler",
+)
+AUTHORIZED_KEYS_FILE = '/home/adam/.ssh/authorized_keys'
+
+RSYNC_URL = 'bioshare@phymaptest'

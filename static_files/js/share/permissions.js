@@ -63,13 +63,28 @@ function get_permissions(){
 	});
 }
 function add_user(query){
-	$.get(get_user_url,{query:query},function(data){
+	$.get(share_with_emails_url,{query:query},function(data){
 		if(data.errors)
 			BC.handle_ajax_errors(data,'#messages');
-		else if(data.user){
-			data.permissions=[];
-			add_user_row(data);
-			BC.add_message(data.user.username);
+		else{
+			$.each(data.exists,function(index,obj){
+				obj.permissions=[];
+				add_user_row(obj);
+			});
+			$.each(data.new_users,function(index,obj){
+				obj.permissions=[];
+				obj.new_user = true;
+				add_user_row(obj);
+			});
+			if(data.invalid.length != 0){
+				var emails = data.invalid.join(', ');
+				BC.add_message('The following emails are invalid: '+emails,'#messages');
+			}
+			if(data.new_users.length != 0){
+				var emails = $.map(data.new_users,function(obj,ind){return obj.user.username;}).join(', ');
+				BC.add_message('Accounts will automatically be made for the following new users: '+emails,'#messages');
+			}
+			
 		}
 		console.log(data);
 	});
@@ -88,7 +103,9 @@ function add_group(query){
 }
 
 function add_user_row(obj){
-	var row = $('<tr data-username="'+obj.user.username+'"><td>'+obj.user.username+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
+	var classes = obj.new_user ? 'new-user ' : '';
+	var warning = obj.new_user ? '<i class="fam-error-add" data-toggle="tooltip" title="An account will automatically be made for this email account"></i>' : '';
+	var row = $('<tr data-username="'+obj.user.username+'" class="'+classes+'"><td>'+warning+obj.user.username+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
 	$.each(obj.permissions,function(i,perm){
 		$('input[data-perm="'+perm+'"]',row).attr('checked',true);
 	});
