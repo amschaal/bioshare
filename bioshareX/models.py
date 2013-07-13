@@ -119,8 +119,13 @@ class Share(models.Model):
 def share_post_save(sender, **kwargs):
     if kwargs['created']:
         path = kwargs['instance'].get_path()
+        import pwd, grp, os
         if not os.path.exists(path):
+            from settings.settings import FILES_GROUP, FILES_OWNER
             os.makedirs(path)
+            uid = pwd.getpwnam(FILES_OWNER).pw_uid
+            gid = grp.getgrnam(FILES_GROUP).gr_gid
+            os.chown(path, uid, gid)
 post_save.connect(share_post_save, sender=Share)
 
 
