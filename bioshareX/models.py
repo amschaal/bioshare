@@ -126,6 +126,7 @@ def share_post_save(sender, **kwargs):
             uid = pwd.getpwnam(FILES_OWNER).pw_uid
             gid = grp.getgrnam(FILES_GROUP).gr_gid
             os.chown(path, uid, gid)
+            os.chmod(path, int(0775))
 post_save.connect(share_post_save, sender=Share)
 
 
