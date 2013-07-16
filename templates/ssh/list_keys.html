@@ -5,6 +5,7 @@
 
 {% block content %}
 <h2>SSH Public Keys</h2>
+{% if keys|length != 0%}
 <a class="btn btn-success" href="{% url 'create_ssh_key' %}">Add New</a>
 <table class="table" id="ssh-key-table">
 <thead><tr><th></th><th>Name</th><th>Key</th></tr></thead>
@@ -14,6 +15,10 @@
 {% endfor %}
 </tbody>
 </table>
+{% else %}
+<h3>You do not have any uploaded SSH keys.  SSH keys are useful because they allow you to upload/download files using more powerful tools such as rsync.</h3>
+<h3><a class="btn btn-success" href="{% url 'create_ssh_key' %}">Upload</a> a new SSH key now!</h3>
+{% endif %}
 {% endblock %}
 {% block scripts %}
 {{block.super}}

@@ -17,5 +17,5 @@ function share_autocomplete_select(obj) {
     //window.location.href = obj.url;
 }
 $(function () {
-	$('#share_autocomplete').typeahead({source:share_autocomplete,updater:share_autocomplete_select})
+	$('#share_autocomplete').typeahead({source:share_autocomplete,updater:share_autocomplete_select,minLength:2})
 });

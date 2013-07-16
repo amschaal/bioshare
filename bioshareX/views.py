@@ -49,10 +49,11 @@ def list_directory(request,share,subdir=None):
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
             file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime)}
             file_list.append(file)
-        elif name not in ['.removed']:#,'.archives'
+        elif name not in ['.removed','.archives']:#,'.archives'
             dir={'name':name,'size':getsize(path)}
             dir_list.append(dir)
-    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"request":request,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
+    owner = request.user == share.owner
+    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
 
 @login_required
 def create_share(request):
@@ -115,3 +116,13 @@ def go_to_file_or_folder(request, share, subpath=None):
         return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id,'subdir':subpath}))
     else:# isfile(path)
         return HttpResponseRedirect(reverse('download_file',kwargs={'share':share.id,'subpath':subpath}))
+    
+@share_access_decorator(['admin'])
+def delete_share(request, share, confirm=False):
+    if share.owner != request.user:
+        return render(request, 'share/delete_share.html', {'message': 'Only the owner may delete the share.'})
+    if confirm:
+        share.delete()
+        return render(request, 'share/delete_share.html', {'message': 'The share "%s" and all its files have been deleted.'%share.name})
+    else:
+        return render(request, 'share/delete_share.html', {'share':share,'show_confirm':True})

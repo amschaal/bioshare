@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from settings.settings import FILES_ROOT
 import os
 # Create your models here.
@@ -137,10 +137,42 @@ def share_post_save(sender, **kwargs):
             uid = pwd.getpwnam(FILES_OWNER).pw_uid
             gid = grp.getgrnam(FILES_GROUP).gr_gid
             os.chown(path, uid, gid)
-            os.chmod(path, int(0775))
+            os.chmod(path, int(0775))            
 post_save.connect(share_post_save, sender=Share)
-
-
+# def delete_share(sender, **kwargs):
+#     if kwargs['created']:
+#         path = kwargs['instance'].get_path()
+#         parent_path = os.path.abspath(os.path.join(path,os.pardir))
+#         delete_subpath = os.path.join('.deleted',parent_path)
+#         import pwd, grp, os, shutil
+#         
+#         if os.path.exists(path):
+#             delete_path = os.path.join(parent_path,'.removed')
+#             if not os.path.exists(delete_path):
+#                 os.makedirs(delete_path)
+#             move_path = os.path.join(delete_path,item)
+#             if os.path.exists(move_path):
+#                 if os.path.isfile(move_path):
+#                     os.remove(move_path)
+#                 else:
+#                     shutil.rmtree(move_path)
+#             shutil.move(path, delete_path)
+def share_post_delete(sender, **kwargs):
+    path = kwargs['instance'].get_path()
+    delete_subpath = os.path.join('.deleted',kwargs['instance'].id)
+    delete_path = os.path.join(FILES_ROOT,delete_subpath)
+    import shutil
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+    if os.path.isdir(delete_path):
+        shutil.rmtree(delete_path)
+post_delete.connect(share_post_delete, sender=Share)
+# class ShareUser(models.Model):
+#     share = models.ForeignKey(Share)
+#     user = models.ForeignKey(User)
+#     date_shared = models.DateTimeField(auto_now_add=True)
+#     shared_by = models.ForeignKey(User)
+    
 class SSHKey(models.Model):
     user = models.ForeignKey(User)
     name = models.CharField(max_length=50)

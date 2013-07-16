@@ -80,7 +80,7 @@ function delete_paths(url,selection){
 					setTimeout(function(){
 							$('#file-table tr.deleted').fadeOut({
 								'duration':500,
-								'complete':function(){$(this).remove();}
+								'complete':function(){$(this).remove();toggle_table_visibility();}
 									});
 							
 							}
@@ -114,8 +114,15 @@ function add_message(content,classes){
 	');
 	
 }
-
+function toggle_table_visibility(){
+	if($('#file-table tbody tr').length == 1){
+		$('#add-files-message').removeClass('hidden');
+	}else{
+		$('#add-files-message').addClass('hidden');
+	}
+}
 $(function () {
+	toggle_table_visibility();
     $('#fileupload').fileupload({
         url: upload_file_url,
         dataType: 'json',
@@ -134,6 +141,7 @@ $(function () {
             	}
             });
             $('#progress').hide();
+            toggle_table_visibility();
         },
         progressall: function (e, data) {
             var progress = parseInt(data.loaded / data.total * 100, 10);
@@ -151,11 +159,11 @@ $(function () {
     			'success':function(data){
     				console.log('',data);
     				$.each(data.objects,function(index,obj){
-    					var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td></tr>';
+    					var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
                         $(row).prependTo('#file-table');	
     				});
     				$('#new-folder').modal('hide');
-    				
+    				toggle_table_visibility();
     			}
     		});
     	});

@@ -13,6 +13,8 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^ssh_keys/list/?$', 'list_ssh_keys', name='list_ssh_keys'),
     url(r'^ssh_keys/create/?$', 'create_ssh_key', name='create_ssh_key'),
     url(r'^account/update_password/?$', 'update_password', name='update_password'),
+    url(r'^delete_share/(?P<share>\w{15})/?$', 'delete_share', kwargs={'confirm':False},name='delete_share'),
+    url(r'^confirm_delete_share/(?P<share>\w{15})/?$', 'delete_share', kwargs={'confirm':True},name='confirm_delete_share'),
 )
 urlpatterns += patterns('bioshareX.api',
     url(r'^api/get_permissions/(?P<share>\w{15})/?$', 'get_permissions', name='api_get_permissions'),
