@@ -9,10 +9,17 @@ from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
 from bioshareX.utils import share_access_decorator, sizeof_fmt
 from django.contrib.auth.decorators import login_required
+from guardian.shortcuts import get_objects_for_user
 
 def index(request):
     # View code here...
     return render(request,'index.html', {"message": "Hi there"})
+@login_required
+def list_shares(request):
+    # View code here...
+    shares = Share.objects.filter(owner=request.user)
+    shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
+    return render(request,'share/shares.html', {"my_shares": shares,"all_shared_with_me":shared_with_me})
 
 def forbidden(request):
     # View code here...

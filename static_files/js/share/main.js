@@ -96,8 +96,10 @@ function archive_files(url,selection){
 			'url':url,
 			'data':{'json':JSON.stringify({'selection':selection})},
 			'success':function(data){
-				var message = 'Archive ready for <a href="'+data.url+'">download</a>';
-				add_message(message);
+				if(data.url){
+					var message = 'Archive ready for <a href="'+data.url+'">download</a>';
+					add_message(message);
+				}
 			}
 		}
 	);

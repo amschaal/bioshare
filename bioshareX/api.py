@@ -38,6 +38,15 @@ def share_with_emails(request):
         return json_response({'exists':exists,'new_users':new_users,'invalid':invalid})
     except Exception, e:
         return json_error([e.message])
+    
+def share_autocomplete(request):
+    query = request.REQUEST.get('query')
+    try:
+        share_objs = Share.objects.filter(name__icontains=query)[:10]
+        shares = [{'id':s.id,'url':reverse('list_directory',kwargs={'share':s.id}),'name':s.name,'notes':s.notes} for s in share_objs]
+        return json_response({'status':'success','shares':shares})
+    except Exception, e:
+        return json_error([e.message])
 
 
 def get_group(request):
