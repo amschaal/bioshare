@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% load guardian_tags %}
+{% block title %}Shares{% endblock %}
+{% block head %}
+{{block.super}}
+<link rel="stylesheet" type="text/css" href="{% static "lib/datatables/DT_bootstrap.css" %}">
+{% endblock %}
+{% block content %}
+<h2>Shares</h2>
+<table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="example">
+	<thead>
+		<tr>
+			<th style="width:50%">Share</th>
+			<th style="width:25%">Owner</th>
+			<th style="width:25%">Created</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for share in my_shares%}
+		<tr>
+			<td data-toggle="tooltip" title="{{share.notes}}"><a href="{% url 'list_directory' share.id %}">{{share.name}}</a></td>
+			<td>me</td>
+			<td>{{share.created|date}}</td>
+		</tr>
+		{% endfor%}
+		{% for share in all_shared_with_me%}
+		<tr>
+			<td data-toggle="tooltip" title="{{share.notes}}"><a href="{% url 'list_directory' share.id %}">{{share.name}}</a></td>
+			<td>{{share.owner.email}}</td>
+			<td>{{share.created|date}}</td>
+		</tr>
+		{% endfor%}
+<!-- 
+		<tr class="gradeU">
+			<td>Other browsers</td>
+			<td>All others</td>
+			<td>-</td>
+			<td class="center">-</td>
+			<td class="center">U</td>
+		</tr>
+ -->
+	</tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+{{block.super}}
+<script>
+</script>
+<script src="{% static "lib/datatables/jquery.dataTables.min.js" %}"></script>
+<script src="{% static "lib/datatables/DT_bootstrap.js" %}"></script>
+
+<script>
+/* Table initialisation */
+$(document).ready(function() {
+	$('#example').dataTable( {
+		//"sDom": "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
+		"sPaginationType": "bootstrap",
+		"oLanguage": {
+			"sLengthMenu": "_MENU_ records per page"
+		}
+	} );
+} );
+</script>
+{% endblock %}
