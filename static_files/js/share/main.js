@@ -124,7 +124,7 @@ $(function () {
             	if(old.length!=0)
             		old.addClass('warning');
             	else{
-            		var row = '<tr class="file success" data-id="'+file.name+'" data-bytes="'+file.bytes'+"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i><a href="'+file.url+'">'+file.name+'</a></td><td>'+file.size+'</td><td>'+file.modified+'</td></tr>';
+            		var row = '<tr class="file success" data-id="'+file.name+'" data-bytes="'+file.bytes+'"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i><a href="'+file.url+'">'+file.name+'</a></td><td>'+file.size+'</td><td>'+file.modified+'</td></tr>';
             		if($('#file-table .directory').length==0)
                     	$(row).prependTo('#file-table tbody');
                     else
