@@ -97,10 +97,14 @@ class Share(models.Model):
             shutil.move(path, delete_path)
             return True
     def create_archive(self,items,subdir=None):
+        from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
+        from utils import zipdir, get_total_size
+        from os.path import isfile, isdir
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
         if not os.path.exists(path):
             raise Exception('Invalid subdirectory provided')
-        archive_path = os.path.join(self.get_path(),'.archives')
+        share_path = self.get_path()
+        archive_path = os.path.join(share_path,'.archives')
         if not os.path.exists(archive_path):
             os.makedirs(archive_path)
         from datetime import datetime
@@ -108,11 +112,18 @@ class Share(models.Model):
         zip_path = os.path.join(archive_path,zip_name)
         from zipfile import ZipFile
         archive =  ZipFile(zip_path, 'w')
+        size = get_total_size([os.path.join(path,item) for item in items])
+        if size > ZIPFILE_SIZE_LIMIT_BYTES:
+            raise Exception("%d bytes is above bioshare's limit for creating zipfiles, please use rsync instead" % (size))
         for item in items:
             item_path = os.path.join(path,item)
             if not os.path.exists(item_path):
                 raise Exception("File or folder: '%s' does not exist" % (item))
-            archive.write(item_path)
+            if isfile(item_path):
+                item_name = item#os.path.join(self.id,item)
+                archive.write(item_path,arcname=item_name)
+            elif isdir(item_path):
+                zipdir(share_path,item_path,archive)
         details = {'namelist':archive.namelist(),'name':zip_name}
         archive.close()
         return {'name':zip_name,'subpath':'.archives/'+zip_name}

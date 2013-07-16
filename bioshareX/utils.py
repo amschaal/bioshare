@@ -88,8 +88,9 @@ def fetchall(sql,args=[]):
     cursor.execute(sql, args)
     return cursor.fetchall()
 
-import os, fnmatch
+
 def find_python(pattern, path):
+    import os, fnmatch
     result = []
     for root, dirs, files in os.walk(path):
         for name in files:
@@ -151,3 +152,31 @@ def sizeof_fmt(num):
             return "%3.1f%s" % (num, x)
         num /= 1024.0
     return "%3.1f%s" % (num, 'TB')
+
+def zipdir(base, path, zip):
+    import os
+    from os.path import relpath
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            rel_path = relpath(path=file_path, start=base)
+            zip.write(file_path,arcname=rel_path)
+            
+
+def get_size(path):
+    import os
+    total_size = 0
+    if os.path.isfile(path):
+        return os.path.getsize(path)
+    elif os.path.isdir(path):
+        for dirpath, dirnames, filenames in os.walk(path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+        return total_size
+
+def get_total_size(paths=[]):
+    total_size = 0
+    for path in paths:
+        total_size += get_size(path)
+    return total_size

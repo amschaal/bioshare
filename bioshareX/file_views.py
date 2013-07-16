@@ -7,7 +7,7 @@ from settings.settings import FILES_ROOT
 from models import Share
 from django.utils import simplejson
 from forms import UploadFileForm, FolderForm
-from utils import JSONDecorator, sizeof_fmt
+from utils import JSONDecorator, sizeof_fmt, json_error
 import os
 from utils import share_access_decorator, json_response
 
@@ -80,10 +80,12 @@ def delete_paths(request, share, subdir=None, json={}):
 @JSONDecorator
 def archive_files(request, share, subdir=None, json={}):
     response={}
-    details = share.create_archive(items=json['selection'],subdir=subdir)
-    response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
-    return json_response(response)
-
+    try:
+        details = share.create_archive(items=json['selection'],subdir=subdir)
+        response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
+        return json_response(response)
+    except Exception, e:
+        return json_error([e.message])
 @share_access_decorator(['download_share_files'])
 def download_file(request, share, subpath=None):
     from sendfile import sendfile
