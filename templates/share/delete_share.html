@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Hello World!{% endblock %}
+
+{% block content %}
+  {%if message%}
+  <h2>{{message}}</h2>
+  {% endif %}
+  {%if show_confirm%}
+  <h3>Are you absolutely sure you want to delete "{{share.name}}"?  All files will be lost.</h3>
+  <a href="{% url 'confirm_delete_share' share.id %}" class="btn btn-danger">Yes, Delete it!</a>
+  {% endif %}
+{% endblock %}
