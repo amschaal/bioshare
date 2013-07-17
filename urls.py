@@ -15,13 +15,13 @@ urlpatterns = patterns('',
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
     url(r'^bioshare/', include('bioshareX.urls')),
     url(r'^accounts/register/$', RegistrationView.as_view(form_class=RegistrationForm),name='registration_register'),
     url(r'^accounts/logout/$', logout_then_login,name='auth_logout'),                   
     url(r'^accounts/', include('registration.backends.default.urls')),
+    url(r'^/?$', 'bioshareX.views.list_shares'),
 )
 # urlpatterns += patterns('',
 #     url(r'^accounts/login/$', 'django.contrib.auth.views.login', {'template_name': 'registration/login.html'}),
