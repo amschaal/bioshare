@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, include, url
 
 urlpatterns = patterns('bioshareX.views',
-    url(r'^/?$', 'index', name='home'),
+    url(r'^/?$', 'index', name='index'),
     url(r'^forbidden/?$', 'forbidden', name='forbidden'),
     url(r'^create/?$', 'create_share', name='create_share'),
 #     url(r'^list/(?P<share>\w{15})/$', 'list_directory', name='list_directory'),
