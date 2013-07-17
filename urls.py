@@ -21,7 +21,7 @@ urlpatterns = patterns('',
     url(r'^accounts/register/$', RegistrationView.as_view(form_class=RegistrationForm),name='registration_register'),
     url(r'^accounts/logout/$', logout_then_login,name='auth_logout'),                   
     url(r'^accounts/', include('registration.backends.default.urls')),
-    url(r'^/?$', 'bioshareX.views.list_shares'),
+    url(r'^/?$', 'bioshareX.views.list_shares', name='home'),
 )
 # urlpatterns += patterns('',
 #     url(r'^accounts/login/$', 'django.contrib.auth.views.login', {'template_name': 'registration/login.html'}),
