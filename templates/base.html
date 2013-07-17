@@ -78,16 +78,21 @@
 		{% if request.user.is_authenticated %}
           <div class="well sidebar-nav">
             <ul class="nav nav-list">
+              <!-- <li><button class="btn btn-success" href="{% url 'create_share'%}">New Share</button></li> -->
               <li class="nav-header">Search Shares</li>
               <li><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off"></li>
+              {% if my_recent_shares|length != 0 %}
               <li class="nav-header">My Latest Shares</li>
               {% for share in my_recent_shares %}
               <li><a href="{% url 'list_directory' share.id %}">{{share.name}}</a></li>	
               {% endfor %}
+              {% endif %}
+              {% if shared_with_me|length != 0 %}
               <li class="nav-header">Recently shared with me</li>
               {% for share in shared_with_me %}
               <li><a href="{% url 'list_directory' share.id %}">{{share.name}}</a></li>
               {% endfor %}
+              {% endif %}
             </ul>
           </div><!--/.well -->
           {% endif %}
