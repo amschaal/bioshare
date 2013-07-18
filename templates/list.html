@@ -75,17 +75,17 @@
 	  {% endif %}
 	  <div id="messages"></div>
 	  <table class="table table-striped table-condensed" id="file-table">
-	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Size</th><th>Modified</th></tr></thead>
+	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Tags</th><th>Actions</th><th style="width:100px;">Size</th><th style="width:150px;">Modified</th></tr></thead>
 	  <tbody>
 	  <tr><td colspan="4" id="add-files-message" class="hidden">Currently there are no files in this share.  {% if "write_to_share" in share_perms %}Start uploading!{% endif %}</td></tr>
 	  {% if subdir %}
-	 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td><td></td></tr>
+	 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td><td></td><td></td></tr>
 	  {% endif %}
 	  {% for dir in directories %}
-		<tr class="directory real-directory" data-id="{{dir.name}}"><td><input class="action-check" type="checkbox"/></td><td><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td></td><td></td></tr>    
+		<tr class="directory real-directory" data-id="{{dir.name}}" data-notes="{{dir.metadata.notes}}" data-tags="{{file.metadata.tags.all|join:','}}"><td><input class="action-check" type="checkbox"/></td><td {% if dir.metadata.notes %}data-toggle="tooltip" title="{{dir.metadata.notes}}"{% endif %}><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td>{% if dir.metadata.tags %}{% for tag in dir.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}</td><td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td><td></td><td></td></tr>    
 	  {% endfor %}
 	  {% for file in files %}
-		<tr class="file" data-id="{{file.name}}" data-bytes="{{file.bytes}}"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}</td><td>{{ file.size }}</td><td>{{ file.modified|date:"M j, Y H:i" }}</td></tr>    
+		<tr class="file" data-id="{{file.name}}" data-bytes="{{file.bytes}}" data-notes="{{file.metadata.notes}}" data-tags="{{file.metadata.tags.all|join:','}}"><td><input class="action-check" type="checkbox"/></td><td {% if file.metadata.notes %}data-toggle="tooltip" title="{{file.metadata.notes}}"{% endif %}><i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}<td>{% if file.metadata.tags %}{% for tag in file.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}</td></td><td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td><td>{{ file.size }}</td><td>{{ file.modified|date:"M j, Y H:i" }}</td></tr>    
 	  {% endfor %}
 	  </tbody>
 	  </table>
@@ -138,6 +138,29 @@
   </div>
   <div class="modal-body">
     <b id="rsync-upload-command" style="word-wrap: break-word;"></b>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+</div>
+
+<div class="modal hide fade" id="edit-metadata">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>Metadata</h3>
+  </div>
+  <div class="modal-body">
+    <form class="form-horizontal" method="POST" id="new-folder-form" action="{% if subdir %}{% url 'create_folder' share=share.id subdir=subdir %}{% else %}{% url 'create_folder' share=share.id %}{% endif %}">
+		<fieldset>
+			<label>Notes</label>
+			<textarea id="metadata-notes"></textarea>
+		</fieldset>
+		<fieldset>
+			<label>Tags</label>
+			<textarea id="metadata-tags"></textarea>
+		</fieldset>
+		<button type="submit" class="btn">Submit</button>
+  	</form>
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>

@@ -60,6 +60,14 @@ class Share(models.Model):
         return user_perms
     def get_path(self):
         return os.path.join(FILES_ROOT,self.id)
+    def get_path_type(self,subpath):
+        full_path = os.path.join(self.get_path(),subpath)
+        if os.path.isfile(full_path):
+            return 'file'
+        elif os.path.isdir(full_path):
+            return 'directory'
+        else:
+            return None
     def create_folder(self,name,subdir=None):
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
         if os.path.exists(path):
@@ -172,7 +180,34 @@ post_delete.connect(share_post_delete, sender=Share)
 #     user = models.ForeignKey(User)
 #     date_shared = models.DateTimeField(auto_now_add=True)
 #     shared_by = models.ForeignKey(User)
+
+class Tag(models.Model):
+    name = models.CharField(blank=False,null=False,max_length=30,primary_key=True)
+    def __unicode__(self):
+        return self.name
+    def to_html(self):
+        return '<span class="tag">%s</span>'%self.name
     
+class MetaData(models.Model):
+    share = models.ForeignKey(Share)
+    subpath = models.CharField(max_length=250,blank=False,null=False)
+    notes = models.TextField(blank=True,null=True)
+    tags = models.ManyToManyField(Tag)
+    @staticmethod
+    def get_or_none(share,subpath):
+        try:
+            return MetaData.objects.get(share=share,subpath=subpath)
+        except MetaData.DoesNotExist:
+            return None
+#     def get_metadata_json(self,share,subpath):
+#         try:
+#             return MetaData.objects.get(share=share,subpath=subpath).json()
+#         except MetaData.DoesNotExist:
+#             return None
+    def to_dict(self):
+        return {'tags':self.tags.all(),'notes':self.notes}
+    def json(self):
+        return {'tags':[tag.name for tag in self.tags.all()],'notes':self.notes}
 class SSHKey(models.Model):
     user = models.ForeignKey(User)
     name = models.CharField(max_length=50)
