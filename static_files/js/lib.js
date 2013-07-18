@@ -61,3 +61,15 @@ BC.add_message = function(content, options){
 	if(options.timeout)
 		window.setTimeout(function(){alertbox.alert('close')},options.timeout)
 }
+BC.templates = {};
+BC.load_templates = function(){
+	$('script[type="text/x-handlebars-template"]').each(function(index,template){
+		BC.templates[$(template).prop('id')] = Handlebars.compile($(template).html());
+	});
+}
+BC.run_template = function(id,context){
+	if (!BC.templates[id])
+		throw "Template id: '"+id+"' hasn't been compiled";
+	else
+		return BC.templates[id](context);
+}

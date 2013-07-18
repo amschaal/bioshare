@@ -1,0 +1,36 @@
+{% load templatetag_handlebars %}
+<script>
+Handlebars.registerHelper('join', function(arr, delimiter) {
+	var delimiter = delimiter ? delimiter : ','
+	return !arr ? '' : arr.join(delimiter);
+	});
+Handlebars.registerHelper('list_tags', function(tags) {
+	var out = "";
+	  for(var i=0, l=tags.length; i<l; i++) {
+	    out = out + '<span class="tag">'+tags[i]+'</span>';
+	  }
+	  return out;  
+	return new Handlebars.SafeString(out);
+	});
+
+</script>
+{% tplhandlebars "directory-template" %}
+<tr class="directory real-directory" data-id="{{name}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
+<td><input class="action-check" type="checkbox"/></td>
+<td {{#if metadata.notes}}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><a href="{{name}}"><i class="fam-folder"></i>{{ name }}</a></td>
+<td>{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
+<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td>
+<td></td><td></td>
+</tr>
+{% endtplhandlebars %}
+
+{% tplhandlebars "file-template" %}
+<tr class="file" data-id="{{name}}" data-bytes="{{bytes}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
+<td><input class="action-check" type="checkbox"/></td>
+<td {{#if metadata.notes }}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-page-white"></i>{{#if download }}<a href="{{url}}">{{ name }}</a>{{else}}{{ name }}{{/if}}</td>
+<td>{{#if metadata.tags }}{{{list_tags metadata.tags}}}{{/if}}</td>
+<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td>
+<td>{{ size }}</td>
+<td>{{ modified }}</td>
+</tr>
+{% endtplhandlebars %}

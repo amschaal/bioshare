@@ -1,9 +1,32 @@
 {% extends "base.html" %}
+{% load templatetag_handlebars %}
 
 {% block title %}Hello World!{% endblock %}
 
 {% block content %}
   <p>
-    {{ message }}
+    TEST PAGE
   </p>
+<div id="entries">
+</div>
+<table id="files">
+</table>
 {% endblock %}
+
+{% block scripts %}
+{{block.super}}
+{% include "handlebars/list_files.html" %}
+<script>
+
+$(document).ready(function(){
+	var source   = $("#directory-template").html();
+	template = Handlebars.compile(source);
+	//entry = {title: "My New Post", body: "This is my first post!"};
+	//context={entries:[entry,entry,entry]};
+	dir = {name:'my dir',metadata:{notes:'some notes', tags:['one','two']}};
+	html    = template(dir);
+	console.log(html);
+	$('#files').append(html);
+});
+</script>
+{% endblock%}

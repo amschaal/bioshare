@@ -132,6 +132,7 @@ $(function () {
 	$(document).on('click','[data-action="edit-metadata"]',open_metadata_form);
 	
 	toggle_table_visibility();
+	BC.load_templates()
     $('#fileupload').fileupload({
         url: upload_file_url,
         dataType: 'json',
@@ -142,7 +143,9 @@ $(function () {
             	if(old.length!=0)
             		old.addClass('warning');
             	else{
-            		var row = '<tr class="file success" data-id="'+file.name+'" data-bytes="'+file.bytes+'"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i><a href="'+file.url+'">'+file.name+'</a></td><td>'+file.size+'</td><td>'+file.modified+'</td></tr>';
+            		file.download = share_perms.indexOf('download_share_files') > -1;
+            		//var row = '<tr class="file success" data-id="'+file.name+'" data-bytes="'+file.bytes+'"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i><a href="'+file.url+'">'+file.name+'</a></td><td>'+file.size+'</td><td>'+file.modified+'</td></tr>';
+            		var row = BC.run_template('file-template',file);
             		if($('#file-table .directory').length==0)
                     	$(row).prependTo('#file-table tbody');
                     else
@@ -168,7 +171,8 @@ $(function () {
     			'success':function(data){
     				console.log('',data);
     				$.each(data.objects,function(index,obj){
-    					var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
+    					var row = BC.run_template('directory-template',obj);
+    					//var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
                         $(row).prependTo('#file-table');	
     				});
     				$('#new-folder').modal('hide');
