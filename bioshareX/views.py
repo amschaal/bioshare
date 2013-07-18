@@ -7,7 +7,7 @@ from models import Share, SSHKey, MetaData
 from forms import ShareForm, FolderForm, SSHKeyForm, ChangePasswordForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
-from bioshareX.utils import share_access_decorator, sizeof_fmt
+from bioshareX.utils import share_access_decorator, sizeof_fmt, json_response
 from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
 
@@ -46,7 +46,7 @@ def list_directory(request,share,subdir=None):
     regex = r'^%s[^/]+/?' % '' if subdir is None else normpath(subdir)+'/'
     metadatas = {}
     for md in MetaData.objects.filter(share=share,subpath__regex=regex):
-        metadatas[md.subpath]=md
+        metadatas[md.subpath]= md if not request.is_ajax() else md.json()
     for name in listdir(PATH):
         path = join(PATH,name)
         subpath= name if subdir is None else join(subdir,name)
@@ -54,12 +54,15 @@ def list_directory(request,share,subdir=None):
         metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
         if isfile(path):
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime),'metadata':metadata}
+            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%b %d, %Y %H:%M"),'metadata':metadata}
             file_list.append(file)
         elif name not in ['.removed','.archives']:#,'.archives'
             dir={'name':name,'size':getsize(path),'metadata':metadata}
             dir_list.append(dir)
+    if request.is_ajax():
+        return json_response({'files':file_list,'directories':dir_list})
     owner = request.user == share.owner
+
     return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
 
 @login_required
