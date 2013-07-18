@@ -3,13 +3,14 @@ from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect, HttpResponse
 from settings.settings import FILES_ROOT, AUTHORIZED_KEYS_FILE
-from models import Share, SSHKey
+from models import Share, SSHKey, MetaData, Tag
 from forms import ShareForm, FolderForm
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
 from django.utils import simplejson
 from utils import JSONDecorator, json_response, json_error, share_access_decorator, validate_email
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
+import os
 
 def get_user(request):
     query = request.REQUEST.get('query')
@@ -134,6 +135,24 @@ def search_share(request,share,subdir=None):
         response = {'status':'error'}
     return json_response(response)
 
+@share_access_decorator(['write_to_share'])
+def edit_metadata(request, share, subpath):
+    try:
+        if share.get_path_type(subpath) is None:
+            raise Exception('The specified file or folder does not exist in this share.')
+        metadata = MetaData.objects.get_or_create(share=share, subpath=subpath)[0]
+        tags = []
+        for tag in request.REQUEST.get('tags','').split(','):
+            tag = tag.strip()
+            if len(tag) >2 :
+                tags.append(Tag.objects.get_or_create(name=tag)[0])
+        metadata.tags = tags
+        metadata.notes = request.REQUEST.get('notes',None)
+        metadata.save()
+        name = os.path.basename(os.path.normpath(subpath))
+        return json_response({'name':name,'notes':metadata.notes,'tags':[tag.name for tag in tags]})
+    except Exception, e:
+        return json_error([str(e)])
 def delete_ssh_key(request):
     try:
         id = request.POST.get('id')

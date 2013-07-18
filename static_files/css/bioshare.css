@@ -10,3 +10,11 @@ input.no-margin{
 .margin-3{
 	margin:3px;
 }
+span.tag{
+	border-radius:2px;
+	font-size:14px;
+	padding:4px;
+	margin:1px;
+	background-color:#eee;
+	border: thin solid #ccc;
+}

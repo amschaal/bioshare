@@ -121,7 +121,16 @@ function toggle_table_visibility(){
 		$('#add-files-message').addClass('hidden');
 	}
 }
+function open_metadata_form(){
+	var row = $(this).closest('tr');
+	$('#metadata-notes').val(row.attr('data-notes'));
+	$('#metadata-tags').val(row.attr('data-tags'));
+	$('#edit-metadata').modal('show');
+}
+
 $(function () {
+	$(document).on('click','[data-action="edit-metadata"]',open_metadata_form);
+	
 	toggle_table_visibility();
     $('#fileupload').fileupload({
         url: upload_file_url,

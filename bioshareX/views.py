@@ -3,7 +3,7 @@ from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT, RSYNC_URL
-from models import Share, SSHKey
+from models import Share, SSHKey, MetaData
 from forms import ShareForm, FolderForm, SSHKeyForm, ChangePasswordForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
@@ -33,7 +33,7 @@ def share_permissions(request,share):
 @share_access_decorator(['view_share_files'])
 def list_directory(request,share,subdir=None):
     from os import listdir, stat
-    from os.path import isfile, join, getsize
+    from os.path import isfile, join, getsize, normpath
     import time, datetime
     PATH = share.get_path()
     if subdir is not None:
@@ -43,14 +43,21 @@ def list_directory(request,share,subdir=None):
         share_perms = list(set(share_perms+['view_share_files','download_share_files']))
     file_list=[]
     dir_list=[]
+    regex = r'^%s[^/]+/?' % '' if subdir is None else normpath(subdir)+'/'
+    metadatas = {}
+    for md in MetaData.objects.filter(share=share,subpath__regex=regex):
+        metadatas[md.subpath]=md
     for name in listdir(PATH):
         path = join(PATH,name)
+        subpath= name if subdir is None else join(subdir,name)
+#         metadata = MetaData.get_or_none(share=share,subpath=subpath)
+        metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
         if isfile(path):
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime)}
+            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime),'metadata':metadata}
             file_list.append(file)
         elif name not in ['.removed','.archives']:#,'.archives'
-            dir={'name':name,'size':getsize(path)}
+            dir={'name':name,'size':getsize(path),'metadata':metadata}
             dir_list.append(dir)
     owner = request.user == share.owner
     return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
