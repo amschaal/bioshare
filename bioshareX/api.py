@@ -43,7 +43,7 @@ def share_with_emails(request):
 def share_autocomplete(request):
     query = request.REQUEST.get('query')
     try:
-        share_objs = Share.objects.filter(name__icontains=query)[:10]
+        share_objs = Share.user_queryset(request.user).filter(name__icontains=query)[:10]
         shares = [{'id':s.id,'url':reverse('list_directory',kwargs={'share':s.id}),'name':s.name,'notes':s.notes} for s in share_objs]
         return json_response({'status':'success','shares':shares})
     except Exception, e:

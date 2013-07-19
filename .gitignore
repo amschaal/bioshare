@@ -1,3 +1,4 @@
 /urls.pyc
 /wsgi.pyc
 /media
+*.pyc

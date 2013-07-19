@@ -260,4 +260,35 @@ $(function () {
     });
     $('#searchButton').click(function(){search_share($('#searchBox').val())});
     $('#save-metadata').click(edit_metadata);
+    $('#file-table').on('click','span.tag',function(){hide_other_tags($(this).text())});
+    filtered_tags = [];
+    $('#reset-tag-button').click(reset_tags);
 });
+function hide_other_tags(tag){
+	if(filtered_tags.indexOf(tag) >= 0)
+		return;
+	filtered_tags.push(tag);
+	$('tr.file,tr.directory','#file-table').each(function(index,row){
+		if($(row).attr('data-tags')=='')
+			$(row).addClass('hide-me');
+		var tags=$(row).attr('data-tags').split(',');
+		if(tags.indexOf(tag) < 0)
+			$(row).addClass('hide-me');
+	});
+	$('#file-table tr.hide-me').hide();
+	$('#filtered-tags').text(filtered_tags.join(', '));
+	$('#reset-tags').show();
+//	setTimeout(function(){
+//		$('#file-table tr.hide-me').hide();
+//			$('#file-table tr.hide-me').fadeOut({
+//				'duration':200//,
+////				'complete':function(){$(this).remove();}
+//			});
+//		}
+//	,500);
+}
+function reset_tags(){
+	$('#file-table tr.hide-me').show().removeClass('hide-me');
+	$('#reset-tags').hide();
+	filtered_tags = [];
+}

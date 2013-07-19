@@ -20,9 +20,10 @@ def tag_cloud(request):
 @login_required
 def list_shares(request):
     # View code here...
-    shares = Share.objects.filter(owner=request.user)
-    shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
-    return render(request,'share/shares.html', {"my_shares": shares,"all_shared_with_me":shared_with_me})
+#     shares = Share.objects.filter(owner=request.user)
+#     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
+    shares = Share.user_queryset(request.user)
+    return render(request,'share/shares.html', {"shares": shares})
 
 def forbidden(request):
     # View code here...
