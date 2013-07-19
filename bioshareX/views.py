@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT, RSYNC_URL
 from models import Share, SSHKey, MetaData
-from forms import ShareForm, FolderForm, SSHKeyForm, ChangePasswordForm
+from forms import ShareForm, FolderForm, SSHKeyForm, ChangePasswordForm, MetaDataForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
 from bioshareX.utils import share_access_decorator, sizeof_fmt, json_response
@@ -14,6 +14,9 @@ from guardian.shortcuts import get_objects_for_user
 def index(request):
     # View code here...
     return render(request,'index.html', {"message": "Hi there"})
+def tag_cloud(request):
+    # View code here...
+    return render(request,'viz/cloud.html')
 @login_required
 def list_shares(request):
     # View code here...
@@ -63,7 +66,7 @@ def list_directory(request,share,subdir=None):
         return json_response({'files':file_list,'directories':dir_list})
     owner = request.user == share.owner
 
-    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
+    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
 
 @login_required
 def create_share(request):

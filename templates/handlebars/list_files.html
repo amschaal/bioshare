@@ -17,8 +17,8 @@ Handlebars.registerHelper('list_tags', function(tags) {
 {% tplhandlebars "directory-template" %}
 <tr class="directory real-directory" data-id="{{name}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
 <td><input class="action-check" type="checkbox"/></td>
-<td {{#if metadata.notes}}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><a href="{{name}}"><i class="fam-folder"></i>{{ name }}</a></td>
-<td>{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
+<td class="name" {{#if metadata.notes}}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><a href="{{name}}"><i class="fam-folder"></i>{{ name }}</a></td>
+<td class="tags">{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td>
 <td></td><td></td>
 </tr>
@@ -27,10 +27,14 @@ Handlebars.registerHelper('list_tags', function(tags) {
 {% tplhandlebars "file-template" %}
 <tr class="file" data-id="{{name}}" data-bytes="{{bytes}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
 <td><input class="action-check" type="checkbox"/></td>
-<td {{#if metadata.notes }}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-page-white"></i>{{#if download }}<a href="{{url}}">{{ name }}</a>{{else}}{{ name }}{{/if}}</td>
-<td>{{#if metadata.tags }}{{{list_tags metadata.tags}}}{{/if}}</td>
+<td class="name" {{#if metadata.notes }}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-page-white"></i>{{#if download }}<a href="{{url}}">{{ name }}</a>{{else}}{{ name }}{{/if}}</td>
+<td class="tags">{{#if metadata.tags }}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td>
 <td>{{ size }}</td>
 <td>{{ modified }}</td>
 </tr>
+{% endtplhandlebars %}
+
+{% tplhandlebars "tags-template" %}
+{{{list_tags this}}}
 {% endtplhandlebars %}

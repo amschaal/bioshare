@@ -123,11 +123,59 @@ function toggle_table_visibility(){
 }
 function open_metadata_form(){
 	var row = $(this).closest('tr');
-	$('#metadata-notes').val(row.attr('data-notes'));
-	$('#metadata-tags').val(row.attr('data-tags'));
+	$('#edit-metadata-form').html($('#edit-meta-data-form-clean').html());
+	$('#edit-metadata-form [name=notes]').val(row.attr('data-notes'));
+	$('#edit-metadata-form [name=tags]').val(row.attr('data-tags'));
+	$('#metadata-label').text(row.attr('data-id'));
+	$('#metadata-id').val(row.attr('data-id'));
 	$('#edit-metadata').modal('show');
+	
 }
-
+function edit_metadata(){
+	var id = $('#metadata-id').val();
+	var url = metadata_url+id;
+	
+	BC.ajax_form_submit('#edit-metadata-form',
+		{
+			'ajax':{
+				'url':url,
+				'data':{'tags':$('#edit-metadata-form [name=tags]').val(),'notes':$('#edit-metadata-form [name=notes]').val()}
+			},
+			'success':function(data){
+				if(data.name){
+					$('#edit-metadata').modal('hide');
+					var row = $('#file-table [data-id="'+id+'"]');
+					var tags_html = BC.run_template('tags-template',data.tags);
+					row.find('.tags').html(tags_html);
+					row.attr('data-notes',data.notes);
+					row.attr('data-tags',data.tags);
+					var name_col = row.find('.name');
+					name_col.attr('data-toggle','tooltip');
+					name_col.attr('title',data.notes);
+				}
+			}
+		}			
+	);
+//	BC.ajax(
+//			{
+//				'url':url,
+//				'data':{'tags':$('#edit-metadata-form [name=tags]').val(),'notes':$('#edit-metadata-form [name=notes]').val()},
+//				'success':function(data){
+//					if(data.name){
+//						$('#edit-metadata').modal('hide');
+//						var row = $('#file-table [data-id="'+id+'"]');
+//						var tags_html = BC.run_template('tags-template',data.tags);
+//						row.find('.tags').html(tags_html);
+//						row.attr('data-notes',data.notes);
+//						row.attr('data-tags',data.tags);
+//						var name_col = row.find('.name');
+//						name_col.attr('data-toggle','tooltip');
+//						name_col.attr('title',data.notes);
+//					}
+//				}
+//			}
+//		);
+}
 $(function () {
 	$(document).on('click','[data-action="edit-metadata"]',open_metadata_form);
 	
@@ -211,4 +259,5 @@ $(function () {
     	}
     });
     $('#searchButton').click(function(){search_share($('#searchBox').val())});
+    $('#save-metadata').click(edit_metadata);
 });

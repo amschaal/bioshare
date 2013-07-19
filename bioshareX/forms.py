@@ -2,17 +2,24 @@ from django import forms
 from bioshareX.models import Share, SSHKey
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
+from django.utils.html import strip_tags
+from django.core.validators import RegexValidator
 
 class ShareForm(forms.ModelForm):
+    name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?]+$',error_message=('Please avoid special characters'))
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?]+$',error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
     class Meta:
         model = Share
         fields = ('name', 'notes')
         
-# class SSHKeyForm(forms.ModelForm):
-#     class Meta:
-#         model = SSHKey
-#         fields = ('name', 'key')
-        
+class MetaDataForm(forms.Form):
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?]+$',error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
+    tags = forms.RegexField(regex=r'^[\w\d\s,]+$',error_message=('Only use comma delimited alphanumeric tags'),widget=forms.Textarea(attrs={'rows':3,'cols':80}))
+#     def clean(self):
+#         cleaned_data = super(MetaDataForm, self).clean()
+# #         cleaned_data['tags'] = [tag.strip() for tag in cleaned_data['tags'].split(',')]
+#         return cleaned_data
+
 class SSHKeyForm(forms.Form):
     name = forms.CharField(max_length=50)
     rsa_key  = forms.FileField()
@@ -41,7 +48,7 @@ class UploadFileForm(forms.Form):
     file  = forms.FileField()
     
 class FolderForm(forms.Form):
-    name = forms.CharField(max_length=100)
+    name = forms.RegexField(regex=r'^[\w\d\ ]+$',error_message=('Only letters, numbers, and spaces are allowed'))
 
 class ChangePasswordForm(forms.Form):
     password1 = forms.CharField(widget=forms.PasswordInput,
@@ -120,3 +127,19 @@ class RegistrationForm(forms.Form):
         if User.objects.filter(email__iexact=self.cleaned_data['email']):
             raise forms.ValidationError(_("This email address is already in use. Please supply a different email address."))
         return self.cleaned_data['email']
+
+from django.template.loader import render_to_string
+def json_form_validate(form,save=False,html=True,template='ajax/crispy_form.html'):
+    data={}
+    if form.is_valid():
+        data['status']='success'
+        if save:
+            try:
+                data['objects']=[form.save()]
+            except:
+                pass
+    else:
+        data['status']='error'
+        data['errors']=dict((key, value) for (key, value) in form.errors.items())
+        data['html']= render_to_string(template,{'form':form})
+    return data
