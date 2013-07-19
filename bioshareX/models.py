@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save, post_delete
 from settings.settings import FILES_ROOT
 import os
+from django.utils.html import strip_tags
 # Create your models here.
 def pkgen():
     import string, random
@@ -24,6 +25,9 @@ class Share(models.Model):
             ('write_to_share', 'Write to share'),
             ('admin', 'Administer'),
         )
+    def clean(self):
+        self.name = strip_tags(self.name)
+        self.notes = strip_tags(self.notes)
     def get_permissions(self,user_specific=False):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
@@ -187,7 +191,8 @@ class Tag(models.Model):
         return self.name
     def to_html(self):
         return '<span class="tag">%s</span>'%self.name
-    
+    def clean(self):
+        self.name = strip_tags(self.name)
 class MetaData(models.Model):
     share = models.ForeignKey(Share)
     subpath = models.CharField(max_length=250,blank=False,null=False)

@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from settings.settings import FILES_ROOT
 from models import Share
 from django.utils import simplejson
-from forms import UploadFileForm, FolderForm
+from forms import UploadFileForm, FolderForm, json_form_validate
 from utils import JSONDecorator, sizeof_fmt, json_error
 import os
 from utils import share_access_decorator, json_response
@@ -35,22 +35,6 @@ def upload_file(request, share, subdir=None):
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
     return json_response(data)
-
-from django.template.loader import render_to_string
-def json_form_validate(form,save=False,html=True,template='ajax/crispy_form.html'):
-    data={}
-    if form.is_valid():
-        data['status']='success'
-        if save:
-            try:
-                data['objects']=[form.save()]
-            except:
-                pass
-    else:
-        data['status']='error'
-        data['errors']=dict((key, value) for (key, value) in form.errors.items())
-        data['html']= render_to_string(template,{'form':form})
-    return data
 
 @share_access_decorator(['write_to_share'])
 def create_folder(request, share, subdir=None):

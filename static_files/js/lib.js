@@ -22,7 +22,7 @@ BC.ajax_form_submit=function(form,options){
 	}
 	var options = $.extend({},defaults,options);
 	$.ajax(options.ajax).success(function ( data ) {
-			BC.handle_ajax_errors(data,options.message_target);
+//			BC.handle_ajax_errors(data,options.message_target);
 			if(data.html)
 				$(form).html(data.html);
 			if(options.success)

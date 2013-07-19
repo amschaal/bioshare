@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect, HttpResponse
 from settings.settings import FILES_ROOT, AUTHORIZED_KEYS_FILE
 from models import Share, SSHKey, MetaData, Tag
-from forms import ShareForm, FolderForm
+from forms import MetaDataForm, json_form_validate
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
 from django.utils import simplejson
 from utils import JSONDecorator, json_response, json_error, share_access_decorator, validate_email
@@ -141,13 +141,17 @@ def edit_metadata(request, share, subpath):
         if share.get_path_type(subpath) is None:
             raise Exception('The specified file or folder does not exist in this share.')
         metadata = MetaData.objects.get_or_create(share=share, subpath=subpath)[0]
+        form = MetaDataForm(request.REQUEST)
+        data = json_form_validate(form)
+        if not form.is_valid():
+            return json_response(data)#return json_error(form.errors)
         tags = []
-        for tag in request.REQUEST.get('tags','').split(','):
+        for tag in form.cleaned_data['tags'].split(','):
             tag = tag.strip()
             if len(tag) >2 :
                 tags.append(Tag.objects.get_or_create(name=tag)[0])
         metadata.tags = tags
-        metadata.notes = request.REQUEST.get('notes',None)
+        metadata.notes = form.cleaned_data['notes']
         metadata.save()
         name = os.path.basename(os.path.normpath(subpath))
         return json_response({'name':name,'notes':metadata.notes,'tags':[tag.name for tag in tags]})

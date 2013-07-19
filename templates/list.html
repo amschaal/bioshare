@@ -82,10 +82,10 @@
 	 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td><td></td><td></td></tr>
 	  {% endif %}
 	  {% for dir in directories %}
-		<tr class="directory real-directory" data-id="{{dir.name}}" data-notes="{{dir.metadata.notes}}" data-tags="{{dir.metadata.tags.all|join:','}}"><td><input class="action-check" type="checkbox"/></td><td {% if dir.metadata.notes %}data-toggle="tooltip" title="{{dir.metadata.notes}}"{% endif %}><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td>{% if dir.metadata.tags %}{% for tag in dir.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}</td><td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td><td></td><td></td></tr>    
+		<tr class="directory real-directory" data-id="{{dir.name}}" data-notes="{{dir.metadata.notes}}" data-tags="{{dir.metadata.tags.all|join:','}}"><td><input class="action-check" type="checkbox"/></td><td class="name" {% if dir.metadata.notes %}data-toggle="tooltip" title="{{dir.metadata.notes}}"{% endif %}><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td class="tags">{% if dir.metadata.tags %}{% for tag in dir.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}</td><td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td><td></td><td></td></tr>    
 	  {% endfor %}
 	  {% for file in files %}
-		<tr class="file" data-id="{{file.name}}" data-bytes="{{file.bytes}}" data-notes="{{file.metadata.notes}}" data-tags="{{file.metadata.tags.all|join:','}}"><td><input class="action-check" type="checkbox"/></td><td {% if file.metadata.notes %}data-toggle="tooltip" title="{{file.metadata.notes}}"{% endif %}><i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}<td>{% if file.metadata.tags %}{% for tag in file.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}</td></td><td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td><td>{{ file.size }}</td><td>{{ file.modified }}</td></tr>    
+		<tr class="file" data-id="{{file.name}}" data-bytes="{{file.bytes}}" data-notes="{{file.metadata.notes}}" data-tags="{{file.metadata.tags.all|join:','}}"><td><input class="action-check" type="checkbox"/></td><td class="name" {% if file.metadata.notes %}data-toggle="tooltip" title="{{file.metadata.notes}}"{% endif %}><i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}<td class="tags">{% if file.metadata.tags %}{% for tag in file.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}</td></td><td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td><td>{{ file.size }}</td><td>{{ file.modified }}</td></tr>    
 	  {% endfor %}
 	  </tbody>
 	  </table>
@@ -147,23 +147,16 @@
 <div class="modal hide fade" id="edit-metadata">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-    <h3>Metadata</h3>
+    <h3>Metadata for "<span id="metadata-label"></span>"</h3>
   </div>
   <div class="modal-body">
-    <form class="form-horizontal" method="POST" id="new-folder-form" action="{% if subdir %}{% url 'create_folder' share=share.id subdir=subdir %}{% else %}{% url 'create_folder' share=share.id %}{% endif %}">
-		<fieldset>
-			<label>Notes</label>
-			<textarea id="metadata-notes"></textarea>
-		</fieldset>
-		<fieldset>
-			<label>Tags</label>
-			<textarea id="metadata-tags"></textarea>
-		</fieldset>
-		<button type="submit" class="btn">Submit</button>
+    <input type="hidden" id="metadata-id"/>
+    <form class="form-horizontal" method="POST" id="edit-metadata-form">
   	</form>
+  	<div id="edit-meta-data-form-clean" class="hidden">{{metadata_form|crispy}}</div>
   </div>
   <div class="modal-footer">
-    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn btn-primary" id="save-metadata" aria-hidden="true">Save</button><button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
   </div>
 </div>
 
@@ -198,6 +191,7 @@
    	var share_perms = {{share_perms_json|safe}};
    	var share = '{{ share.id }}';
    	var subpath = {% if subdir %}'{{ subdir }}' {% else %} null {% endif %};
+   	var metadata_url = '{% url 'api_edit_metadata' share=share.id subpath='' %}' + (subpath ? subpath : '');
 	var rsync_url = '{{rsync_url}}';
 </script>
 <script src="{% static "js/share/main.js" %}"></script>

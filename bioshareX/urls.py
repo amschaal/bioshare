@@ -4,6 +4,7 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^/?$', 'index', name='index'),
     url(r'^forbidden/?$', 'forbidden', name='forbidden'),
     url(r'^create/?$', 'create_share', name='create_share'),
+    url(r'^cloud/?$', 'tag_cloud', name='tag_cloud'),
 #     url(r'^list/(?P<share>\w{15})/$', 'list_directory', name='list_directory'),
 #     url(r'^list/(?P<share>\w{15})/(?P<subdir>.*/)$', 'list_directory', name='list_sub_directory'),
     url(r'^list/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_directory'),
@@ -16,6 +17,8 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^delete_share/(?P<share>\w{15})/?$', 'delete_share', kwargs={'confirm':False},name='delete_share'),
     url(r'^confirm_delete_share/(?P<share>\w{15})/?$', 'delete_share', kwargs={'confirm':True},name='confirm_delete_share'),
 )
+
+
 urlpatterns += patterns('bioshareX.api',
     url(r'^api/get_permissions/(?P<share>\w{15})/?$', 'get_permissions', name='api_get_permissions'),
     url(r'^api/get_user_permissions/(?P<share>\w{15})/?$', 'get_user_permissions', name='api_get_user_permissions'),
