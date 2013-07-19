@@ -18,14 +18,7 @@
 		</tr>
 	</thead>
 	<tbody>
-		{% for share in my_shares%}
-		<tr>
-			<td data-toggle="tooltip" title="{{share.notes}}"><a href="{% url 'list_directory' share.id %}">{{share.name}}</a></td>
-			<td>me</td>
-			<td>{{share.created|date}}</td>
-		</tr>
-		{% endfor%}
-		{% for share in all_shared_with_me%}
+		{% for share in shares%}
 		<tr>
 			<td data-toggle="tooltip" title="{{share.notes}}"><a href="{% url 'list_directory' share.id %}">{{share.name}}</a></td>
 			<td>{{share.owner.email}}</td>

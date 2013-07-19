@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save, post_delete
+from django.db.models import Q
 from settings.settings import FILES_ROOT
 import os
 from django.utils.html import strip_tags
@@ -25,9 +26,11 @@ class Share(models.Model):
             ('write_to_share', 'Write to share'),
             ('admin', 'Administer'),
         )
-    def clean(self):
-        self.name = strip_tags(self.name)
-        self.notes = strip_tags(self.notes)
+    @staticmethod
+    def user_queryset(user):
+        from guardian.shortcuts import get_objects_for_user
+        shares = get_objects_for_user(user, 'bioshareX.view_share_files')
+        return Share.objects.filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
     def get_permissions(self,user_specific=False):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
@@ -93,20 +96,21 @@ class Share(models.Model):
         import shutil
         if subpath is None or subpath == '' or subpath.count('..') != 0:
             return False
-        item = os.path.basename(subpath) if os.path.basename(subpath) != '' else os.path.split(os.path.dirname(subpath))[1]
         path = os.path.join(self.get_path(),subpath)
-        parent_path = os.path.abspath(os.path.join(path,os.pardir))
         if os.path.exists(path):
-            delete_path = os.path.join(parent_path,'.removed')
+            delete_path = os.path.join(self.get_path(),'.removed')
             if not os.path.exists(delete_path):
                 os.makedirs(delete_path)
-            move_path = os.path.join(delete_path,item)
+            move_path = os.path.join(delete_path,subpath)
+            move_parent_path = os.path.abspath(os.path.join(move_path,os.pardir))
+            if not os.path.exists(move_parent_path):
+                os.makedirs(move_parent_path)
             if os.path.exists(move_path):
                 if os.path.isfile(move_path):
                     os.remove(move_path)
                 else:
                     shutil.rmtree(move_path)
-            shutil.move(path, delete_path)
+            shutil.move(path, move_path)
             return True
     def create_archive(self,items,subdir=None):
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES

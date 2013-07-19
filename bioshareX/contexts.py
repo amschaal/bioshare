@@ -1,7 +1,7 @@
 from models import Share
 from guardian.shortcuts import get_objects_for_user
 def user_contexts(request):
-        if request.user.is_authenticated():
+        if request.user.is_authenticated() and not request.is_ajax():
             recent_shares = Share.objects.filter(owner=request.user)[:5]
             shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')[:5]
         else:

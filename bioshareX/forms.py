@@ -7,13 +7,13 @@ from django.core.validators import RegexValidator
 
 class ShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?]+$',error_message=('Please avoid special characters'))
-    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?]+$',error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@]+$',error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
     class Meta:
         model = Share
         fields = ('name', 'notes')
         
 class MetaDataForm(forms.Form):
-    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?]+$',required=False,error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@]+$',required=False,error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_message=('Only use comma delimited alphanumeric tags'),widget=forms.Textarea(attrs={'rows':3,'cols':80}))
 #     def clean(self):
 #         cleaned_data = super(MetaDataForm, self).clean()

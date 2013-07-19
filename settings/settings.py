@@ -196,3 +196,8 @@ FILE_UPLOAD_HANDLERS = (
 AUTHORIZED_KEYS_FILE = '/home/adam/.ssh/authorized_keys'
 
 RSYNC_URL = 'bioshare@phymaptest'
+
+FILES_OWNER = 'adam'
+FILES_GROUP = 'adam'
+
+ZIPFILE_SIZE_LIMIT_BYTES = 1000000000
