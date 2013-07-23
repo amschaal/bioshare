@@ -104,19 +104,22 @@ def find_in_shares(shares, pattern):
     output = subprocess.check_output(['find']+paths+['-name',pattern])
     return output.split('\n')
 
-def find(path, pattern):
+def find(share, pattern, subdir=None):
     from settings.settings import FILES_ROOT
-    import subprocess
-#     @todo: use -prune option to get rid of .archive and .removed directories 
-    output = subprocess.Popen(['find',path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0]
+    import subprocess, os
+#     @todo: use -prune option to get rid of .archive and .removed directories
+    path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
+    base_path = os.path.realpath(path) 
+    output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0]
 #     output = subprocess.check_output(['find',path,'-name',pattern])
     paths = output.split('\n')
 #     return paths
     results=[]
     for path in paths:
-        result = path.split(FILES_ROOT)
+        result = path.split(base_path)
         if len(result) == 2:
-            results.append(result[1])
+            print os.path.join(share.id,result[1])
+            results.append('/'+share.id+result[1])
     return results
 
 def validate_email( email ):
