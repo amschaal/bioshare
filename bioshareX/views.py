@@ -3,7 +3,7 @@ from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT, RSYNC_URL
-from models import Share, SSHKey, MetaData
+from models import Share, SSHKey, MetaData, Tag
 from forms import ShareForm, FolderForm, SSHKeyForm, ChangePasswordForm, MetaDataForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
@@ -33,6 +33,26 @@ def forbidden(request):
 def share_permissions(request,share):
 #     users = get_users_with_perms(share,attach_perms=True, with_group_users=False)
     return render(request,'share/permissions.html', {"share":share,"request":request})
+
+@share_access_decorator(['admin'])
+def edit_share(request,share):
+    if request.method == 'POST':
+        form = ShareForm(request.POST,instance=share)
+        if form.is_valid():
+            share = form.save(commit=False)
+            tags = []
+            for tag in form.cleaned_data['tags'].split(','):
+                tag = tag.strip()
+                if len(tag) > 2 :
+                    tags.append(Tag.objects.get_or_create(name=tag)[0])
+            share.tags = tags
+            share.save()
+            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id}))
+    else:
+        tags = ','.join([tag.name for tag in share.tags.all()])
+        form = ShareForm(instance=share)
+        form.fields['tags'].initial = tags
+    return render(request, 'share/edit_share.html', {'form': form})
 
 @share_access_decorator(['view_share_files'])
 def list_directory(request,share,subdir=None):

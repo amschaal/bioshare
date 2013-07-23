@@ -14,7 +14,7 @@
 <h1>
 	{{share.name}}
 	{% if owner %}<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3">Delete Share</a>{% endif %}
-	{% if "admin" in share_perms %}<a href="{% url 'share_permissions' share.id%}" class="btn btn-warning pull-right margin-3"><i class="fam-user-add"></i> Permissions</a>{% endif %}
+	{% if "admin" in share_perms %}<a href="{% url 'share_permissions' share.id%}" class="btn btn-warning pull-right margin-3"><i class="fam-user-add"></i> Permissions</a><a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3">Edit</a>{% endif %}
 </h1>
 {% if subdir %}<h3>{{subdir}}</h3> {% endif %}
 <!--  <p>
