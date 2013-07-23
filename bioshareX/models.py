@@ -28,13 +28,10 @@ class Share(models.Model):
             ('admin', 'Administer'),
         )
     @staticmethod
-    def user_queryset(user,select_tags=True):
+    def user_queryset(user):
         from guardian.shortcuts import get_objects_for_user
         shares = get_objects_for_user(user, 'bioshareX.view_share_files')
-        if select_tags:
-            return Share.objects.select_related('tags').filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
-        else:
-            return Share.objects.filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
+        return Share.objects.filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
     def get_permissions(self,user_specific=False):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
