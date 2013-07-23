@@ -8,14 +8,15 @@ from django.utils.html import strip_tags
 # Create your models here.
 def pkgen():
     import string, random
-    return ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits) for x in range(15))
+    return ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(15))
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     created = models.DateTimeField(auto_now_add=True)
     owner = models.ForeignKey(User)
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=125)
     secure = models.BooleanField(default=True)
     notes = models.TextField()
+    tags = models.ManyToManyField('Tag')
     def __unicode__(self):
         return self.name
     class Meta:
@@ -27,10 +28,13 @@ class Share(models.Model):
             ('admin', 'Administer'),
         )
     @staticmethod
-    def user_queryset(user):
+    def user_queryset(user,select_tags=True):
         from guardian.shortcuts import get_objects_for_user
         shares = get_objects_for_user(user, 'bioshareX.view_share_files')
-        return Share.objects.filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
+        if select_tags:
+            return Share.objects.select_related('tags').filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
+        else:
+            return Share.objects.filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
     def get_permissions(self,user_specific=False):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
@@ -199,9 +203,11 @@ class Tag(models.Model):
         self.name = strip_tags(self.name)
 class MetaData(models.Model):
     share = models.ForeignKey(Share)
-    subpath = models.CharField(max_length=250,blank=False,null=False)
+    subpath = models.CharField(max_length=250)
     notes = models.TextField(blank=True,null=True)
     tags = models.ManyToManyField(Tag)
+    class Meta:
+        unique_together = (("share", "subpath"),)
     @staticmethod
     def get_or_none(share,subpath):
         try:

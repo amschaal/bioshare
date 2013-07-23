@@ -41,9 +41,10 @@ def share_with_emails(request):
         return json_error([e.message])
     
 def share_autocomplete(request):
-    query = request.REQUEST.get('query')
+    terms = [term.strip() for term in request.REQUEST.get('query').split()]
+    query = reduce(lambda q,value: q&Q(name__icontains=value), terms , Q())
     try:
-        share_objs = Share.user_queryset(request.user).filter(name__icontains=query)[:10]
+        share_objs = Share.user_queryset(request.user).filter(query)[:10]
         shares = [{'id':s.id,'url':reverse('list_directory',kwargs={'share':s.id}),'name':s.name,'notes':s.notes} for s in share_objs]
         return json_response({'status':'success','shares':shares})
     except Exception, e:
@@ -87,16 +88,16 @@ def set_permissions(request,share,json=None):
     site = get_current_site(request)
 #     if not request.user.has_perm('admin',share_obj):
 #         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
-    if json.has_key('groups'):
-        for group, permissions in json['groups'].iteritems():
-            g = Group.objects.get(name=group)
-            current_perms = get_perms(g,share)
-            removed_perms = list(set(current_perms) - set(permissions))
-            added_perms = list(set(permissions) - set(current_perms))
-            for perm in removed_perms:
-                remove_perm(perm,g,share)
-            for perm in added_perms:
-                assign_perm(perm,g,share)
+#     if json.has_key('groups'):
+#         for group, permissions in json['groups'].iteritems():
+#             g = Group.objects.get(name=group)
+#             current_perms = get_perms(g,share)
+#             removed_perms = list(set(current_perms) - set(permissions))
+#             added_perms = list(set(permissions) - set(current_perms))
+#             for perm in removed_perms:
+#                 remove_perm(perm,g,share)
+#             for perm in added_perms:
+#                 assign_perm(perm,g,share)
     if json.has_key('users'):
         for username, permissions in json['users'].iteritems():
             try:
@@ -128,9 +129,7 @@ def search_share(request,share,subdir=None):
     query = request.GET.get('query',False)
     response={}
     if query:
-        from os.path import join
-        path = share.get_path() if subdir is None else join(share.get_path(),subdir)
-        response['results'] = find(path,query)
+        response['results'] = find(share,query,subdir)
     else:
         response = {'status':'error'}
     return json_response(response)
