@@ -14,7 +14,9 @@
 		<tr>
 			<th style="width:50%">Share</th>
 			<th style="width:25%">Owner</th>
-			<th style="width:25%">Created</th>
+			<th style="width:15%">Created</th>
+			<th style="width:10%">Files</th>
+			<th style="width:10%">Size</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -23,6 +25,8 @@
 			<td data-toggle="tooltip" title="{{share.notes}}"><a href="{% url 'list_directory' share.id %}">{{share.name}}</a></td>
 			<td>{{share.owner.email}}</td>
 			<td>{{share.created|date}}</td>
+			<td>{{share.stats.num_files}}</td>
+			<td>{{share.stats.bytes}}</td>
 		</tr>
 		{% endfor%}
 <!-- 

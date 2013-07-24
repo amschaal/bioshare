@@ -9,6 +9,21 @@ from django.utils.html import strip_tags
 def pkgen():
     import string, random
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(15))
+
+class ShareStats(models.Model):
+    share = models.OneToOneField('Share',unique=True,related_name='stats')
+    num_files = models.IntegerField(default=0)
+    bytes = models.IntegerField(default=0)
+    updated = models.DateTimeField(null=True)
+    def update_stats(self):
+        from utils import get_share_stats
+        from django.utils import timezone
+        #         if self.updated is None:
+        stats = get_share_stats(self.share)
+        self.num_files = stats['files']
+        self.bytes = stats['size']
+        self.updated = timezone.now()
+        self.save()
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     created = models.DateTimeField(auto_now_add=True)
@@ -27,11 +42,15 @@ class Share(models.Model):
             ('write_to_share', 'Write to share'),
             ('admin', 'Administer'),
         )
+    def get_stats(self):
+        stats = ShareStats.objects.get_or_create(share=self)[0]
+        stats.update_stats()
+        return stats
     @staticmethod
     def user_queryset(user):
         from guardian.shortcuts import get_objects_for_user
         shares = get_objects_for_user(user, 'bioshareX.view_share_files')
-        return Share.objects.filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
+        return Share.objects.select_related('stats').filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
     def get_permissions(self,user_specific=False):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
