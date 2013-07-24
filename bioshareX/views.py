@@ -160,3 +160,16 @@ def delete_share(request, share, confirm=False):
         return render(request, 'share/delete_share.html', {'message': 'The share "%s" and all its files have been deleted.'%share.name})
     else:
         return render(request, 'share/delete_share.html', {'share':share,'show_confirm':True})
+    
+    
+@login_required
+def search_share(request):
+    from utils import find
+    query = request.GET.get('query',None)
+    results=[]
+    if query:
+        shares = Share.user_queryset(request.user)
+        for s in shares:
+            r=find(s,query)
+            results.append({'share':s,'results':r})
+    return render(request, 'search/search_files.html', {'query':query,'results':results})
