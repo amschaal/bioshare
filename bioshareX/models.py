@@ -13,7 +13,7 @@ def pkgen():
 class ShareStats(models.Model):
     share = models.OneToOneField('Share',unique=True,related_name='stats')
     num_files = models.IntegerField(default=0)
-    bytes = models.IntegerField(default=0)
+    bytes = models.BigIntegerField(default=0)
     updated = models.DateTimeField(null=True)
     def update_stats(self):
         from utils import get_share_stats
