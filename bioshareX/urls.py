@@ -41,4 +41,5 @@ urlpatterns += patterns('bioshareX.file_views',
     url(r'^delete/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'delete_paths', name='delete_paths'),
     url(r'^archive/(?P<share>\w{15})/(?:(?P<subdir>.*/))?$', 'archive_files', name='archive_files'),
     url(r'^download/(?P<share>\w{15})/(?P<subpath>.*)/?$', 'download_file', name='download_file'),
+    url(r'^download_archive/(?P<share>\w{15})/(?P<subpath>.*)/?$', 'download_archive', name='download_archive'),
 )

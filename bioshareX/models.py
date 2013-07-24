@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save, post_delete
 from django.db.models import Q
-from settings.settings import FILES_ROOT
+from settings.settings import FILES_ROOT, ARCHIVE_ROOT, REMOVED_FILES_ROOT
 import os
 from django.utils.html import strip_tags
 # Create your models here.
@@ -90,6 +90,10 @@ class Share(models.Model):
         return user_perms
     def get_path(self):
         return os.path.join(FILES_ROOT,self.id)
+    def get_archive_path(self):
+        return os.path.join(ARCHIVE_ROOT,self.id)
+    def get_removed_path(self):
+        return os.path.join(REMOVED_FILES_ROOT,self.id)
     def get_path_type(self,subpath):
         full_path = os.path.join(self.get_path(),subpath)
         if os.path.isfile(full_path):
@@ -121,7 +125,7 @@ class Share(models.Model):
             return False
         path = os.path.join(self.get_path(),subpath)
         if os.path.exists(path):
-            delete_path = os.path.join(self.get_path(),'.removed')
+            delete_path = self.get_removed_path()#os.path.join(self.get,'.removed')
             if not os.path.exists(delete_path):
                 os.makedirs(delete_path)
             move_path = os.path.join(delete_path,subpath)
@@ -143,7 +147,7 @@ class Share(models.Model):
         if not os.path.exists(path):
             raise Exception('Invalid subdirectory provided')
         share_path = self.get_path()
-        archive_path = os.path.join(share_path,'.archives')
+        archive_path = self.get_archive_path()#os.path.join(share_path,'.archives')
         if not os.path.exists(archive_path):
             os.makedirs(archive_path)
         from datetime import datetime
@@ -165,7 +169,7 @@ class Share(models.Model):
                 zipdir(share_path,item_path,archive)
         details = {'namelist':archive.namelist(),'name':zip_name}
         archive.close()
-        return {'name':zip_name,'subpath':'.archives/'+zip_name}
+        return {'name':zip_name,'subpath':zip_name}
 def share_post_save(sender, **kwargs):
     if kwargs['created']:
         path = kwargs['instance'].get_path()
