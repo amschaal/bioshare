@@ -15,6 +15,9 @@ class ShareStats(models.Model):
     num_files = models.IntegerField(default=0)
     bytes = models.BigIntegerField(default=0)
     updated = models.DateTimeField(null=True)
+    def hr_size(self):
+        from utils import sizeof_fmt
+        return sizeof_fmt(self.bytes)
     def update_stats(self):
         from utils import get_share_stats
         from django.utils import timezone

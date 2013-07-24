@@ -26,7 +26,7 @@
 			<td>{{share.owner.email}}</td>
 			<td>{{share.created|date}}</td>
 			<td>{{share.stats.num_files}}</td>
-			<td>{{share.stats.bytes}}</td>
+			<td>{{share.stats.hr_size}}</td>
 		</tr>
 		{% endfor%}
 <!-- 
@@ -47,6 +47,7 @@
 <script>
 </script>
 <script src="{% static "lib/datatables/jquery.dataTables.min.js" %}"></script>
+<script src="{% static "lib/datatables/datatables.filesize.js" %}"></script>
 <script src="{% static "lib/datatables/DT_bootstrap.js" %}"></script>
 
 <script>
@@ -57,7 +58,14 @@ $(document).ready(function() {
 		"sPaginationType": "bootstrap",
 		"oLanguage": {
 			"sLengthMenu": "_MENU_ records per page"
-		}
+		},
+		"aoColumns": [
+		                null,
+		                null,
+		                null,
+		                null,
+		                { "sType": "file-size" }
+		            ]
 	} );
 } );
 </script>
