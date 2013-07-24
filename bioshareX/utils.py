@@ -118,7 +118,7 @@ def find(share, pattern, subdir=None):
     for path in paths:
         result = path.split(base_path)
         if len(result) == 2:
-            print os.path.join(share.id,result[1])
+#             print os.path.join(share.id,result[1])
             results.append('/'+share.id+result[1])
     return results
 

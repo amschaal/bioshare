@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Hello World!{% endblock %}
+
+{% block content %}
+ <h3>Search for {{query}}</h3>
+{% for sr in results%}
+{%if sr.results|length != 0 %}
+<h4>{{sr.share.name}}</h4>
+{%for r in sr.results %}
+<div>{{r}}</div>
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endblock %}
