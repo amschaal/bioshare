@@ -66,7 +66,7 @@ def archive_files(request, share, subdir=None, json={}):
     response={}
     try:
         details = share.create_archive(items=json['selection'],subdir=subdir)
-        response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
+        response['url']=reverse('download_archive',kwargs={'share':share.id,'subpath':details['subpath']})
         return json_response(response)
     except Exception, e:
         return json_error([e.message])
@@ -77,7 +77,14 @@ def download_file(request, share, subpath=None):
     response={'path':file_path}
     return sendfile(request, file_path)
     return json_response(response)
-    
+
+@share_access_decorator(['download_share_files'])
+def download_archive(request, share, subpath):
+    from sendfile import sendfile
+    file_path = os.path.join(share.get_archive_path(),subpath)
+    response={'path':file_path}
+    return sendfile(request, file_path)
+    return json_response(response)
 #     return HttpResponse(simplejson.dumps(data), mimetype='application/json')
 #     if request.method == 'POST':
 #         form = FolderForm(request.POST)
