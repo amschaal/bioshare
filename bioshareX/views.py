@@ -78,7 +78,7 @@ def list_directory(request,share,subdir=None):
         metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
         if isfile(path):
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%b %d, %Y %H:%M"),'metadata':metadata}
+            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata}
             file_list.append(file)
         elif name not in []:#['.removed','.archives']:
             dir={'name':name,'size':getsize(path),'metadata':metadata}

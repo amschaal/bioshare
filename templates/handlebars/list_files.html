@@ -19,8 +19,8 @@ Handlebars.registerHelper('list_tags', function(tags) {
 <td><input class="action-check" type="checkbox"/></td>
 <td class="name" {{#if metadata.notes}}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><a href="{{name}}"><i class="fam-folder"></i>{{ name }}</a></td>
 <td class="tags">{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
-<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td>
 <td></td><td></td>
+<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td>
 </tr>
 {% endtplhandlebars %}
 
@@ -29,9 +29,9 @@ Handlebars.registerHelper('list_tags', function(tags) {
 <td><input class="action-check" type="checkbox"/></td>
 <td class="name" {{#if metadata.notes }}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-page-white"></i>{{#if download }}<a href="{{url}}">{{ name }}</a>{{else}}{{ name }}{{/if}}</td>
 <td class="tags">{{#if metadata.tags }}{{{list_tags metadata.tags}}}{{/if}}</td>
-<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td>
 <td>{{ size }}</td>
 <td>{{ modified }}</td>
+<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td>
 </tr>
 {% endtplhandlebars %}
 

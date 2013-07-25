@@ -31,7 +31,7 @@ def upload_file(request, share, subdir=None):
         subpath = file.name if subdir is None else subdir + file.name
         url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(FILE_PATH)
-        data['files'].append({'name':file.name,'size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%b %d, %Y %H:%M")}) 
+        data['files'].append({'name':file.name,'size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
     return json_response(data)
