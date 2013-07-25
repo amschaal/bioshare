@@ -10,6 +10,7 @@ from forms import UploadFileForm, FolderForm, json_form_validate
 from utils import JSONDecorator, sizeof_fmt, json_error
 import os
 from utils import share_access_decorator, json_response
+import datetime
 
 def handle_uploaded_file(path,file):
     with open(path, 'wb+') as destination:
@@ -19,8 +20,6 @@ def handle_uploaded_file(path,file):
 @share_access_decorator(['write_to_share'])
 def upload_file(request, share, subdir=None):
     from os.path import join
-    from os import stat
-    import datetime
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
@@ -30,7 +29,7 @@ def upload_file(request, share, subdir=None):
         handle_uploaded_file(FILE_PATH,file)
         subpath = file.name if subdir is None else subdir + file.name
         url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
-        (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(FILE_PATH)
+        (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
         data['files'].append({'name':file.name,'size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
@@ -41,8 +40,9 @@ def create_folder(request, share, subdir=None):
     form = FolderForm(request.POST)
     data = json_form_validate(form)
     if form.is_valid():
-        share.create_folder(form.cleaned_data['name'],subdir)
-        data['objects']=[{'name':form.cleaned_data['name']}]
+        folder_path = share.create_folder(form.cleaned_data['name'],subdir)
+        (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}]
     return json_response(data)
 
 @share_access_decorator(['delete_share_files'])

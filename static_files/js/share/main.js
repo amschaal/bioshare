@@ -146,7 +146,9 @@ function edit_metadata(){
 					$('#edit-metadata').modal('hide');
 					var row = $('#file-table [data-id="'+id+'"]');
 					var tags_html = BC.run_template('tags-template',data.tags);
-					row.find('.tags').html(tags_html);
+					var rowIndex = filetable.fnGetPosition(row[0]);
+					filetable.fnUpdate(tags_html,rowIndex,2);//2 is for column index
+//					row.find('.tags').html(tags_html);
 					row.attr('data-notes',data.notes);
 					row.attr('data-tags',data.tags);
 					var name_col = row.find('.name');

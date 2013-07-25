@@ -108,6 +108,7 @@ class Share(models.Model):
             folder_path = os.path.join(path,name)
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
+        return folder_path
 #     def delete_folder(self,subdir):
 #         import shutil
 #         if subdir is None or subdir == '' or subdir.count('..') != 0:

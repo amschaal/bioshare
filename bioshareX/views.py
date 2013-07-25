@@ -81,7 +81,8 @@ def list_directory(request,share,subdir=None):
             file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata}
             file_list.append(file)
         elif name not in []:#['.removed','.archives']:
-            dir={'name':name,'size':getsize(path),'metadata':metadata}
+            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
+            dir={'name':name,'size':getsize(path),'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
             dir_list.append(dir)
     if request.is_ajax():
         return json_response({'files':file_list,'directories':dir_list})
