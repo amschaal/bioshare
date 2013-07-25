@@ -75,16 +75,14 @@ def download_file(request, share, subpath=None):
     from sendfile import sendfile
     file_path = os.path.join(share.get_path(),subpath)
     response={'path':file_path}
-    return sendfile(request, file_path)
-    return json_response(response)
+    return sendfile(request, os.path.realpath(file_path))
 
 @share_access_decorator(['download_share_files'])
 def download_archive(request, share, subpath):
     from sendfile import sendfile
     file_path = os.path.join(share.get_archive_path(),subpath)
     response={'path':file_path}
-    return sendfile(request, file_path)
-    return json_response(response)
+    return sendfile(request, os.path.realpath(file_path))
 #     return HttpResponse(simplejson.dumps(data), mimetype='application/json')
 #     if request.method == 'POST':
 #         form = FolderForm(request.POST)
