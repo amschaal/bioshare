@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load share_tags %}
 {% block title %}Search files{% endblock %}
 {% block head %}
 {{block.super}}
@@ -19,7 +20,10 @@
 {% for sr in results%}
 {%if sr.results|length != 0 %}
 {%for r in sr.results %}
-<tr><td>{{sr.share.name}}</td><td><a href="{% url 'go_to_file_or_folder' share=sr.share.id subpath=r %}">{{r}}</a></td></tr>
+<tr>
+	<td><a href="{% url 'list_directory' sr.share.id %}">{{sr.share.name}}</a></td>
+	<td>{% link_full_path share=sr.share subpath=r %}</td>
+</tr>
 {% endfor %}
 {% endif %}
 {% endfor %}

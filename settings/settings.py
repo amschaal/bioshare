@@ -20,6 +20,12 @@ DATABASES = {
         'PASSWORD': 'dev',
         'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
         'PORT': '',                      # Set to empty string for default.
+    },
+    'import_db': {
+        'NAME': 'bioshare_old',
+        'ENGINE': 'django.db.backends.mysql',
+        'USER': 'dev',
+        'PASSWORD': 'dev'
     }
 }
 
@@ -53,7 +59,9 @@ USE_TZ = True
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/var/www/example.com/media/"
 MEDIA_ROOT = os.path.join(CURRENT_DIR, 'media')
-FILES_ROOT = os.path.join(MEDIA_ROOT, 'files')
+FILES_ROOT = os.path.join('/data/bioshareX')
+ARCHIVE_ROOT = os.path.join('/data/bioshare_archives')
+REMOVED_FILES_ROOT = os.path.join('/data/bioshare_deleted')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.

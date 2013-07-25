@@ -145,9 +145,10 @@ def create_ssh_key(request):
 @share_access_decorator(['view_share_files'])    
 def go_to_file_or_folder(request, share, subpath=None):
     from os.path import isdir, isfile, join
+    import os
     path = share.get_path() if subpath is None else join(share.get_path(),subpath)
     if isdir(path):
-        return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id,'subdir':subpath}))
+        return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id,'subdir':os.path.normpath(subpath) + os.sep}))
     else:# isfile(path)
         return HttpResponseRedirect(reverse('download_file',kwargs={'share':share.id,'subpath':subpath}))
     
