@@ -17,7 +17,7 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^account/update_password/?$', 'update_password', name='update_password'),
     url(r'^delete_share/(?P<share>\w{15})/?$', 'delete_share', kwargs={'confirm':False},name='delete_share'),
     url(r'^confirm_delete_share/(?P<share>\w{15})/?$', 'delete_share', kwargs={'confirm':True},name='confirm_delete_share'),
-    url(r'^search/files/?$', 'search_share', name='search_share'),
+    url(r'^search/files/?$', 'search_files', name='search_files'),
 )
 
 

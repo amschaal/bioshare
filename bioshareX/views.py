@@ -163,7 +163,7 @@ def delete_share(request, share, confirm=False):
     
     
 @login_required
-def search_share(request):
+def search_files(request):
     from utils import find
     query = request.GET.get('query',None)
     results=[]
