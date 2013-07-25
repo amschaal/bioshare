@@ -1,9 +1,32 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% block title %}Hello World!{% endblock %}
+{% load static %}
+{% block title %}Search files{% endblock %}
+{% block head %}
+{{block.super}}
+<link rel="stylesheet" type="text/css" href="{% static "lib/datatables/DT_bootstrap.css" %}">
+{% endblock %}
 
 {% block content %}
  <h3>Search for {{query}}</h3>
+<table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="example">
+	<thead>
+		<tr>
+			<th style="width:50%">Share</th>
+			<th style="width:50%">File</th>
+		</tr>
+	</thead>
+	<tbody>
+{% for sr in results%}
+{%if sr.results|length != 0 %}
+{%for r in sr.results %}
+<tr><td>{{sr.share.name}}</td><td><a href="{% url 'go_to_file_or_folder' share=sr.share.id subpath=r %}">{{r}}</a></td></tr>
+{% endfor %}
+{% endif %}
+{% endfor %}
+</tbody>
+</table>
+
+<!-- 
 {% for sr in results%}
 {%if sr.results|length != 0 %}
 <h4>{{sr.share.name}}</h4>
@@ -12,4 +35,28 @@
 {% endfor %}
 {% endif %}
 {% endfor %}
+ -->
+
+{% endblock %}
+
+{% block scripts %}
+{{block.super}}
+<script>
+</script>
+<script src="{% static "lib/datatables/jquery.dataTables.min.js" %}"></script>
+<script src="{% static "lib/datatables/datatables.filesize.js" %}"></script>
+<script src="{% static "lib/datatables/DT_bootstrap.js" %}"></script>
+
+<script>
+/* Table initialisation */
+$(document).ready(function() {
+	$('#example').dataTable( {
+		//"sDom": "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
+		"sPaginationType": "bootstrap",
+		"oLanguage": {
+			"sLengthMenu": "_MENU_ records per page"
+		}
+	} );
+} );
+</script>
 {% endblock %}

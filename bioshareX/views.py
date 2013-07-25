@@ -170,6 +170,6 @@ def search_share(request):
     if query:
         shares = Share.user_queryset(request.user)
         for s in shares:
-            r=find(s,query)
+            r=find(s,query,prepend_share_id=False)
             results.append({'share':s,'results':r})
     return render(request, 'search/search_files.html', {'query':query,'results':results})
