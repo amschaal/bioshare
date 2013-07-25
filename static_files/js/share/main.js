@@ -80,7 +80,7 @@ function delete_paths(url,selection){
 					setTimeout(function(){
 							$('#file-table tr.deleted').fadeOut({
 								'duration':500,
-								'complete':function(){$(this).remove();toggle_table_visibility();}
+								'complete':function(){filetable.fnDeleteRow($(this)[0]);toggle_table_visibility();}
 									});
 							
 							}
@@ -195,9 +195,10 @@ $(function () {
             		//var row = '<tr class="file success" data-id="'+file.name+'" data-bytes="'+file.bytes+'"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i><a href="'+file.url+'">'+file.name+'</a></td><td>'+file.size+'</td><td>'+file.modified+'</td></tr>';
             		var row = BC.run_template('file-template',file);
             		if($('#file-table .directory').length==0)
-                    	$(row).prependTo('#file-table tbody');
+                    	var row = $(row).prependTo('#file-table tbody');
                     else
-                    	$(row).insertAfter('#file-table .directory:last');	
+                    	var row = $(row).insertAfter('#file-table .directory:last');
+            		filetable.fnAddTr(row[0]);
             	}
             });
             $('#progress').hide();
@@ -219,9 +220,10 @@ $(function () {
     			'success':function(data){
     				console.log('',data);
     				$.each(data.objects,function(index,obj){
-    					var row = BC.run_template('directory-template',obj);
+    					var html = BC.run_template('directory-template',obj);
     					//var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
-                        $(row).prependTo('#file-table');	
+                        var row = $(html).prependTo('#file-table');
+                        filetable.fnAddTr(row[0]);
     				});
     				$('#new-folder').modal('hide');
     				toggle_table_visibility();
