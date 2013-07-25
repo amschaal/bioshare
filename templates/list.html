@@ -79,7 +79,7 @@
 	  <tbody>
 	  <tr><td colspan="4" id="add-files-message" class="hidden">Currently there are no files in this share.  {% if "write_to_share" in share_perms %}Start uploading!{% endif %}</td></tr>
 	  {% if subdir %}
-	 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td><td></td><td></td></tr>
+	 	<tr class="directory"><td></td><td><a href="../"><i class="fam-folder"></i>../</a></td><td></td><td></td><td></td><td></td></tr>
 	  {% endif %}
 	  {% for dir in directories %}
 		<tr class="directory real-directory" data-id="{{dir.name}}" data-notes="{{dir.metadata.notes}}" data-tags="{{dir.metadata.tags.all|join:','}}"><td><input class="action-check" type="checkbox"/></td><td class="name" {% if dir.metadata.notes %}data-toggle="tooltip" title="{{dir.metadata.notes}}"{% endif %}><a href="{{dir.name}}"><i class="fam-folder"></i>{{ dir.name }}</a></td><td class="tags">{% if dir.metadata.tags %}{% for tag in dir.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}</td><td>{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i>{% endif %}</td><td></td><td></td></tr>    
