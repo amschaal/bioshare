@@ -104,7 +104,7 @@ def find_in_shares(shares, pattern):
     output = subprocess.check_output(['find']+paths+['-name',pattern])
     return output.split('\n')
 
-def find(share, pattern, subdir=None):
+def find(share, pattern, subdir=None,prepend_share_id=True):
     from settings.settings import FILES_ROOT
     import subprocess, os
 #     @todo: use -prune option to get rid of .archive and .removed directories
@@ -119,7 +119,11 @@ def find(share, pattern, subdir=None):
         result = path.split(base_path)
         if len(result) == 2:
 #             print os.path.join(share.id,result[1])
-            results.append('/'+share.id+result[1])
+            if prepend_share_id:
+                results.append('/'+share.id+result[1])
+            else:
+                results.append(result[1][1:])
+                
     return results
 
 def validate_email( email ):
@@ -165,7 +169,6 @@ def zipdir(base, path, zip):
             file_path = os.path.join(root, file)
             rel_path = relpath(path=file_path, start=base)
             zip.write(file_path,arcname=rel_path)
-            
 
 def get_size(path):
     import os
