@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load share_tags %}
 {% load crispy_forms_tags %}
 {% load guardian_tags %}
 {% block head %}
@@ -9,15 +10,15 @@
 <link rel="stylesheet" type="text/css" href="{% static "lib/datatables/DT_bootstrap.css" %}">
 {% endblock %}
 
-{% block title %}Share contents{% endblock %}
+{% block title %}Share: {{share.name}}{% endblock %}
 
 {% block content %}
 <h1>
-	{{share.name}}
+	<a href="{% url 'list_directory' share.id %}">{{share.name}}</a>
 	{% if owner %}<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3">Delete Share</a>{% endif %}
 	{% if "admin" in share_perms %}<a href="{% url 'share_permissions' share.id%}" class="btn btn-warning pull-right margin-3"><i class="fam-user-add"></i> Permissions</a><a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3">Edit</a>{% endif %}
 </h1>
-{% if subdir %}<h3>{{subdir}}</h3> {% endif %}
+{% if subdir %}<h3>{% link_full_path share=share subpath=subdir %}</h3> {% endif %}
 <!--  <p>
     {{ path }}
   </p>
@@ -171,7 +172,7 @@
     border-radius: 5px;
 ">
 Filtered by: <span id="filtered-tags"></span><br>
-<a class="btn btn-primary" id="reset-tag-button">Reset tags</a></div>
+<a class="btn btn-primary" id="reset-tag-button">Clear filters</a></div>
 {% endblock %}
 
 {% block scripts %}
