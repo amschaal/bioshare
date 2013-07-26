@@ -33,13 +33,13 @@
     <div class="navbar navbar-inverse navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container-fluid">
-          <img style="height:50px;" src="{% static "images/worf.jpg" %}" class="pull-left"/>
+          <img src="{% static "images/bioinformatics_core_header.png" %}" class="pull-left"/>
           <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="brand" href="#">Bioshare: Next Gen</a>
+          
           <div class="nav-collapse collapse">
           <p class="navbar-text pull-right">
           {% if request.user.is_authenticated %}
@@ -49,7 +49,7 @@
           	  <a href="{% url 'auth_login' %}" class="navbar-link">Login</a>
           {% endif %}
             </p>
-            <ul class="nav">
+            <ul class="nav pull-right">
               <li class="active"><a href="{% url 'home' %}">Home</a></li>
               {% if request.user.is_authenticated %}
               <li class="dropdown">
@@ -68,6 +68,7 @@
                       </li>
               {% endif %}
             </ul>
+            <span class="pull-right" style="color: white;font-size: 30px;padding: 10px;">Bioshare</span>
           </div><!--/.nav-collapse -->
         </div>
       </div>
