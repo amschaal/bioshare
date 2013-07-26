@@ -26,7 +26,7 @@
 			<td>{{share.owner.email}}</td>
 			<td>{{share.created|date}}</td>
 			<td>{{share.stats.num_files}}</td>
-			<td>{{share.stats.hr_size}}</td>
+			<td data-toggle="tooltip" title="{{share.stats.updated|date:'r'}}">{{share.stats.hr_size}}</td>
 		</tr>
 		{% endfor%}
 <!-- 
