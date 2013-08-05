@@ -73,16 +73,20 @@ function delete_paths(url,selection){
 			'url':url,
 			'data':{'json':JSON.stringify({'selection':selection})},
 			'success':function(data){
+				if(data.failed.length !=0){
+					var message = "The following files were unable to be deleted: " + data.failed.join(', ');
+					message += "<br>The filesystem may be read only.";
+					add_message(message,['alert-error']);
+				}
 				if(data.deleted){
 					$.each(data.deleted,function(index,item){
 						$('#file-table [data-id="'+item+'"]').addClass('error').addClass('deleted');
-					})
+					});
 					setTimeout(function(){
 							$('#file-table tr.deleted').fadeOut({
 								'duration':500,
 								'complete':function(){filetable.fnDeleteRow($(this)[0]);toggle_table_visibility();}
 									});
-							
 							}
 						,500);
 				}
