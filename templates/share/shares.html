@@ -25,8 +25,8 @@
 			<td data-toggle="tooltip" title="{{share.notes}}"><a href="{% url 'list_directory' share.id %}">{{share.name}}</a></td>
 			<td>{{share.owner.email}}</td>
 			<td>{{share.created|date}}</td>
-			<td>{{share.stats.num_files}}</td>
-			<td data-toggle="tooltip" title="{{share.stats.updated|date:'r'}}">{{share.stats.hr_size}}</td>
+			<td data-toggle="tooltip" title="Last updated: {{share.stats.updated|date:'r'}}">{{share.stats.num_files}}*</td>
+			<td data-toggle="tooltip" title="Last updated: {{share.stats.updated|date:'r'}}">{{share.stats.hr_size}}*</td>
 		</tr>
 		{% endfor%}
 <!-- 
@@ -40,6 +40,7 @@
  -->
 	</tbody>
 </table>
+*Files statistics updated daily.
 {% endblock %}
 
 {% block scripts %}
