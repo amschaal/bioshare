@@ -83,16 +83,18 @@ def import_permissions():
 
 def create_symlinks():
     import os
-    file = '/home/adam/bioshare_symlinks'
+#     file = '/home/adam/bioshare_symlinks'
+    select = 'SELECT target, random_dir FROM sub_project'
+    results = dictfetchall(select)
     base = '/data/bioshare/'
-    link_directory = '/var/www/virtualenv/bioshareX/include/bioshareX/media/files'
+    link_directory = '/data/bioshareX'
     os.chdir(link_directory)
-    for line in open(file):
+    for line in results:
         try:
-            parts = line.split()
-            link = '00000%s'%parts[8]
-            target= base+parts[10].split('/var/www/html/bioshare/files/')[1]
+            link = '00000%s'%line['random_dir']
+            target= base+line['target']
             print '%s -> %s'%(link,target)
             os.symlink(target,link)
-        except:
-            pass
+            print 'success'
+        except Exception, e:
+            print str(e)
