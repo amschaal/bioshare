@@ -4,10 +4,11 @@ BC.handle_ajax_errors = function(data,message_target){
 	if(data.error)
 		errors.push(data.error);
 	if(errors.length!=0){
-		if(message_target){
-			BC.add_message(errors.join(', '),{'target':message_target,'classes':['alert-error']});
-		}else
-			alert(errors);
+//		if(message_target){
+			$.bootstrapGrowl(errors.join(', '),{type:'error',delay: 10000});
+//			BC.add_message(errors.join(', '),{'target':message_target,'classes':['alert-error']});
+//		}else
+//			alert(errors);
 	}
 		
 }
