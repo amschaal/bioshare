@@ -76,7 +76,7 @@ function delete_paths(url,selection){
 				if(data.failed.length !=0){
 					var message = "The following files were unable to be deleted: " + data.failed.join(', ');
 					message += "<br>The filesystem may be read only.";
-					add_message(message,['alert-error']);
+					$.bootstrapGrowl(message,{type:'error',delay: 10000});
 				}
 				if(data.deleted){
 					$.each(data.deleted,function(index,item){
@@ -102,7 +102,7 @@ function archive_files(url,selection){
 			'success':function(data){
 				if(data.url){
 					var message = 'Archive ready for <a href="'+data.url+'">download</a>';
-					add_message(message);
+					$.bootstrapGrowl(message,{delay: 100000000,type:'success'});
 				}
 			}
 		}
