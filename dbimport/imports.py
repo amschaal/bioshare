@@ -36,7 +36,7 @@ def import_shares():
                     g.db_group, 
                     t.type as type, 
                     t.description as type_description 
-                FROM bioshare_old.sub_project sp join project p on sp.project_id = p.project_id join type t on sp.type_id = t.type_id join db_group g on g.group_id = p.group_id"""
+                FROM sub_project sp join project p on sp.project_id = p.project_id join type t on sp.type_id = t.type_id join db_group g on g.group_id = p.group_id"""
     subprojects = dictfetchall(select)
     for sp in subprojects:
         share_id = '00000%s'%sp['random_dir']
