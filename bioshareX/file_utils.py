@@ -31,4 +31,7 @@ def clean_removed(share,days=2):
 def update_file_stats():
     from bioshareX.models import Share
     for share in Share.objects.all():
-        share.get_stats()
+        try:
+            share.get_stats()
+        except:
+            print 'Unable to create stats for share: %s'%share.name
