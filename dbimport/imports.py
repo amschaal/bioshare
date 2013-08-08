@@ -50,6 +50,7 @@ def import_shares():
         print 'Creating %s'%share.name[:99]
         share.notes = "Project Description:%s\nSubproject Description:%s"%(sp['pdescription'],sp['description'])
         share.owner=admin
+        share.created = sp['submitted']
         share.save()
         tag = Tag.objects.get_or_create(name=sp['db_group'])[0]
         share.tags.add(tag)
@@ -87,7 +88,7 @@ def create_symlinks():
     select = 'SELECT target, random_dir FROM sub_project'
     results = dictfetchall(select)
     base = '/data/bioshare/'
-    link_directory = '/data/bioshareX'
+    link_directory = '/data/bioshare_files/files'
     os.chdir(link_directory)
     for line in results:
         try:
