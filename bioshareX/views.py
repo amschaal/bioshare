@@ -22,7 +22,7 @@ def list_shares(request):
     # View code here...
 #     shares = Share.objects.filter(owner=request.user)
 #     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
-    shares = Share.user_queryset(request.user)
+    shares = Share.user_queryset(request.user).order_by('-created')
     return render(request,'share/shares.html', {"shares": shares})
 
 def forbidden(request):
