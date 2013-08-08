@@ -27,3 +27,8 @@ def clean_removed(share,days=2):
                     if ((time.time()-os.path.getmtime(dpath))/(24*3600)) >= days:
 #                         print 'deleting %s'%dpath
                         shutil.rmtree(dpath)
+
+def update_file_stats():
+    from bioshareX.models import Share
+    for share in Share.objects.all():
+        share.get_stats()

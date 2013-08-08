@@ -55,7 +55,20 @@ def import_shares():
         tag = Tag.objects.get_or_create(name=sp['db_group'])[0]
         share.tags.add(tag)
         share.save()
-        
+
+@transaction.commit_on_success
+def update_creation_date():
+    select = "SELECT random_dir, submitted FROM sub_project"
+    subprojects = dictfetchall(select)
+    for sp in subprojects:
+        share_id = '00000%s'%sp['random_dir']
+        try:
+            share = Share.objects.get(id=share_id)
+            share.created = sp['submitted']
+            share.save()
+        except:
+            pass
+
 @transaction.commit_on_success
 def import_permissions():
     admin = User.objects.get(username='admin')
