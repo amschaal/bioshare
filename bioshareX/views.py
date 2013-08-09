@@ -7,7 +7,7 @@ from models import Share, SSHKey, MetaData, Tag
 from forms import ShareForm, FolderForm, SSHKeyForm, ChangePasswordForm, MetaDataForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
-from bioshareX.utils import share_access_decorator, sizeof_fmt, json_response
+from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response
 from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
 
@@ -15,6 +15,7 @@ def index(request):
     # View code here...
     return render(request,'index.html', {"message": "Hi there"})
 
+@safe_path_decorator()
 def redirect_old_path(request, id, subpath=''):
     share_id = '00000%s'%id
     return HttpResponseRedirect(reverse('go_to_file_or_folder',kwargs={'share':share_id,'subpath':subpath}))
@@ -59,6 +60,7 @@ def edit_share(request,share):
         form.fields['tags'].initial = tags
     return render(request, 'share/edit_share.html', {'form': form})
 
+@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files'])
 def list_directory(request,share,subdir=None):
     from os import listdir, stat
@@ -147,7 +149,7 @@ def create_ssh_key(request):
     return render(request, 'ssh/new_key.html', {'form': form})
 
 
-
+@safe_path_decorator()
 @share_access_decorator(['view_share_files'])    
 def go_to_file_or_folder(request, share, subpath=None):
     from os.path import isdir, isfile, join

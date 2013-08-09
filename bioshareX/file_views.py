@@ -9,7 +9,7 @@ from django.utils import simplejson
 from forms import UploadFileForm, FolderForm, json_form_validate
 from utils import JSONDecorator, sizeof_fmt, json_error
 import os
-from utils import share_access_decorator, json_response
+from utils import share_access_decorator, safe_path_decorator, json_response
 import datetime
 
 def handle_uploaded_file(path,file):
@@ -17,6 +17,7 @@ def handle_uploaded_file(path,file):
         for chunk in file.chunks():
             destination.write(chunk)
 
+@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])
 def upload_file(request, share, subdir=None):
     from os.path import join
@@ -35,6 +36,7 @@ def upload_file(request, share, subdir=None):
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
     return json_response(data)
 
+@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])
 def create_folder(request, share, subdir=None):
     form = FolderForm(request.POST)
@@ -45,6 +47,7 @@ def create_folder(request, share, subdir=None):
         data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}]
     return json_response(data)
 
+@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['delete_share_files'])
 @JSONDecorator
 def delete_paths(request, share, subdir=None, json={}):
@@ -60,6 +63,7 @@ def delete_paths(request, share, subdir=None, json={}):
             response['failed'].append(item)
     return json_response(response)
 
+@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['download_share_files'])
 @JSONDecorator
 def archive_files(request, share, subdir=None, json={}):
@@ -70,6 +74,8 @@ def archive_files(request, share, subdir=None, json={}):
         return json_response(response)
     except Exception, e:
         return json_error([e.message])
+    
+@safe_path_decorator()    
 @share_access_decorator(['download_share_files'])
 def download_file(request, share, subpath=None):
     from sendfile import sendfile
@@ -77,6 +83,7 @@ def download_file(request, share, subpath=None):
     response={'path':file_path}
     return sendfile(request, os.path.realpath(file_path))
 
+@safe_path_decorator()
 @share_access_decorator(['download_share_files'])
 def download_archive(request, share, subpath):
     from sendfile import sendfile

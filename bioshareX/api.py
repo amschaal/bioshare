@@ -7,7 +7,7 @@ from models import Share, SSHKey, MetaData, Tag
 from forms import MetaDataForm, json_form_validate
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
 from django.utils import simplejson
-from utils import JSONDecorator, json_response, json_error, share_access_decorator, validate_email
+from utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
@@ -134,6 +134,7 @@ def search_share(request,share,subdir=None):
         response = {'status':'error'}
     return json_response(response)
 
+@safe_path_decorator()
 @share_access_decorator(['write_to_share'])
 def edit_metadata(request, share, subpath):
     try:

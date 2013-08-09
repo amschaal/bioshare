@@ -22,7 +22,7 @@ urlpatterns = patterns('',
     url(r'^accounts/logout/$', logout_then_login,name='auth_logout'),                   
     url(r'^accounts/', include('registration.backends.default.urls')),
     url(r'^/?$', 'bioshareX.views.list_shares', name='home'),
-    url(r'^Data/(?P<id>\w{10})/(?:(?P<subpath>.*/?))?$', 'bioshareX.views.redirect_old_path', name='redirect_old_path'),
+    url(r'^Data/(?P<id>[\da-zA-Z]{10})/(?:(?P<subpath>.*/?))?$', 'bioshareX.views.redirect_old_path', name='redirect_old_path'),
     
     
 )
