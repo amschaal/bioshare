@@ -64,7 +64,33 @@ class share_access_decorator(object):
             return f(*args,**kwargs)
 #             print "After f(*args)"
         return wrapped_f
-            
+
+class safe_path_decorator(object):
+
+    def __init__(self, path_param='subpath'):
+        """
+        If there are decorator arguments, the function
+        to be decorated is not passed to the constructor!
+        """
+#         print "Inside __init__()"
+        self.path_param  = path_param
+    def __call__(self, f):
+        """
+        If there are decorator arguments, __call__() is only called
+        once, as part of the decoration process! You can only give
+        it a single argument, which is the function object.
+        """
+#         print "Inside __call__()"
+        def wrapped_f(*args,**kwargs):
+            path = kwargs[self.path_param]
+            if path is not None:
+                if '..' in path:
+                    raise Exception('Illegal path encountered')
+            return f(*args,**kwargs)
+#             print "After f(*args)"
+        return wrapped_f
+
+
 def json_response(dict):
     from django.http.response import HttpResponse
     from django.utils import simplejson
