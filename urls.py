@@ -22,6 +22,9 @@ urlpatterns = patterns('',
     url(r'^accounts/logout/$', logout_then_login,name='auth_logout'),                   
     url(r'^accounts/', include('registration.backends.default.urls')),
     url(r'^/?$', 'bioshareX.views.list_shares', name='home'),
+    url(r'^Data/(?P<id>\w{10})/(?:(?P<subpath>.*/?))?$', 'bioshareX.views.redirect_old_path', name='redirect_old_path'),
+    
+    
 )
 # urlpatterns += patterns('',
 #     url(r'^accounts/login/$', 'django.contrib.auth.views.login', {'template_name': 'registration/login.html'}),
