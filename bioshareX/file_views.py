@@ -7,7 +7,7 @@ from settings.settings import FILES_ROOT
 from models import Share
 from django.utils import simplejson
 from forms import UploadFileForm, FolderForm, json_form_validate
-from utils import JSONDecorator, sizeof_fmt, json_error
+from utils import JSONDecorator, test_path, sizeof_fmt, json_error
 import os
 from utils import share_access_decorator, safe_path_decorator, json_response
 import datetime
@@ -53,6 +53,7 @@ def create_folder(request, share, subdir=None):
 def delete_paths(request, share, subdir=None, json={}):
     response={'deleted':[],'failed':[]}
     for item in json['selection']:
+        test_path(item)
         item_path = item if subdir is None else os.path.join(subdir,item)
         try:
             if share.delete_path(item_path):
@@ -69,6 +70,8 @@ def delete_paths(request, share, subdir=None, json={}):
 def archive_files(request, share, subdir=None, json={}):
     response={}
     try:
+        for item in json['selection']:
+            test_path(item)
         details = share.create_archive(items=json['selection'],subdir=subdir)
         response['url']=reverse('download_archive',kwargs={'share':share.id,'subpath':details['subpath']})
         return json_response(response)

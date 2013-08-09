@@ -84,12 +84,16 @@ class safe_path_decorator(object):
         def wrapped_f(*args,**kwargs):
             path = kwargs[self.path_param]
             if path is not None:
-                if '..' in path:
-                    raise Exception('Illegal path encountered')
+                test_path(path)
             return f(*args,**kwargs)
 #             print "After f(*args)"
         return wrapped_f
 
+def test_path(path):
+    illegals = ['..','~','*']
+    for illegal in illegals:
+        if illegal in path:
+            raise Exception('Illegal path encountered')
 
 def json_response(dict):
     from django.http.response import HttpResponse
