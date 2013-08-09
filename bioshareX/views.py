@@ -14,6 +14,11 @@ from guardian.shortcuts import get_objects_for_user
 def index(request):
     # View code here...
     return render(request,'index.html', {"message": "Hi there"})
+
+def redirect_old_path(request, id, subpath=''):
+    share_id = '00000%s'%id
+    return HttpResponseRedirect(reverse('go_to_file_or_folder',kwargs={'share':share_id,'subpath':subpath}))
+
 def tag_cloud(request):
     # View code here...
     return render(request,'viz/cloud.html')

@@ -18,5 +18,11 @@
 </form>
 
 <p>{% trans "Forgot password" %}? <a href="{% url 'auth_password_reset' %}">{% trans "Reset it" %}</a>!</p>
-<p>{% trans "Not member" %}? <a href="{% url 'registration_register' %}">{% trans "Register" %}</a>!</p>
+<h3>What happened to the old Bioshare?</h3>
+<p>
+Bioshare has been redesigned from the ground up with security and usability in mind.  Don't worry, all previous data and permissions have been migrated to the new version.  Stay tuned for a guide on using the new Bioshare!
+</p>
+<p>
+Please note that users of the original Bioshare will need to <a href="{% url 'auth_password_reset' %}">reset</a> their passwords.
+</p>
 {% endblock %}
