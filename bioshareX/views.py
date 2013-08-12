@@ -99,6 +99,8 @@ def list_directory(request,share,subdir=None):
 
 @login_required
 def create_share(request):
+    if not request.user.has_perm('bioshareX.add_share'):
+        return render(request,'index.html', {"message": "You must have permissions to create a Share.  You may request access from the <a href=\"mailto:amschaal@ucdavis.edu\">webmaster</a>."})
     if request.method == 'POST':
         form = ShareForm(request.POST)
         if form.is_valid():
