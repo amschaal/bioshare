@@ -8,6 +8,7 @@ from models import Share
 from django.utils import simplejson
 from forms import UploadFileForm, FolderForm, json_form_validate
 from utils import JSONDecorator, test_path, sizeof_fmt, json_error
+from file_utils import istext
 import os
 from utils import share_access_decorator, safe_path_decorator, json_response
 import datetime
@@ -31,7 +32,7 @@ def upload_file(request, share, subdir=None):
         subpath = file.name if subdir is None else subdir + file.name
         url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
-        data['files'].append({'name':file.name,'size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}) 
+        data['files'].append({'name':file.name,'size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"), 'isText':istext(FILE_PATH)}) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
     return json_response(data)
@@ -104,3 +105,16 @@ def download_archive(request, share, subpath):
 #     else:
 #         form = FolderForm()
 #     return render(request, 'share/new_folder.html', {'form': form})
+
+@safe_path_decorator()    
+@share_access_decorator(['download_share_files'])
+def preview_file(request, share, subpath):
+    from file_utils import get_lines, get_num_lines
+    from_line = int(request.GET.get('from',1))
+    num_lines = int(request.GET.get('for',100))
+    file_path = os.path.join(share.get_path(),subpath)
+    response = {'share_id':share.id,'subpath':subpath,'content':get_lines(file_path,from_line,from_line+num_lines-1),'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
+    if 'get_total' in request.GET:
+        response['total'] = get_num_lines(file_path)
+    return json_response(response)
+#     return sendfile(request, os.path.realpath(file_path))

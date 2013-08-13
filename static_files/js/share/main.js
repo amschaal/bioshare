@@ -133,8 +133,13 @@ function open_metadata_form(){
 	$('#metadata-label').text(row.attr('data-id'));
 	$('#metadata-id').val(row.attr('data-id'));
 	$('#edit-metadata').modal('show');
-	
 }
+function preview_share_action(){
+	var row = $(this).closest('tr');
+	var subpath = subpath != null ? subpath + row.attr('data-id') : row.attr('data-id');
+	preview_file(share,subpath);	
+}
+
 function edit_metadata(){
 	var id = $('#metadata-id').val();
 	var url = metadata_url+id;
@@ -184,7 +189,7 @@ function edit_metadata(){
 }
 $(function () {
 	$(document).on('click','[data-action="edit-metadata"]',open_metadata_form);
-	
+	$(document).on('click','[data-action="preview"]',preview_share_action);
 	toggle_table_visibility();
 	BC.load_templates()
     $('#fileupload').fileupload({

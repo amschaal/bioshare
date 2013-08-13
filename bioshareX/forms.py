@@ -51,23 +51,7 @@ class UploadFileForm(forms.Form):
 class FolderForm(forms.Form):
     name = forms.RegexField(regex=r'^[\w\d\ ]+$',error_message=('Only letters, numbers, and spaces are allowed'))
 
-class ChangePasswordForm(forms.Form):
-    password1 = forms.CharField(widget=forms.PasswordInput,
-                                label=_("Password"))
-    password2 = forms.CharField(widget=forms.PasswordInput,
-                                label=_("Password (again)"))
-    def clean(self):
-        """
-        Verifiy that the values entered into the two password fields
-        match. Note that an error here will end up in
-        ``non_field_errors()`` because it doesn't apply to a single
-        field.
-        
-        """
-        if 'password1' in self.cleaned_data and 'password2' in self.cleaned_data:
-            if self.cleaned_data['password1'] != self.cleaned_data['password2']:
-                raise forms.ValidationError(_("The two password fields didn't match."))
-        return self.cleaned_data
+
 
 class RegistrationForm(forms.Form):
     """
@@ -144,3 +128,46 @@ def json_form_validate(form,save=False,html=True,template='ajax/crispy_form.html
         data['errors']=dict((key, value) for (key, value) in form.errors.items())
         data['html']= render_to_string(template,{'form':form})
     return data
+
+
+from django.contrib import auth
+
+class PasswordChangeForm(auth.forms.PasswordChangeForm):
+    MIN_LENGTH = 8
+
+    def clean_new_password1(self):
+        password1 = self.cleaned_data.get('new_password1')
+
+        # At least MIN_LENGTH long
+        if len(password1) < self.MIN_LENGTH:
+            raise forms.ValidationError("The new password must be at least %d characters long." % self.MIN_LENGTH)
+
+        # At least one letter and one non-letter
+#         first_isalpha = password1[0].isalpha()
+#         if all(c.isalpha() == first_isalpha for c in password1):
+#             raise forms.ValidationError("The new password must contain at least one letter and at least one digit or" \
+#                                         " punctuation character.")
+
+        # ... any other validation you want ...
+
+        return password1
+
+class SetPasswordForm(auth.forms.SetPasswordForm):
+    MIN_LENGTH = 8
+
+    def clean_new_password1(self):
+        password1 = self.cleaned_data.get('new_password1')
+
+        # At least MIN_LENGTH long
+        if len(password1) < self.MIN_LENGTH:
+            raise forms.ValidationError("The new password must be at least %d characters long." % self.MIN_LENGTH)
+
+        # At least one letter and one non-letter
+#         first_isalpha = password1[0].isalpha()
+#         if all(c.isalpha() == first_isalpha for c in password1):
+#             raise forms.ValidationError("The new password must contain at least one letter and at least one digit or" \
+#                                         " punctuation character.")
+
+        # ... any other validation you want ...
+
+        return password1

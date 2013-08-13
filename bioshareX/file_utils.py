@@ -35,3 +35,14 @@ def update_file_stats():
             share.get_stats()
         except:
             print 'Unable to create stats for share: %s'%share.name
+import subprocess        
+def istext(path):
+    return ('text' in  subprocess.Popen(["file", '-b', path], stdout=subprocess.PIPE).stdout.read())
+
+def get_lines(path,from_line=1,to_line=100):
+#     return ' '.join(["sed", "'%d,%dp; %dq'" % (from_line,to_line,to_line+1), path])
+    return subprocess.Popen(['sed', '-n','%d,%dp; %dq' % (from_line,to_line,to_line+1), path], stdout=subprocess.PIPE).stdout.read()
+#     sed '5555,7777p; 7778q' filename
+def get_num_lines(path):
+    return int(subprocess.check_output(['wc', '-l', path]).split()[0])
+

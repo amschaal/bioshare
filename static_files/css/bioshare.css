@@ -18,3 +18,17 @@ span.tag{
 	background-color:#A2E7E5;
 	border: thin solid #70CCC9;
 }
+
+
+#preview-file {
+  width: 90%; /* desired relative width */
+  max-height: 90%;
+  left: 5%; /* (100%-width)/2 */
+  /* place center */
+  margin-left:auto;
+  margin-right:auto;
+}
+#preview-file textarea{
+	width:95%;
+	height:300px;
+}
