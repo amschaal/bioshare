@@ -28,7 +28,6 @@ function highlight( data, search )
     return data.replace( new RegExp( "(" + preg_quote( search ) + ")" , 'gi' ), "<b>$1</b>" );
 }
 function share_autocomplete_highlighter(item){
-	console.log('highlight',this.query);
 	var text = $(item).text();
 	$.each(this.query.split(' '),function(index,term){
 		if (term.length >1)
@@ -57,7 +56,6 @@ var  preview_stats={};
 //	});
 //}
 function disable_scroll_load(){
-	console.log('disable');
 	$('#preview-file-area').unbind('scroll');
 }
 function enable_scroll_load(share_id,subpath,from,lines){
@@ -65,7 +63,6 @@ function enable_scroll_load(share_id,subpath,from,lines){
 	$('#preview-file-area').bind('scroll', function(){
           if($(this).scrollTop() + $(this).innerHeight()>=$(this)[0].scrollHeight)
           {
-        	  console.log('load');
         	  disable_scroll_load();
         	  preview_file(share_id,subpath,from,lines);
           }
@@ -74,6 +71,7 @@ function enable_scroll_load(share_id,subpath,from,lines){
 function reset_file_preview(){
 	disable_scroll_load();
 	$('#preview-file-area').text('');
+	$('#lines-loaded').text('');
 	preview_stats={};
 }
 function close_file_preview(){
@@ -83,7 +81,6 @@ function close_file_preview(){
 function preview_file(share_id,subpath,from,lines){
 	var data = {};
 	if(!from || ! lines){//first call
-		console.log('opened');
 		reset_file_preview();
 		var from = 1;
 		var lines = 100;

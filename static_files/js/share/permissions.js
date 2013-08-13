@@ -34,7 +34,6 @@ function set_permissions(type,data){
 			'url':set_permissions_url,
 			'data':{'json':JSON.stringify(data)},
 			'success':function(data){
-				console.log(data);
 				if(type == 'users')
 					update_user_permissions(data);
 				else if (type=='groups')
@@ -49,7 +48,6 @@ function update_share(data){
 			'url':update_share_url,
 			'data':{'json':JSON.stringify(data)},
 			'success':function(data){
-				console.log(data);
 				BC.add_message("Settings have been updated",{timeout:2000});
 			}
 		}
