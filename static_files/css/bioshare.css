@@ -30,5 +30,8 @@ span.tag{
 }
 #preview-file textarea{
 	width:95%;
-	height:300px;
+	height:400px;
+}
+.modal-body {
+	max-height:600px;
 }

@@ -196,7 +196,6 @@ $(function () {
         url: upload_file_url,
         dataType: 'json',
         done: function (e, data) {
-        	console.log('done',data);
             $.each(data.result.files, function (index, file) {
             	var old = $('#file-table tr[data-id="'+file.name+'"]');
             	if(old.length!=0)
@@ -229,7 +228,6 @@ $(function () {
     $('#create-folder').click(function(){
     		BC.ajax_form_submit('#new-folder-form',{
     			'success':function(data){
-    				console.log('',data);
     				$.each(data.objects,function(index,obj){
     					var html = BC.run_template('directory-template',obj);
     					//var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
