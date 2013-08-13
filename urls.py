@@ -4,9 +4,9 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 admin.autodiscover()
 # from registration.forms import RegistrationFormUniqueEmail
-from bioshareX.forms import RegistrationForm
+from bioshareX.forms import RegistrationForm, SetPasswordForm
 from registration.backends.default.views import RegistrationView
-from django.contrib.auth.views import logout_then_login
+from django.contrib.auth.views import logout_then_login, password_reset_confirm
 
 urlpatterns = patterns('',
     # Examples:
@@ -19,8 +19,11 @@ urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^bioshare/', include('bioshareX.urls')),
     url(r'^accounts/register/$', RegistrationView.as_view(form_class=RegistrationForm),name='registration_register'),
-    url(r'^accounts/logout/$', logout_then_login,name='auth_logout'),                   
+    url(r'^accounts/logout/$', logout_then_login,name='auth_logout'),
+#     url(r'^accounts/password/reset/(?P<uidb36>[0-9A-Za-z]+)-(?P<token>.+)/$','django.contrib.auth.views.password_reset_confirm',{'template_name':'registration/password_reset_confirm.html','set_password_form': SetPasswordForm}),                   
+    url(r'^accounts/password/reset/confirm/(?P<uidb36>[0-9A-Za-z]{1,13})-(?P<token>[0-9A-Za-z]{1,13}-[0-9A-Za-z]{1,20})/$',password_reset_confirm,kwargs={'template_name':'registration/password_reset_confirm.html','set_password_form': SetPasswordForm},name='password_reset_confirm'),
     url(r'^accounts/', include('registration.backends.default.urls')),
+    
     url(r'^/?$', 'bioshareX.views.list_shares', name='home'),
     url(r'^Data/(?P<id>[\da-zA-Z]{10})/(?:(?P<subpath>.*/?))?$', 'bioshareX.views.redirect_old_path', name='redirect_old_path'),
     

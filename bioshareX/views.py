@@ -4,10 +4,11 @@ from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT, RSYNC_URL
 from models import Share, SSHKey, MetaData, Tag
-from forms import ShareForm, FolderForm, SSHKeyForm, ChangePasswordForm, MetaDataForm
+from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
 from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response
+from bioshareX.file_utils import istext
 from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
 
@@ -85,7 +86,7 @@ def list_directory(request,share,subdir=None):
         metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
         if isfile(path):
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata}
+            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata,'isText':istext(path)}
             file_list.append(file)
         elif name not in []:#['.removed','.archives']:
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
@@ -115,13 +116,13 @@ def create_share(request):
 @login_required
 def update_password(request):
     if request.method == 'POST':
-        form = ChangePasswordForm(request.POST)
+        form = PasswordChangeForm(request.POST)
         if form.is_valid():
             request.user.set_password(form.cleaned_data['password1'])
             request.user.save()
             return render(request, 'registration/update_password.html', {'success': True})
     else:
-        form = ChangePasswordForm()
+        form = PasswordChangeForm()
     return render(request, 'registration/update_password.html', {'form': form})
 
 
@@ -149,7 +150,7 @@ def create_ssh_key(request):
     else:
         form = SSHKeyForm()
     return render(request, 'ssh/new_key.html', {'form': form})
-
+from django.contrib.auth.forms import SetPasswordForm
 
 @safe_path_decorator()
 @share_access_decorator(['view_share_files'])    

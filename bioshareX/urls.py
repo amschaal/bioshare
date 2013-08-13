@@ -1,4 +1,6 @@
 from django.conf.urls import patterns, include, url
+from bioshareX.forms import PasswordChangeForm, SetPasswordForm
+from django.contrib.auth import urls
 
 urlpatterns = patterns('bioshareX.views',
     url(r'^/?$', 'index', name='index'),
@@ -14,12 +16,15 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^goto/(?P<share>[\da-zA-Z]{15})/(?:(?P<subpath>.*/?))?$', 'go_to_file_or_folder', name='go_to_file_or_folder'),
     url(r'^ssh_keys/list/?$', 'list_ssh_keys', name='list_ssh_keys'),
     url(r'^ssh_keys/create/?$', 'create_ssh_key', name='create_ssh_key'),
-    url(r'^account/update_password/?$', 'update_password', name='update_password'),
+#     url(r'^account/update_password/?$', 'update_password', name='update_password'),
     url(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', 'delete_share', kwargs={'confirm':False},name='delete_share'),
     url(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', 'delete_share', kwargs={'confirm':True},name='confirm_delete_share'),
     url(r'^search/files/?$', 'search_files', name='search_files'),
 )
 
+urlpatterns+= patterns('',
+    url(r'^account/update_password/$', 'django.contrib.auth.views.password_change',  {'password_change_form': PasswordChangeForm},name='update_password'),
+)
 
 urlpatterns += patterns('bioshareX.api',
     url(r'^api/get_permissions/(?P<share>[\da-zA-Z]{15})/?$', 'get_permissions', name='api_get_permissions'),
@@ -43,4 +48,5 @@ urlpatterns += patterns('bioshareX.file_views',
     url(r'^archive/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'archive_files', name='archive_files'),
     url(r'^download/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'download_file', name='download_file'),
     url(r'^download_archive/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'download_archive', name='download_archive'),
+    url(r'^preview/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'preview_file', name='preview_file'),
 )
