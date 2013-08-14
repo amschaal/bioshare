@@ -98,13 +98,15 @@ def set_permissions(request,share,json=None):
 #                 remove_perm(perm,g,share)
 #             for perm in added_perms:
 #                 assign_perm(perm,g,share)
+    emailed=[]
+    created=[]
     if json.has_key('users'):
         for username, permissions in json['users'].iteritems():
             try:
                 u = User.objects.get(username=username)
-                
-                if len(share.get_user_permissions(u,user_specific=True)) == 0:
+                if len(share.get_user_permissions(u,user_specific=True)) == 0 and json['email']:
                     email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site':site})
+                    emailed.append(username)
             except:
                 if len(permissions) > 0:
                     password = User.objects.make_random_password()
@@ -112,6 +114,7 @@ def set_permissions(request,share,json=None):
                     u.set_password(password)
                     u.save()
                     email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':share,'sharer':request.user,'site':site})
+                    created.append(username)
             current_perms = share.get_user_permissions(u,user_specific=True)
             removed_perms = list(set(current_perms) - set(permissions))
             added_perms = list(set(permissions) - set(current_perms))
@@ -120,6 +123,11 @@ def set_permissions(request,share,json=None):
             for perm in added_perms:
                 assign_perm(perm,u,share)
     data = share.get_permissions(user_specific=True)
+    data['messages']=[]
+    if len(emailed) > 0:
+        data['messages'].append({'type':'info','content':'%s has/have been emailed'%', '.join(emailed)})
+    if len(created) > 0:
+        data['messages'].append({'type':'info','content':'Accounts has/have been created and emails have been sent to the following email addresses: %s'%', '.join(created)})
     data['json']=json
     return json_response(data)
 

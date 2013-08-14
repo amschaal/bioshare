@@ -10,6 +10,10 @@ BC.handle_ajax_errors = function(data,message_target){
 //		}else
 //			alert(errors);
 	}
+	if(data.messages){
+		for(var i in data.messages)
+			$.bootstrapGrowl(data.messages[i].content,{type:data.messages[i].type,delay: 10000});//type:(null, 'info', 'error', 'success')
+	}
 		
 }
 BC.ajax_form_submit=function(form,options){

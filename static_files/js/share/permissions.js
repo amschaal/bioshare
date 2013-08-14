@@ -84,7 +84,7 @@ function add_user(query){
 			}
 			
 		}
-		console.log(data);
+		show_hide_permissions();
 	});
 }
 function add_group(query){
@@ -117,6 +117,7 @@ function update_user_permissions(data){
 	$.each(data.user_perms,function(index,obj){
 		add_user_row(obj);
 	});
+	show_hide_permissions();
 }
 function add_group_row(obj){
 	var row = $('<tr data-group="'+obj.group.name+'"><td>'+obj.group.name+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
@@ -178,13 +179,18 @@ function get_group_permissions(){
 	});
 	return permissions;
 }
-
+function show_hide_permissions(){
+	if($('#user_permissions tr[data-username]').length == 0)
+		$('#user-permission-section').hide();
+	else
+		$('#user-permission-section').show();
+}
 $(function () {
 	console.log('Permissions');
 	get_permissions();
 	$(document.body).on('change','input[data-perm]',check_permissions_modified);
 	$('#updateUserPermissions').click(function(){
-		set_permissions('users',{'users':get_user_permissions()});
+		set_permissions('users',{'users':get_user_permissions(),'email':$('#email_users').prop('checked')});
 	});
 	$('#updateGroupPermissions').click(function(){
 		set_permissions('groups',{'groups':get_group_permissions()});
@@ -198,4 +204,5 @@ $(function () {
 	$('#updateGeneralSettings').click(function(){
 		update_share({'secure':$('#secure').prop('checked')});
 	});
+	
 });
