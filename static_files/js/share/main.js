@@ -136,8 +136,8 @@ function open_metadata_form(){
 }
 function preview_share_action(){
 	var row = $(this).closest('tr');
-	var subpath = subpath != null ? subpath + row.attr('data-id') : row.attr('data-id');
-	preview_file(share,subpath);	
+	var path = subpath ? subpath + row.attr('data-id') : row.attr('data-id');
+	preview_file(share,path);	
 }
 
 function edit_metadata(){
