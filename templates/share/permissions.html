@@ -34,6 +34,7 @@ table.permissions tr.modified{
 background-color:yellow;
 }
 </style>
+
 <h1>Permissions: <a href="{% url 'list_directory' share.id %}">{{share.name}}</a></h1>
 <div class="row">
   <div class="span5">
@@ -44,6 +45,8 @@ background-color:yellow;
 
  <legend>User Permissions</legend>
  <textarea id="addUser" class="no-margin" type="text" placeholder="joe@example.com, susan@example.com, ..." style="width:400px;height:100px;"></textarea><br><button id="addUserButton" class="btn">Add</button>
+
+<div id="user-permission-section" style="display:none">
 <table id="user_permissions" class="permissions">
 <thead>
 <tr><th>User</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th><th><div class="verticalText">Administer</div></th></tr>
@@ -52,6 +55,7 @@ background-color:yellow;
 <!-- <tr><td>Username</td><td><input type="checkbox"></td><td><input type="checkbox"></td><td><input type="checkbox"></td></tr> -->
 </tbody>
 </table>
+<label class="checkbox" data-toggle="tooltip" title="Email users who previously had no permissions.  Users who already had permissions will not be emailed.  Newly created accounts will receive emails regardless of this setting."><input id="email_users" type="checkbox" checked/>Send email</label>
 <button class="btn" id="updateUserPermissions">Update</button>
 <!--<br><br><br>
 <legend>Group Permissions</legend>
@@ -65,6 +69,7 @@ background-color:yellow;
 </table>
 <button class="btn" id="updateGroupPermissions">Update</button>
  -->
+</div>
 </div>
   <div class="span7"><div id="messages"></div></div>
 </div>
