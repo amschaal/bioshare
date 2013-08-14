@@ -93,7 +93,7 @@ function preview_file(share_id,subpath,from,lines){
 	data['from']= from;
 	data['for']= lines;
 	
-	var url = preview_file_url.replace('000000000000000',share_id)+subpath
+	var url = preview_file_url.replace('000000000000000',share_id)+subpath;
 //	return url;
 	disable_scroll_load();
 	$.get(url,data,function(data){
