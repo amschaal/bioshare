@@ -10,7 +10,8 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^cloud/?$', 'tag_cloud', name='tag_cloud'),
 #     url(r'^list/(?P<share>\w{15})/$', 'list_directory', name='list_directory'),
 #     url(r'^list/(?P<share>\w{15})/(?P<subdir>.*/)$', 'list_directory', name='list_sub_directory'),
-    url(r'^list/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_directory'),
+    url(r'^list/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_directory_old'),
+    url(r'^view/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_directory'),
     url(r'^shares/?$', 'list_shares', name='list_shares'),
     url(r'^permissions/(?P<share>[\da-zA-Z]{15})/?$', 'share_permissions', name='share_permissions'),
     url(r'^goto/(?P<share>[\da-zA-Z]{15})/(?:(?P<subpath>.*/?))?$', 'go_to_file_or_folder', name='go_to_file_or_folder'),
@@ -22,7 +23,7 @@ urlpatterns = patterns('bioshareX.views',
     url(r'^search/files/?$', 'search_files', name='search_files'),
 )
 
-urlpatterns+= patterns('',
+urlpatterns += patterns('',
     url(r'^account/update_password/$', 'django.contrib.auth.views.password_change',  {'password_change_form': PasswordChangeForm},name='update_password'),
 )
 

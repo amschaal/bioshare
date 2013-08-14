@@ -32,7 +32,7 @@ Handlebars.registerHelper('list_tags', function(tags) {
 <td class="tags">{{#if metadata.tags }}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td>{{ size }}</td>
 <td>{{ modified }}</td>
-<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i></td>
+<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-book-edit" data-action="edit-metadata"></i>{{#if download }}{{#if isText }}<i class="fam-zoom" data-toggle="tooltop" title="Preview contents" data-action="preview"></i>{{/if}}{{/if}}</td>
 </tr>
 {% endtplhandlebars %}
 
