@@ -108,7 +108,7 @@ function preview_file(share_id,subpath,from,lines){
 		preview_stats.percentage = Math.floor(preview_stats.current_last_line * 100 / preview_stats.total);
 		$('#lines-loaded').text('Showing '+preview_stats.current_last_line+' of '+preview_stats.total+' lines ('+preview_stats.percentage+'%)');
 		if(data.content){
-			$('#preview-file-area').append(data.content);
+			$('#preview-file-area').html($('#preview-file-area').html()+data.content);
 //			enable_more_button(share_id,subpath,data.next['from'],data.next['for']);
 			
 		}else{
