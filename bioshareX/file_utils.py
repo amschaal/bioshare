@@ -1,7 +1,7 @@
 import os, time, shutil
 
-def clean_archives(share,days=2):
-    path = os.path.join(share.get_path(),'.archives')
+def clean_archives(share,days=3):
+    path = share.get_archive_path()
     if os.path.isdir(path):
         for f in os.listdir(path):
             fpath = os.path.join(path, f)
@@ -10,8 +10,8 @@ def clean_archives(share,days=2):
                 #print 'deleting %s'%fpath
                 os.remove(fpath)
                 
-def clean_removed(share,days=2):
-    path = os.path.join(share.get_path(),'.removed')
+def clean_removed(share,days=3):
+    path = share.get_removed_path()
     if os.path.isdir(path):
         for root, dirs, files in os.walk(path):
             for file in files:

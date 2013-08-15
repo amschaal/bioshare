@@ -6,7 +6,6 @@ BC.handle_ajax_errors = function(data,message_target){
 	if(errors.length!=0){
 //		if(message_target){
 			$.bootstrapGrowl(errors.join(', '),{type:'error',delay: 10000});
-//			BC.add_message(errors.join(', '),{'target':message_target,'classes':['alert-error']});
 //		}else
 //			alert(errors);
 	}
@@ -54,18 +53,7 @@ BC.replace = function(str,dict){
 	}
 	return str;
 }
-BC.add_message = function(content, options){
-	var classes = options.classes ? options.classes : ['alert-success'];
-	var target = options.target ? options.target : '#messages';
-	var alertbox = $('\
-			<div class="alert '+classes.join(' ')+'">\
-		    <button type="button" class="close" data-dismiss="alert">×</button>\
-		    '+content+'\
-		  </div>\
-	').prependTo(target);
-	if(options.timeout)
-		window.setTimeout(function(){alertbox.alert('close')},options.timeout)
-}
+
 BC.templates = {};
 BC.load_templates = function(){
 	$('script[type="text/x-handlebars-template"]').each(function(index,template){

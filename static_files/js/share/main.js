@@ -108,16 +108,7 @@ function archive_files(url,selection){
 		}
 	);
 }
-function add_message(content,classes){
-	var classes = classes ? classes : ['alert-success'];
-	$('#messages').prepend('\
-			<div class="alert '+classes.join(' ')+'">\
-		    <button type="button" class="close" data-dismiss="alert">×</button>\
-		    '+content+'\
-		  </div>\
-	');
-	
-}
+
 function toggle_table_visibility(){
 	if($('#file-table tbody tr').length == 1){
 		$('#add-files-message').removeClass('hidden');
@@ -198,8 +189,10 @@ $(function () {
         done: function (e, data) {
             $.each(data.result.files, function (index, file) {
             	var old = $('#file-table tr[data-id="'+file.name+'"]');
-            	if(old.length!=0)
+            	if(old.length!=0){
             		old.addClass('warning');
+            		$.bootstrapGrowl('Overwrote file: '+file.name,{type:'info',delay: 3000});
+            	}
             	else{
             		file.download = share_perms.indexOf('download_share_files') > -1;
             		//var row = '<tr class="file success" data-id="'+file.name+'" data-bytes="'+file.bytes+'"><td><input class="action-check" type="checkbox"/></td><td><i class="fam-page-white"></i><a href="'+file.url+'">'+file.name+'</a></td><td>'+file.size+'</td><td>'+file.modified+'</td></tr>';
@@ -209,6 +202,7 @@ $(function () {
                     else
                     	var row = $(row).insertAfter('#file-table .directory:last');
             		filetable.fnAddTr(row[0]);
+            		$.bootstrapGrowl('Successfully uploaded '+file.name,{type:'success',delay: 3000});
             	}
             });
             $('#progress').hide();
