@@ -178,6 +178,22 @@ function edit_metadata(){
 //			}
 //		);
 }
+function create_folder(){
+		BC.ajax_form_submit('#new-folder-form',{
+			'success':function(data){
+				$.each(data.objects,function(index,obj){
+					var html = BC.run_template('directory-template',obj);
+					//var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
+                    var row = $(html).prependTo('#file-table');
+                    filetable.fnAddTr(row[0]);
+                    $.bootstrapGrowl('"'+obj.name+'" folder created',{type:'info',delay: 3000});
+				});
+				$('#new-folder').modal('hide');
+				toggle_table_visibility();
+			}
+		});
+		return false;
+}
 $(function () {
 	$(document).on('click','[data-action="edit-metadata"]',open_metadata_form);
 	$(document).on('click','[data-action="preview"]',preview_share_action);
@@ -219,20 +235,8 @@ $(function () {
         	$('#progress').show();
         }
     });
-    $('#create-folder').click(function(){
-    		BC.ajax_form_submit('#new-folder-form',{
-    			'success':function(data){
-    				$.each(data.objects,function(index,obj){
-    					var html = BC.run_template('directory-template',obj);
-    					//var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
-                        var row = $(html).prependTo('#file-table');
-                        filetable.fnAddTr(row[0]);
-    				});
-    				$('#new-folder').modal('hide');
-    				toggle_table_visibility();
-    			}
-    		});
-    	});
+    $('#create-folder').click(create_folder);
+    $('#new-folder-form').submit(create_folder);
     $('#toggle-checkbox').change(function(){
 		$('.action-check').prop('checked',$(this).prop('checked'));
     });
