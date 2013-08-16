@@ -83,7 +83,7 @@
               <li class="nav-header">Search Shares</li>
               <li><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off"></li>
               <li class="nav-header">Search Files</li>
-              <li><form class="input-append" action="{% url 'search_files' %}"><input  type="text" name="query"><button style="margin-bottom:10px" class="btn btn-primary">Search</button></form></li>
+              <li><form class="input-append" action="{% url 'search_files' %}"><input  type="text" name="query" placeholder="eg: *.fasta"><button style="margin-bottom:10px" class="btn btn-primary">Search</button></form></li>
               {% if my_recent_shares|length != 0 %}
               <li class="nav-header">My Latest Shares</li>
               {% for share in my_recent_shares %}
