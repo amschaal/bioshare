@@ -36,8 +36,8 @@ function set_permissions(type,data){
 			'success':function(data){
 				if(type == 'users')
 					update_user_permissions(data);
-				else if (type=='groups')
-					update_group_permissions(data);
+//				else if (type=='groups')
+//					update_group_permissions(data);
 			}
 		}
 	);
@@ -57,7 +57,7 @@ function update_share(data){
 function get_permissions(){
 	$.get(get_permissions_url,function(data){
 		update_user_permissions(data);
-		update_group_permissions(data);
+		//update_group_permissions(data);
 	});
 }
 function add_user(query){
@@ -192,15 +192,15 @@ $(function () {
 	$('#updateUserPermissions').click(function(){
 		set_permissions('users',{'users':get_user_permissions(),'email':$('#email_users').prop('checked')});
 	});
-	$('#updateGroupPermissions').click(function(){
-		set_permissions('groups',{'groups':get_group_permissions()});
-	});
+//	$('#updateGroupPermissions').click(function(){
+//		set_permissions('groups',{'groups':get_group_permissions()});
+//	});
 	$('#addUserButton').click(function(){
 		add_user($('#addUser').val());
 	});
-	$('#addGroupButton').click(function(){
-		add_group($('#addGroup').val());
-	});
+//	$('#addGroupButton').click(function(){
+//		add_group($('#addGroup').val());
+//	});
 	$('#updateGeneralSettings').click(function(){
 		update_share({'secure':$('#secure').prop('checked')});
 	});
