@@ -111,7 +111,7 @@ function add_user_row(obj){
 }
 
 function update_user_permissions(data){
-	console.log(data);
+	//console.log(data);
 	$('#user_permissions tbody').html('');
 	//view_share_files, download_share_files, write_to_share, delete_share_files
 	$.each(data.user_perms,function(index,obj){
@@ -150,7 +150,7 @@ function check_permissions_modified(){
 	else
 		row.removeClass('modified');
 	
-	console.log($(this).attr('data-perm'));
+	//console.log($(this).attr('data-perm'));
 }
 
 function get_user_permissions(){
@@ -186,7 +186,7 @@ function show_hide_permissions(){
 		$('#user-permission-section').show();
 }
 $(function () {
-	console.log('Permissions');
+	//console.log('Permissions');
 	get_permissions();
 	$(document.body).on('change','input[data-perm]',check_permissions_modified);
 	$('#updateUserPermissions').click(function(){
