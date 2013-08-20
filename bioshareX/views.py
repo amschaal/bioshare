@@ -3,7 +3,7 @@ from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT, RSYNC_URL
-from models import Share, SSHKey, MetaData, Tag
+from models import Share, SSHKey, MetaData, Tag, ShareStats
 from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
@@ -30,7 +30,9 @@ def list_shares(request):
 #     shares = Share.objects.filter(owner=request.user)
 #     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
     shares = Share.user_queryset(request.user).order_by('-created')
-    return render(request,'share/shares.html', {"shares": shares})
+    total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
+    stats = ShareStats.objects.filter(share__owner=request.user)
+    return render(request,'share/shares.html', {"shares": shares,"total_size":total_size})
 
 def forbidden(request):
     # View code here...
