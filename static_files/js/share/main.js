@@ -32,8 +32,8 @@ function generate_rsync_strings(share,subpath){
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
 	var files = selection.length > 0 ? '{'+selection.join(',')+'}' : '';
-	var download_string = "rsync -vrz adam@phymaptest:"+path+files+" /to/my/local/directory";
-	var upload_string = "rsync -vrz /path/to/my/files  adam@phymaptest:"+path;
+	var download_string = "rsync -vrzt adam@phymaptest:"+path+files+" /to/my/local/directory";
+	var upload_string = "rsync -vrzt /path/to/my/files  adam@phymaptest:"+path;
 	
 	$('#rsync-download-command').text(download_string);
 	$('#rsync-upload-command').text(upload_string);
