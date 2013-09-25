@@ -95,18 +95,21 @@ function delete_paths(url,selection){
 	);
 }
 function archive_files(url,selection){
-	BC.ajax(
-		{
-			'url':url,
-			'data':{'json':JSON.stringify({'selection':selection})},
-			'success':function(data){
-				if(data.url){
-					var message = 'Archive ready for <a href="'+data.url+'">download</a>';
-					$.bootstrapGrowl(message,{delay: 100000000,type:'success'});
+	if(selection.length  == 0)
+		alert('Please select at least 1 file to be archived.');
+	else
+		BC.ajax(
+			{
+				'url':url,
+				'data':{'json':JSON.stringify({'selection':selection})},
+				'success':function(data){
+					if(data.url){
+						var message = 'Archive ready for <a href="'+data.url+'">download</a>';
+						$.bootstrapGrowl(message,{delay: 100000000,type:'success'});
+					}
 				}
 			}
-		}
-	);
+		);
 }
 
 function toggle_table_visibility(){
