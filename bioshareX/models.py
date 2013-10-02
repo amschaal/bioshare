@@ -109,37 +109,19 @@ class Share(models.Model):
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
         return folder_path
-#     def delete_folder(self,subdir):
-#         import shutil
-#         if subdir is None or subdir == '' or subdir.count('..') != 0:
-#             return False
-#         path = os.path.join(self.get_path(),subdir)
-#         parent_path = os.path.abspath(os.path.join(path,os.pardir))
-#         if os.path.exists(path):
-#             delete_path = os.path.join(parent_path,'.removed')
-#             if not os.path.exists(delete_path):
-#                 os.makedirs(delete_path)
-#             shutil.move(path, delete_path)
     def delete_path(self,subpath):
         import shutil
         if subpath is None or subpath == '' or subpath.count('..') != 0:
             return False
         path = os.path.join(self.get_path(),subpath)
         if os.path.exists(path):
-            delete_path = self.get_removed_path()#os.path.join(self.get,'.removed')
-            if not os.path.exists(delete_path):
-                os.makedirs(delete_path)
-            move_path = os.path.join(delete_path,subpath)
-            move_parent_path = os.path.abspath(os.path.join(move_path,os.pardir))
-            if not os.path.exists(move_parent_path):
-                os.makedirs(move_parent_path)
-            if os.path.exists(move_path):
-                if os.path.isfile(move_path):
-                    os.remove(move_path)
-                else:
-                    shutil.rmtree(move_path)
-            shutil.move(path, move_path)
-            return True
+            if os.path.isfile(path):
+                os.remove(path)
+                return True
+            elif os.path.isdir(path):
+                shutil.rmtree(path)
+                return True
+        return False
     def create_archive(self,items,subdir=None):
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
         from utils import zipdir, get_total_size
