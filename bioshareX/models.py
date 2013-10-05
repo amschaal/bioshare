@@ -1,6 +1,7 @@
 from django.db import models
-from django.contrib.auth.models import User
-from django.db.models.signals import post_save, post_delete
+from django.contrib.auth.models import User, AbstractUser
+from django.dispatch import receiver
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.db.models import Q
 from settings.settings import FILES_ROOT, ARCHIVE_ROOT, REMOVED_FILES_ROOT
 import os
@@ -9,6 +10,9 @@ from django.utils.html import strip_tags
 def pkgen():
     import string, random
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(15))
+
+# class BioshareUser(AbstractUser):
+#   filesystems = models.ManyToManyField()
 
 class ShareStats(models.Model):
     share = models.OneToOneField('Share',unique=True,related_name='stats')
@@ -27,6 +31,15 @@ class ShareStats(models.Model):
         self.bytes = stats['size']
         self.updated = timezone.now()
         self.save()
+        
+class Filesystem(models.Model):
+    name = models.CharField(max_length=50)
+    description = models.TextField()
+    path = models.CharField(max_length=200)
+    archive_path = models.CharField(max_length=200)
+    users = models.ManyToManyField(User, related_name='filesystems')
+    def __unicode__(self):
+        return '%s: %s' %(self.name, self.path)
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     created = models.DateTimeField(auto_now_add=True)
@@ -35,6 +48,7 @@ class Share(models.Model):
     secure = models.BooleanField(default=True)
     notes = models.TextField()
     tags = models.ManyToManyField('Tag')
+    filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
     def __unicode__(self):
         return self.name
     class Meta:
@@ -89,9 +103,9 @@ class Share(models.Model):
                 user_perms[row['username']]['permissions'].append(row['permission'])
         return user_perms
     def get_path(self):
-        return os.path.join(FILES_ROOT,self.id)
+        return os.path.join(self.filesystem.path,self.id)
     def get_archive_path(self):
-        return os.path.join(ARCHIVE_ROOT,self.id)
+        return os.path.join(self.filesystem.archive_path,self.id)
     def get_removed_path(self):
         return os.path.join(REMOVED_FILES_ROOT,self.id)
     def get_path_type(self,subpath):
@@ -122,6 +136,30 @@ class Share(models.Model):
                 shutil.rmtree(path)
                 return True
         return False
+    def move_share(self,filesystem):
+        import shutil
+#         old_path = self.get_path()
+#         temp_dir = "%s_temp" % (old_path)
+#         new_path = os.path.join(filesystem.path, self.id)
+#         new_archive_path = os.path.join(filesystem.archive_path, self.id)
+#         if not os.path.isdir(new_path):
+#             os.mkdir(new_path)
+#         if not os.path.isdir(new_archive_path):
+#             os.mkdir(new_archive_path)
+#         shutil.move(old_path, temp_dir)
+#         os.symlink(new_path, old_path)
+#         shutil.move(temp_dir,new_path)
+#         shutil.move(self.get_archive_path(),new_archive_path)
+#         self.filesystem = filesystem
+#         self.save()
+#         os.unlink(old_path)
+        new_path = os.path.join(filesystem.path, self.id)
+        new_archive_path = os.path.join(filesystem.archive_path, self.id)
+        shutil.move(self.get_path(),new_path)
+        if os.path.isdir(self.get_archive_path()):
+            shutil.move(self.get_archive_path(),new_archive_path)
+        self.filesystem = filesystem
+#         self.save()
     def create_archive(self,items,subdir=None):
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
         from utils import zipdir, get_total_size
@@ -165,6 +203,15 @@ def share_post_save(sender, **kwargs):
             os.chown(path, uid, gid)
             os.chmod(path, int(0775))            
 post_save.connect(share_post_save, sender=Share)
+
+@receiver(pre_save, sender=Share)
+def share_pre_save(sender, instance, **kwargs):
+    if instance.id:
+        old_share = Share.objects.get(pk=instance.id)
+        if instance.filesystem.id != old_share.filesystem.id:
+            old_share.move_share(instance.filesystem)
+    
+    
 # def delete_share(sender, **kwargs):
 #     if kwargs['created']:
 #         path = kwargs['instance'].get_path()
@@ -185,13 +232,12 @@ post_save.connect(share_post_save, sender=Share)
 #             shutil.move(path, delete_path)
 def share_post_delete(sender, **kwargs):
     path = kwargs['instance'].get_path()
-    delete_subpath = os.path.join('.deleted',kwargs['instance'].id)
-    delete_path = os.path.join(FILES_ROOT,delete_subpath)
+    archive_path = kwargs['instance'].get_archive_path()
     import shutil
     if os.path.isdir(path):
         shutil.rmtree(path)
-    if os.path.isdir(delete_path):
-        shutil.rmtree(delete_path)
+    if os.path.isdir(archive_path):
+        shutil.rmtree(archive_path)
 post_delete.connect(share_post_delete, sender=Share)
 # class ShareUser(models.Model):
 #     share = models.ForeignKey(Share)
