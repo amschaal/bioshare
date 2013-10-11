@@ -31,6 +31,9 @@ config.read('sshwrapper.config')
 # class WrapperException(Exception):
 #     """Basically just the base Exception class"""
 
+class WrapperException(Exception):
+    pass
+
 def get_token_data(token_file):
     import ConfigParser
     config = ConfigParser.ConfigParser()
@@ -77,12 +80,12 @@ def analyze_path(path):
     try:
         matches = match.groupdict()
         if not matches.has_key('share'):
-            raise Exception('analyze_path: Bad path: %s' % path)
+            raise WrapperException('analyze_path: Bad path: %s' % path)
         share_path = get_share_meta(matches['share'])['path']
         if matches.has_key('subpath'):
 #             print matches['subpath']
             if '..' in matches['subpath']:
-                raise Exception('Illegal subpath: %s' % matches['subpath'])
+                raise WrapperException('Illegal subpath: %s' % matches['subpath'])
         if matches.has_key('subpath'):
             path = join(share_path, matches['share'], match.group('subpath'))
         else:
@@ -99,13 +102,13 @@ def handle_rsync(parts):
         if '--sender' in parts:#server->client
             for share in shares:
                 if not can_read(USER, share):
-                    raise Exception('User %s cannot read from share %s' % (USER,share))
+                    raise WrapperException('User %s cannot read from share %s' % (USER,share))
             command = ['rsync', '--server', '--sender', '-vrzte.iLsf', '.'] + paths
         else:#client->server
             # --no-p --no-g --chmod=ugo=rwX  //destination default permissions
             for share in shares:
                 if not can_write(USER, share):
-                    raise Exception('User %s cannot write to share %s' % (USER,share))
+                    raise WrapperException('User %s cannot write to share %s' % (USER,share))
             command = ['rsync', '--server', '-vrtze.iLsf', '.'] + paths
 #             command = parts[:4]+paths
         if TEST:
