@@ -50,10 +50,10 @@ def get_permissions(username,share):
         PERMISSIONS[share]= response['permissions']
     return PERMISSIONS[share]
 
-def get_share_meta(username,share):
+def get_share_meta(share):
 #     try:
     if not SHARE_META.has_key(share):
-        url  = config.get('config','metadata_api_url') % (share,username)
+        url  = config.get('config','metadata_api_url') % (share)
         response = urllib2.urlopen(url)
         response = json.load(response)
         SHARE_META[share]= response
@@ -84,7 +84,7 @@ def analyze_path(path):
         matches = match.groupdict()
         if not matches.has_key('share'):
             raise WrapperException('analyze_path: Bad key: %s' % path)
-        share_path = get_share_meta(USER,matches['share'])['path']
+        share_path = get_share_meta(matches['share'])['path']
         if matches.has_key('subpath'):
 #             print matches['subpath']
             if '..' in matches['subpath']:
