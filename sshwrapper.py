@@ -97,7 +97,7 @@ def analyze_path(path):
     except WrapperException, e:
         raise e
     except Exception, e:
-        raise Exception('analyze_path: Bad path: %s' % path)
+        raise Exception('analyze_path: Bad path: %s, %s' % (path,str(e)))
 
 def handle_rsync(parts):
     try:
