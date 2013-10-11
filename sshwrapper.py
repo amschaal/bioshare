@@ -11,8 +11,11 @@ ORIGINAL_COMMAND = None
 USER = None
 TEST = False
 PERMISSIONS = {}
+SHARE_META = {}
 WRITE_PERMISSIONS = ['write_to_share','delete_share_files']
 READ_PERMISSIONS = ['download_share_files']
+
+
 
 import ConfigParser
 config = ConfigParser.ConfigParser()
@@ -44,6 +47,16 @@ def get_permissions(username,share):
         PERMISSIONS[share]= response['permissions']
     return PERMISSIONS[share]
 
+def get_share_meta(username,share):
+    if not SHARE_META.has_key(share):
+        url  = config.get('config','metadata_api_url') % (share,username)
+        response = urllib2.urlopen(url)
+        response = json.load(response)
+        SHARE_META[share]= response
+    return SHARE_META[share]
+
+
+
 def can_write(username,share):
     perms = get_permissions(username,share)
     for perm in WRITE_PERMISSIONS:
@@ -65,14 +78,15 @@ def analyze_path(path):
         matches = match.groupdict()
         if not matches.has_key('share'):
             raise Exception('analyze_path: Bad path: %s' % path)
+        share_path = get_share_meta(matches['share'])['path']
         if matches.has_key('subpath'):
 #             print matches['subpath']
             if '..' in matches['subpath']:
                 raise Exception('Illegal subpath: %s' % matches['subpath'])
         if matches.has_key('subpath'):
-            path = join(config.get('config','share_dir'), matches['share'], match.group('subpath'))
+            path = join(share_path, matches['share'], match.group('subpath'))
         else:
-            path = join(config.get('config','share_dir'), matches['share'])
+            path = join(share_path, matches['share'])
         return {'share':matches['share'],'path':path}
     except Exception, e:
         raise Exception('analyze_path: Bad path: %s' % path)
