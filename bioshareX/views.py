@@ -46,7 +46,7 @@ def share_permissions(request,share):
 @share_access_decorator(['admin'])
 def edit_share(request,share):
     if request.method == 'POST':
-        form = ShareForm(request.POST,instance=share)
+        form = ShareForm(request.user,request.POST,instance=share)
         if form.is_valid():
             share = form.save(commit=False)
             tags = []
@@ -59,7 +59,7 @@ def edit_share(request,share):
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id}))
     else:
         tags = ','.join([tag.name for tag in share.tags.all()])
-        form = ShareForm(instance=share)
+        form = ShareForm(request.user,instance=share)
         form.fields['tags'].initial = tags
     return render(request, 'share/edit_share.html', {'form': form})
 
@@ -105,14 +105,14 @@ def create_share(request):
     if not request.user.has_perm('bioshareX.add_share'):
         return render(request,'index.html', {"message": "You must have permissions to create a Share.  You may request access from the <a href=\"mailto:amschaal@ucdavis.edu\">webmaster</a>."})
     if request.method == 'POST':
-        form = ShareForm(request.POST)
+        form = ShareForm(request.user,request.POST)
         if form.is_valid():
             share = form.save(commit=False)
             share.owner=request.user
             share.save()
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id}))
     else:
-        form = ShareForm()
+        form = ShareForm(request.user)
     return render(request, 'share/new_share.html', {'form': form})
 
 @login_required

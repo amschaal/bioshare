@@ -72,6 +72,13 @@ def get_user_permissions(request,share):
         return json_response({'permissions':data, 'status':'success'})
     except Exception, e:
         return json_response({'permissions':[], 'status':'error'})
+def get_share_metadata(request,share):
+    try:
+        share = Share.objects.get(id=share)
+        return json_response({'id':share.id, 'name':share.name, 'path': share.get_path()})
+    except Exception, e:
+        return json_response({'permissions':[], 'status':'error'})
+    
 
 @share_access_decorator(['admin'])
 @JSONDecorator

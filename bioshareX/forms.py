@@ -9,7 +9,9 @@ class ShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_message=('Please avoid special characters'))
     notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:,]+$',error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_message=('Only use comma delimited alphanumeric tags'),widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
-#     filesystem = forms
+    def __init__(self, user, *args, **kwargs):
+        super(ShareForm, self).__init__(*args, **kwargs)
+        self.fields['filesystem'].queryset = user.filesystems
     class Meta:
         model = Share
         fields = ('name', 'notes','filesystem')
