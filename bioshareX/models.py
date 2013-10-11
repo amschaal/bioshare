@@ -206,10 +206,13 @@ post_save.connect(share_post_save, sender=Share)
 
 @receiver(pre_save, sender=Share)
 def share_pre_save(sender, instance, **kwargs):
-    if instance.id:
-        old_share = Share.objects.get(pk=instance.id)
-        if instance.filesystem.id != old_share.filesystem.id:
+    try:
+        old_share = Share.objects.get(pk=instance.pk)
+        if instance.filesystem.pk != old_share.filesystem.pk:
             old_share.move_share(instance.filesystem)
+    except:
+        pass
+        
     
     
 # def delete_share(sender, **kwargs):
