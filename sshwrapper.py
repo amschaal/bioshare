@@ -51,14 +51,17 @@ def get_permissions(username,share):
     return PERMISSIONS[share]
 
 def get_share_meta(username,share):
+#     try:
     if not SHARE_META.has_key(share):
         url  = config.get('config','metadata_api_url') % (share,username)
         response = urllib2.urlopen(url)
         response = json.load(response)
         SHARE_META[share]= response
     return SHARE_META[share]
-
-
+#     except WrapperException, e:
+#         raise e
+#     except Exception, e: 
+#         raise WrapperException('Illegal subpath: %s' % matches['subpath'])
 
 def can_write(username,share):
     perms = get_permissions(username,share)
@@ -91,6 +94,8 @@ def analyze_path(path):
         else:
             path = join(share_path, matches['share'])
         return {'share':matches['share'],'path':path}
+    except WrapperException, e:
+        raise e
     except Exception, e:
         raise Exception('analyze_path: Bad path: %s' % path)
 
