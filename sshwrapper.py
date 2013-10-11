@@ -84,7 +84,7 @@ def analyze_path(path):
         matches = match.groupdict()
         if not matches.has_key('share'):
             raise WrapperException('analyze_path: Bad key: %s' % path)
-        share_path = get_share_meta(matches['share'])['path']
+        share_path = get_share_meta(USER,matches['share'])['path']
         if matches.has_key('subpath'):
 #             print matches['subpath']
             if '..' in matches['subpath']:
