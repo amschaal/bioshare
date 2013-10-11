@@ -90,9 +90,9 @@ def analyze_path(path):
             if '..' in matches['subpath']:
                 raise WrapperException('Illegal subpath: %s' % matches['subpath'])
         if matches.has_key('subpath'):
-            path = join(share_path, matches['share'], match.group('subpath'))
+            path = join(share_path,  match.group('subpath'))
         else:
-            path = join(share_path, matches['share'])
+            path = share_path
         return {'share':matches['share'],'path':path}
     except WrapperException, e:
         raise e
