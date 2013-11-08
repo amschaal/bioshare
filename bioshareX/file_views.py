@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from settings.settings import FILES_ROOT
 from models import Share
 from django.utils import simplejson
-from forms import UploadFileForm, FolderForm, json_form_validate
+from forms import UploadFileForm, FolderForm, json_form_validate, RenameForm
 from utils import JSONDecorator, test_path, sizeof_fmt, json_error
 from file_utils import istext
 import os
@@ -47,6 +47,24 @@ def create_folder(request, share, subdir=None):
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
         data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}]
     return json_response(data)
+
+@safe_path_decorator(path_param='subdir')
+@share_access_decorator(['write_to_share'])
+def modify_name(request, share, subdir=None):
+    import os
+    form = RenameForm(request.POST)
+    data = json_form_validate(form)
+    if form.is_valid():
+        if subdir is None:
+            from_path = os.path.join(share.get_path(),form.cleaned_data['from_name'])
+            to_path = os.path.join(share.get_path(),form.cleaned_data['to_name'])
+        else:
+            from_path = os.path.join(share.get_path(),subdir,form.cleaned_data['from_name'])
+            to_path = os.path.join(share.get_path(),subdir,form.cleaned_data['to_name'])
+        os.rename(from_path, to_path)
+        data['objects']=[{'from_name':form.cleaned_data['from_name'],'to_name':form.cleaned_data['to_name']}]
+    return json_response(data)
+
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['delete_share_files'])

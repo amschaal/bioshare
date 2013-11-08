@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
 from settings.settings import FILES_ROOT, RSYNC_URL
 from models import Share, SSHKey, MetaData, Tag, ShareStats
-from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm
+from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 from django.utils import simplejson
 from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response
@@ -98,7 +98,7 @@ def list_directory(request,share,subdir=None):
         return json_response({'files':file_list,'directories':dir_list})
     owner = request.user == share.owner
 
-    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
+    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
 
 @login_required
 def create_share(request):
