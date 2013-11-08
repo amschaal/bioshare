@@ -54,6 +54,10 @@ class UploadFileForm(forms.Form):
 class FolderForm(forms.Form):
     name = forms.RegexField(regex=r'^[\w\d\ ]+$',error_message=('Only letters, numbers, and spaces are allowed'))
 
+class RenameForm(forms.Form):
+    from_name = forms.RegexField(regex=r'^[^/]+$',error_message=('Only letters, numbers, and spaces are allowed'),widget=forms.HiddenInput())
+    to_name = forms.RegexField(regex=r'^[^/]+$',error_message=('Only letters, numbers, and spaces are allowed'))
+
 
 
 class RegistrationForm(forms.Form):
