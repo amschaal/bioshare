@@ -136,6 +136,17 @@ class Share(models.Model):
                 shutil.rmtree(path)
                 return True
         return False
+    def move_path(self,item_subpath,destination_subpath=''):
+        import shutil
+        if destination_subpath.count('..') != 0:
+            return False
+        destination_path = os.path.join(self.get_path(),destination_subpath)
+        item_path = os.path.join(self.get_path(),item_subpath)
+        if os.path.exists(destination_path):
+            shutil.move(item_path,destination_path)
+            return True
+        else:
+            return False
     def move_share(self,filesystem):
         import shutil
 #         old_path = self.get_path()

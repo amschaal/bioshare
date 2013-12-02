@@ -226,6 +226,91 @@ function modify_name(){
 	return false;
 }
 
+function open_move_modal(){
+	$("#tree").dynatree("getTree").reload();
+	$('#move-to-modal').modal('show');
+}
+
+function move_files(url,selection){
+	var selected = $("#tree").dynatree("getSelectedNodes")[0];
+	var destination = selected ? $("#tree").dynatree("getSelectedNodes")[0].data.key : '';
+	if(subpath==destination+'/'){
+		alert('Why would you want to move things to the same directory?  That\'s just silly!');
+		return;
+	}
+	BC.ajax(
+			{
+				'url':url,
+				'data':{'json':JSON.stringify({'selection':selection,'destination':destination})},
+				'success':function(data){
+					if(data.failed.length !=0){
+						var message = "The following files were unable to be moved: " + data.failed.join(', ');
+						message += "<br>The filesystem may be read only.";
+						$.bootstrapGrowl(message,{type:'error',delay: 10000});
+					}
+					if(data.moved){
+						$.each(data.moved,function(index,item){
+							$('#file-table [data-id="'+item+'"]').addClass('error').addClass('moved');
+						});
+						var message = "The following files were moved to '"+destination+"': " + data.moved.join(', ');
+						$.bootstrapGrowl(message,{type:'success',delay: 10000});
+						setTimeout(function(){
+								$('#file-table tr.moved').fadeOut({
+									'duration':500,
+									'complete':function(){filetable.fnDeleteRow($(this)[0]);toggle_table_visibility();}
+										});
+								}
+							,500);
+						$('#move-to-modal').modal('hide');
+					}
+				}
+			}
+		);
+
+}
+
+function init_dynatree(){
+	 $("#tree").dynatree({
+	      title: "Lazy loading sample",
+	      fx: { height: "toggle", duration: 200 },
+	      checkbox: true,
+	      // Override class name for checkbox icon:
+	      classNames: {checkbox: "dynatree-radio"},
+	      selectMode: 1,
+	      autoFocus: false, // Set focus to first child, when expanding or lazy-loading.
+	      // In real life we would call a URL on the server like this:
+//	          initAjax: {
+//	              url: "/getTopLevelNodesAsJson",
+//	              data: { mode: "funnyMode" }
+//	              },
+	      // .. but here we use a local file instead:
+	      initAjax: {
+	        url: get_directories_url
+	        },
+
+//	      onActivate: function(node) {
+//	        $("#echoActive").text("" + node + " (" + node.getKeyPath()+ ")");
+//	      },
+
+	      onLazyRead: function(node){
+	        // In real life we would call something like this:
+	              node.appendAjax({
+	                  url: get_directories_url,
+	                data: {directory: node.data.key,
+	                       mode: "funnyMode"
+	                         }
+	              });
+	        // .. but here we use a local file instead:
+//	        node.appendAjax({
+//	          url: "sample-data2.json",
+//	          // We don't want the next line in production code:
+//	          debugLazyDelay: 750
+//	        });
+	      }
+	    });
+
+}
+
 $(function () {
 	$(document).on('click','[data-action="edit-metadata"]',open_metadata_form);
 	$(document).on('click','[data-action="preview"]',preview_share_action);
@@ -272,6 +357,11 @@ $(function () {
     $('#create-folder').click(create_folder);
     $('#rename-button').click(modify_name);
     $('#new-folder-form').submit(create_folder);
+    $('#open-move-modal').click(open_move_modal);
+    $('#move-button').click(function(){
+    	if(confirm('Are you sure you want to move these files/folders?'))
+    		move_files(move_paths_url,get_selected_names());
+    });
     $('#toggle-checkbox').change(function(){
 		$('.action-check').prop('checked',$(this).prop('checked'));
     });
@@ -307,6 +397,7 @@ $(function () {
     $('#file-table').on('click','span.tag',function(){hide_other_tags($(this).text())});
     filtered_tags = [];
     $('#reset-tag-button').click(reset_tags);
+    init_dynatree();
 });
 function hide_other_tags(tag){
 	if(filtered_tags.indexOf(tag) >= 0)
