@@ -84,6 +84,23 @@ def delete_paths(request, share, subdir=None, json={}):
     return json_response(response)
 
 @safe_path_decorator(path_param='subdir')
+@share_access_decorator(['delete_share_files'])
+@JSONDecorator
+def move_paths(request, share, subdir=None, json={}):
+    response={'moved':[],'failed':[]}
+    for item in json['selection']:
+        test_path(item)
+        item_subpath = item if subdir is None else os.path.join(subdir,item)
+        try:
+            if share.move_path(item_subpath,json['destination']):
+                response['moved'].append(item)
+            else:
+                response['failed'].append(item)
+        except Exception, e:
+            print e.message
+    return json_response(response)
+
+@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['download_share_files'])
 @JSONDecorator
 def archive_files(request, share, subdir=None, json={}):
@@ -134,5 +151,17 @@ def preview_file(request, share, subpath):
     response = {'share_id':share.id,'subpath':subpath,'content':get_lines(file_path,from_line,from_line+num_lines-1),'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
     if 'get_total' in request.GET:
         response['total'] = get_num_lines(file_path)
+    return json_response(response)
+
+@share_access_decorator(['download_share_files'])
+def get_directories(request, share):
+    import os
+    response=[]
+    directory = request.GET.get('directory','')
+    full_path = os.path.join(share.get_path(),directory)
+    dirs = [name for name in os.listdir(full_path) if os.path.isdir(os.path.join(full_path, name))]
+    for dir in dirs:
+        key = os.path.join(directory,dir)
+        response.append({"title": dir, "isFolder": True, "isLazy": True, "key": key})
     return json_response(response)
 #     return sendfile(request, os.path.realpath(file_path))
