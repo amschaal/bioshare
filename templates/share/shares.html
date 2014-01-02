@@ -24,7 +24,7 @@
 		<tr>
 			<td data-toggle="tooltip" title="{{share.notes}}"><a href="{% url 'list_directory' share.id %}">{{share.name}}</a></td>
 			<td>{{share.owner.email}}</td>
-			<td>{{share.created|date}}</td>
+			<td>{{share.created|date:"m/d/Y"}}</td>
 			<td data-toggle="tooltip" title="Last updated: {{share.stats.updated|date:'r'}}">{{share.stats.num_files}}</td>
 			<td data-toggle="tooltip" title="Last updated: {{share.stats.updated|date:'r'}}">{{share.stats.hr_size}}</td>
 		</tr>
@@ -67,8 +67,8 @@ $(document).ready(function() {
 		"aoColumns": [
 		                null,
 		                null,
-		                null,
-		                null,
+		                { "sType": "date" },
+		                { "sType": "numeric" },
 		                { "sType": "file-size" }
 		            ]
 	} );
