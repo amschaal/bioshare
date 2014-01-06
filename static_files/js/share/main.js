@@ -33,7 +33,7 @@ function generate_rsync_strings(share,subpath){
 		path = "'"+path.replace(re,'\\ ')+"'";
 	var files = selection.length > 0 ? '{'+selection.join(',')+'}' : '';
 	var download_string = "rsync -vrzt adam@phymaptest:"+path+files+" /to/my/local/directory";
-	var upload_string = "rsync -vrzt /path/to/my/files  adam@phymaptest:"+path;
+	var upload_string = "rsync -vrzt --perms --chmod=g+rw,u+rw,o+r /path/to/my/files  adam@phymaptest:"+path;
 	
 	$('#rsync-download-command').text(download_string);
 	$('#rsync-upload-command').text(upload_string);
