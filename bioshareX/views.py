@@ -97,8 +97,8 @@ def list_directory(request,share,subdir=None):
     if request.is_ajax():
         return json_response({'files':file_list,'directories':dir_list})
     owner = request.user == share.owner
-
-    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms)})
+    all_perms = share.get_permissions(user_specific=True)
+    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms),"num_shared":len(all_perms['user_perms'])})
 
 @login_required
 def create_share(request):
