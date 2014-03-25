@@ -31,7 +31,7 @@ function generate_rsync_strings(share,subpath){
 	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
-	var files = selection.length > 0 ? '{'+selection.join(',')+'}' : '';
+	var files = selection.length > 1 ? '{'+selection.join(',')+'}' : selection.join('');
 	var download_string = "rsync -vrzt adam@phymaptest:"+path+files+" /to/my/local/directory";
 	var upload_string = "rsync -vrzt --perms --chmod=g+rw,u+rw,o+r /path/to/my/files  adam@phymaptest:"+path;
 	
@@ -50,7 +50,7 @@ function generate_rsync_download(share,subpath){
 	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
-	var files = selection.length > 0 ? '{'+selection.join(',')+'}' : '';
+	var files = selection.length > 1 ? '{'+selection.join(',')+'}' : selection.join('');
 	var download_all_string = "rsync -vrzt "+rsync_url+":"+path+" /to/my/local/directory";
 	var download_string = "rsync -vrzt "+rsync_url+":"+path+files+" /to/my/local/directory";
 	
