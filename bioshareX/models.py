@@ -85,7 +85,7 @@ class Share(models.Model):
                 perms = [perm[0] for perm in self._meta.permissions]
             else:
                 perms = get_perms(user, self)
-        if not self.secure:
+        if not self.secure and not user_specific:
             perms = list(set(perms+['view_share_files','download_share_files']))
         return perms
     def get_all_user_permissions(self,user_specific=False):
