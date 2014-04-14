@@ -2,6 +2,8 @@ function search_share(query){
 	$.get(search_url,{query:query},function(data){
 		//console.log(data);
 		$('#searchResults').html('');
+		if (data.results.length==0)
+			$('#searchResults').html('No results found');
 		$.each(data.results,function(index,result){
 			var split_at = result.lastIndexOf("/")+1;
 			var directory = result.substring(0, split_at-1);
@@ -393,6 +395,7 @@ $(function () {
     	}
     });
     $('#searchButton').click(function(){search_share($('#searchBox').val())});
+    $('#searchForm').submit(function(){search_share($('#searchBox').val()); return false;});
     $('#save-metadata').click(edit_metadata);
     $('#file-table').on('click','span.tag',function(){hide_other_tags($(this).text())});
     filtered_tags = [];

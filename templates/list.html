@@ -102,7 +102,13 @@
 	  </table>
   </div>
   <div class="tab-pane" id="search-tab">
+  		<ul>
+  		<li><b>Use "*" for wildcard</b></li>
+  		<li><b>Search is case sensitive</b></li>
+  		</ul>
+  		<form id="searchForm" onSubmit="return false;">
   		<input id="searchBox"><button class="btn" id="searchButton">Search</button>
+  		</form>
   		<div id="searchResults">
   		</div>
   </div>
@@ -283,7 +289,10 @@ $(document).ready(function() {
 		                { "sType": "file-size" },
 		                { "sType": "datetime-us" },
 		                {bSortable: false},
-		            ]
+		            ],
+		"oLanguage": {
+	         "sSearch": "Filter:"
+	       }
 	} );
 } );
 </script>
