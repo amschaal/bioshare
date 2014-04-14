@@ -107,6 +107,8 @@ def set_permissions(request,share,json=None):
 #                 assign_perm(perm,g,share)
     emailed=[]
     created=[]
+    print 'JSON'
+    print json
     if json.has_key('users'):
         for username, permissions in json['users'].iteritems():
             try:
@@ -123,6 +125,9 @@ def set_permissions(request,share,json=None):
                     email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':share,'sharer':request.user,'site':site})
                     created.append(username)
             current_perms = share.get_user_permissions(u,user_specific=True)
+            print 'CURRENT'
+            print share.get_user_permissions(u,user_specific=True)
+            print current_perms
             removed_perms = list(set(current_perms) - set(permissions))
             added_perms = list(set(permissions) - set(current_perms))
             for perm in removed_perms:
@@ -136,6 +141,8 @@ def set_permissions(request,share,json=None):
     if len(created) > 0:
         data['messages'].append({'type':'info','content':'Accounts has/have been created and emails have been sent to the following email addresses: %s'%', '.join(created)})
     data['json']=json
+    print 'RESPONSE'
+    print data
     return json_response(data)
 
 @share_access_decorator(['view_share_files'])
@@ -144,7 +151,7 @@ def search_share(request,share,subdir=None):
     query = request.GET.get('query',False)
     response={}
     if query:
-        response['results'] = find(share,query,subdir)
+        response['results'] = find(share,"*%s*"%query,subdir)
     else:
         response = {'status':'error'}
     return json_response(response)
