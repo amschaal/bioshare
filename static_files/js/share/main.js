@@ -65,7 +65,7 @@ function generate_wget_download(share,subpath){
 	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
-	var command = '"C:\\Program Files\\GnuWin32\\bin\\wget.exe" -r -nH -nc --cut-dirs=3 --no-parent --reject "index.html" --no-check-certificate --header "Cookie: sessionid='+session_cookie+'; https://'+ base_url + '/bioshare/wget'+path+'wget_index.html';
+	var command = '"C:\\Program Files\\GnuWin32\\bin\\wget.exe" -r -nH -nc --cut-dirs=3 --no-parent --reject "index.html" --no-check-certificate --header "Cookie: sessionid='+session_cookie+';" https://'+ base_url + '/bioshare/wget'+path+'wget_index.html';
 	alert(command);
 }
 
