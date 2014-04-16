@@ -60,6 +60,15 @@ function generate_rsync_download(share,subpath){
 	$('#rsync-download-all').text(download_all_string);
 	$('#rsync-download').modal('show');
 }
+function generate_wget_download(share,subpath){
+	//wget -r -nH -nc --cut-dirs=3 --no-parent --reject "index.html" http://127.0.0.1:8002/bioshare/wget/00000072frcjhi6/index.html
+	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
+	if (path.indexOf(' ') > -1)
+		path = "'"+path.replace(re,'\\ ')+"'";
+	var command = "wget -r -nH -nc --cut-dirs=3 --no-parent --reject \"index.html\" --header \"Cookie: sessionid="+session_cookie+";\" "+ base_url + '/bioshare/wget'+path+'index.html';
+	alert(command);
+}
+
 function generate_rsync_upload(share,subpath){
 	var re = new RegExp(' ', 'g');
 	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
@@ -372,6 +381,9 @@ $(function () {
     });
     $('#download-rsync').click(function(){
     	generate_rsync_download(share,subpath);
+    });
+    $('#download-wget').click(function(){
+    	generate_wget_download(share,subpath);
     });
     $('#upload-rsync').click(function(){
     	generate_rsync_upload(share,subpath);

@@ -98,7 +98,34 @@ def list_directory(request,share,subdir=None):
         return json_response({'files':file_list,'directories':dir_list})
     owner = request.user == share.owner
     all_perms = share.get_permissions(user_specific=True)
-    return render(request,'list.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms),"num_shared":len(all_perms['user_perms'])})
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms),"num_shared":len(all_perms['user_perms'])})
+
+@safe_path_decorator(path_param='subdir')
+@share_access_decorator(['view_share_files','download_share_files'])
+def wget_listing(request,share,subdir=None):
+    from os import listdir, stat
+    from os.path import isfile, join, getsize, normpath
+    import time, datetime
+    PATH = share.get_path()
+    if subdir is not None:
+        PATH = join(PATH,subdir)
+    file_list=[]
+    dir_list=[]
+    regex = r'^%s[^/]+/?' % '' if subdir is None else normpath(subdir)+'/'
+    for name in listdir(PATH):
+        path = join(PATH,name)
+        subpath= name if subdir is None else join(subdir,name)
+        if isfile(path):
+            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
+            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
+            file_list.append(file)
+        elif name not in []:#['.removed','.archives']:
+            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
+            dir={'name':name,'size':getsize(path),'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
+            dir_list.append(dir)
+    return render(request,'wget_listing.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir})
+
+
 
 @login_required
 def create_share(request):

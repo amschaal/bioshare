@@ -54,6 +54,7 @@
 		  <ul class="dropdown-menu">
 		    <li><a href="#" id="download-zip">Zipfile</a></li>
 		    <li><a href="#" id="download-rsync">Rsync</a></li>
+		    <li><a href="#" id="download-wget">Wget</a></li>
 		  </ul>
 	  </div>
 	  {% endif %}
@@ -233,6 +234,7 @@ Filtered by: <span id="filtered-tags"></span><br>
 <script src="{{STATIC_URL}}lib/jquery_upload/js/jquery.iframe-transport.js"></script>
 <!-- The basic File Upload plugin -->
 <script src="{{STATIC_URL}}lib/jquery_upload/js/jquery.fileupload.js"></script>
+<script src="{{STATIC_URL}}lib/jquery.cookie.js"></script>
 {% include "handlebars/list_files.html" %}
 <script>
 /*jslint unparam: true */
@@ -258,6 +260,8 @@ Filtered by: <span id="filtered-tags"></span><br>
    	var subpath = {% if subdir %}'{{ subdir }}' {% else %} null {% endif %};
    	var metadata_url = '{% url 'api_edit_metadata' share=share.id subpath='' %}' + (subpath ? subpath : '');
 	var rsync_url = '{{rsync_url}}';
+	var base_url = '{{ request.get_host }}';
+	var session_cookie = '{{session_cookie}}';
 	var get_directories_url = '{% url 'get_directories' share=share.id %}';
 </script>
 
