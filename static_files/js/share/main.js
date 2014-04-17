@@ -61,7 +61,8 @@ function generate_rsync_download(share,subpath){
 	$('#rsync-download').modal('show');
 }
 function generate_wget_download(share,subpath){
-	//wget -r -nH -nc --cut-dirs=3 --no-parent --reject "index.html" http://127.0.0.1:8002/bioshare/wget/00000072frcjhi6/index.html
+	//wget -r -nH -nc --cut-dirs=3 --no-parent --reject "index.html" http://127.0.0.1:8002/bioshare/wget/0000001234567890/wget_index.html
+	var re = new RegExp(' ', 'g');
 	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
