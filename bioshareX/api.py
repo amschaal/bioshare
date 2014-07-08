@@ -7,7 +7,7 @@ from models import Share, SSHKey, MetaData, Tag
 from forms import MetaDataForm, json_form_validate
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
 from django.utils import simplejson
-from utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email
+from utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email, fetchall
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
@@ -19,6 +19,13 @@ def get_user(request):
         return json_response({'user':{'username':user.username,'email':user.email}})
     except Exception, e:
         return json_error([e.message])
+    
+def get_address_book(request):
+    try:
+        emails = fetchall("SELECT u.email FROM biosharex.guardian_userobjectpermission p join auth_user u on p.user_id = u.id where object_pk in (select id from bioshareX_share where owner_id = %d) group by email;" % int(request.user.id))
+        return json_response({'emails':[email[0] for email in emails]})
+    except Exception, e:
+        return json_error([e.message])
 
 def share_with_emails(request):
     query = request.REQUEST.get('query')
@@ -28,6 +35,8 @@ def share_with_emails(request):
     try:
         emails = [email.strip() for email in query.split(',')]
         for email in emails:
+            if email == '':
+                continue
             if validate_email(email):
                 try:
                     user = User.objects.get(email=email)

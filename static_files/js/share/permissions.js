@@ -204,5 +204,30 @@ $(function () {
 	$('#updateGeneralSettings').click(function(){
 		update_share({'secure':$('#secure').prop('checked')});
 	});
+	$('#addUser').textcomplete([
+	                            { // mention strategy
+//	                              match:  /@(\w{2,})$/,
+	                              search: function (term, callback) {
+	                            	  var searchTerm = term;
+//	                            	  console.log('term',term);
+	                                //callback(cache[term], true);
+	                                $.getJSON('/bioshare/api/get_addresses/', { q: term })
+	                                  .done(function (resp) {
+//	                                	  console.log('term',searchTerm);
+	                                	  callback($.map(resp.emails, function (email) {
+		  	                              		                return email.indexOf(term) === 0 ? email : null;
+		  	                            		            	})); 
+//	                                	  callback(resp.emails);   
+	                                  })
+	                                  .fail(function ()     { callback([]);   });
+	                              },
+//	                              replace: function (word) {
+//	                                  return word + ', ';
+//	                              },
+	                              cache: true,
+	                              match: /(^|\s)(\w*)$/,
+	                            	  replace: function (value) { return '$1' + value + ', '; }
+	                            }
+	                            ]);
 	
 });
