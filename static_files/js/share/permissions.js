@@ -96,16 +96,16 @@ function add_group(query){
 		console.log(data);
 	});
 }
-
-function add_user_row(obj){
-	var classes = obj.new_user ? 'new-user ' : '';
-	var warning = obj.new_user ? '<i class="fam-error-add" data-toggle="tooltip" title="An account will automatically be made for this email address"></i>' : '';
-	var row = $('<tr data-username="'+obj.user.username+'" class="'+classes+'"><td>'+warning+obj.user.username+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
-	$.each(obj.permissions,function(i,perm){
-		$('input[data-perm="'+perm+'"]',row).attr('checked',true);
-	});
-	$('#user_permissions tbody').append(row);
-}
+//
+//function add_user_row(obj){
+//	var classes = obj.new_user ? 'new-user ' : '';
+//	var warning = obj.new_user ? '<i class="fam-error-add" data-toggle="tooltip" title="An account will automatically be made for this email address"></i>' : '';
+//	var row = $('<tr data-username="'+obj.user.username+'" class="'+classes+'"><td>'+warning+obj.user.username+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
+//	$.each(obj.permissions,function(i,perm){
+//		$('input[data-perm="'+perm+'"]',row).attr('checked',true);
+//	});
+//	$('#user_permissions tbody').append(row);
+//}
 
 function update_permissions(data){
 	//console.log(data);
@@ -119,22 +119,22 @@ function update_permissions(data){
 	});
 	show_hide_permissions();
 }
-function add_group_row(obj){
-	var row = $('<tr data-group="'+obj.group.name+'"><td>'+obj.group.name+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
-	$.each(obj.permissions,function(i,perm){
-		$('input[data-perm="'+perm+'"]',row).attr('checked',true);
-	});
-	$('#group_permissions tbody').append(row);
-}
-function update_group_permissions(data){
-	console.log(data);
-	$('#group_permissions tbody').html('');
-	//view_share_files, download_share_files, write_to_share, delete_share_files
-	$.each(data.group_perms,function(index,obj){
-		add_group_row(obj);
-	});
-	show_hide_permissions();
-}
+//function add_group_row(obj){
+//	var row = $('<tr data-group="'+obj.group.name+'"><td>'+obj.group.name+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
+//	$.each(obj.permissions,function(i,perm){
+//		$('input[data-perm="'+perm+'"]',row).attr('checked',true);
+//	});
+//	$('#group_permissions tbody').append(row);
+//}
+//function update_group_permissions(data){
+//	console.log(data);
+//	$('#group_permissions tbody').html('');
+//	//view_share_files, download_share_files, write_to_share, delete_share_files
+//	$.each(data.group_perms,function(index,obj){
+//		add_group_row(obj);
+//	});
+//	show_hide_permissions();
+//}
 
 function check_permissions_modified(){
 	var row = $(this).closest('tr');
@@ -181,14 +181,14 @@ function get_group_permissions(){
 	return permissions;
 }
 function show_hide_permissions(){
-	if($('#user_permissions tr[data-username]').length == 0)
+	if($('#user_permissions tbody').length == 0)
 		$('#user-permission-section').hide();
 	else
 		$('#user-permission-section').show();
-	if($('#group_permissions tbody tr').length == 0)
-		$('#group-permission-section').hide();
-	else
-		$('#group-permission-section').show();
+//	if($('#group_permissions tbody tr').length == 0)
+//		$('#group-permission-section').hide();
+//	else
+//		$('#group-permission-section').show();
 }
 $(function () {
 	//console.log('Permissions');
@@ -197,16 +197,16 @@ $(function () {
 	$('#updateUserPermissions').click(function(){
 		set_permissions({'users':get_user_permissions(),'groups':get_group_permissions(),'email':$('#email_users').prop('checked')});
 	});
-	$('#updateGroupPermissions').click(function(){
-		set_permissions('groups',{'groups':get_group_permissions()});
-	});
+//	$('#updateGroupPermissions').click(function(){
+//		set_permissions('groups',{'groups':get_group_permissions()});
+//	});
 	$('#addUserButton').click(function(){
 		//add_user($('#addUser').val());
 		share_with($('#addUser').val());
 	});
-	$('#addGroupButton').click(function(){
-		add_group($('#addGroup').val());
-	});
+//	$('#addGroupButton').click(function(){
+//		add_group($('#addGroup').val());
+//	});
 	$('#updateGeneralSettings').click(function(){
 		update_share({'secure':$('#secure').prop('checked')});
 	});
@@ -234,36 +234,14 @@ $(function () {
 //	                                  return word + ', ';
 //	                              },
 	                              cache: true,
+	                              template: function (value) {
+	                            	  if (value.toLowerCase().indexOf('group:') === 0)
+	                            		  return '<i class="fam-group"></i>' + value;
+	                            	  else 
+	                            		  return '<i class="fam-user"></i>' + value;
+	                              },
 	                              match: /(^|\s)(\w*)$/,
 	                            	  replace: function (value) { return '$1' + value + ', '; }
-	                            }
-    ]);
-	$('#permissionEditable').textcomplete([
-	                            { // mention strategy
-//	                              match:  /@(\w{2,})$/,
-	                              search: function (term, callback) {
-	                            	  var searchTerm = term;
-//	                            	  console.log('term',term);
-	                                //callback(cache[term], true);
-	                                $.getJSON('/bioshare/api/get_addresses/', { q: term })
-	                                  .done(function (resp) {
-//	                                	  console.log('term',searchTerm);
-	                                	  callback($.map(resp.emails, function (email) {
-		  	                              		                return email.toLowerCase().indexOf(term.toLowerCase()) === 0 ? email : null;
-		  	                            		            	}),true); 
-	                                	  callback($.map(resp.groups, function (group) {
-		  	                              		                return group.toLowerCase().indexOf(term.toLowerCase()) === 0 ? 'Group:'+ group : null;
-		  	                            		            	}));
-//	                                	  callback(resp.emails);   
-	                                  })
-	                                  .fail(function ()     { callback([]);   });
-	                              },
-//	                              replace: function (word) {
-//	                                  return word + ', ';
-//	                              },
-	                              cache: true,
-	                              match: /(^|\s)(\w*)$/,
-	                              replace: function (value) { return '$1' + value + ', '; }
 	                            }
     ]);
 	
