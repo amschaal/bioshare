@@ -1,4 +1,6 @@
+#
 # Django settings for bioshareX project.
+#
 import os
 CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir))
 
@@ -154,6 +156,7 @@ INSTALLED_APPS = (
     'guardian',
     'registration',
     'django_extensions',
+    'djcelery',
 )
 
 # A sample logging configuration. The only tangible logging

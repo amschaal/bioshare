@@ -27,6 +27,9 @@ table.permissions tr td{
 border: thin solid #ccc;
 text-align:center;
 }
+table.permissions tr td:first-child{
+text-align: left;
+}
 table.permissions tr td input{
 margin:0px;
 }
@@ -47,29 +50,35 @@ background-color:yellow;
  <textarea id="addUser" class="no-margin" type="text" placeholder="joe@example.com, susan@example.com, ..." style="width:400px;height:100px;"></textarea><br><button id="addUserButton" class="btn">Add</button>
 
 <div id="user-permission-section" style="display:none">
-<table id="user_permissions" class="permissions">
-<thead>
-<tr><th>User</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th><th><div class="verticalText">Administer</div></th></tr>
-</thead>
-<tbody>
-<!-- <tr><td>Username</td><td><input type="checkbox"></td><td><input type="checkbox"></td><td><input type="checkbox"></td></tr> -->
-</tbody>
-</table>
-<label class="checkbox" data-toggle="tooltip" title="Email users who previously had no permissions.  Users who already had permissions will not be emailed.  Newly created accounts will receive emails regardless of this setting."><input id="email_users" type="checkbox" checked/>Send email</label>
-<button class="btn" id="updateUserPermissions">Update</button>
-<!--<br><br><br>
+	<table id="user_permissions" class="permissions">
+	<thead>
+	<tr><th>User</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th><th><div class="verticalText">Administer</div></th></tr>
+	</thead>
+	<tbody>
+	<!-- <tr><td>Username</td><td><input type="checkbox"></td><td><input type="checkbox"></td><td><input type="checkbox"></td></tr> -->
+	</tbody>
+	</table>
+	<label class="checkbox" data-toggle="tooltip" title="Email users who previously had no permissions.  Users who already had permissions will not be emailed.  Newly created accounts will receive emails regardless of this setting."><input id="email_users" type="checkbox" checked/>Send email</label>
+	<button class="btn" id="updateUserPermissions">Update</button>
+</div>
+<br><br>
 <legend>Group Permissions</legend>
 <input id="addGroup" type="text" placeholder="Group name" class="no-margin"><button id="addGroupButton" class="btn btn-small">Add Group</button>
-<table id="group_permissions" class="permissions">
-<thead>
-<tr><th>Group</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th><th><div class="verticalText">Administer</div></th></tr>
-</thead>
-<tbody>
-</tbody>
-</table>
-<button class="btn" id="updateGroupPermissions">Update</button>
- -->
-</div>
+<div id="group-permission-section" style="display:none">
+	<table id="group_permissions" class="permissions">
+	<thead>
+	<tr><th>Group</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th><th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th><th><div class="verticalText">Administer</div></th></tr>
+	</thead>
+	<tbody>
+	</tbody>
+	</table>
+	<button class="btn" id="updateGroupPermissions">Update</button>
+ </div>
+<!-- Testing below --> 
+<legend>User Permissions</legend>
+ <textarea id="permissionEditable" placeholder="joe@example.com, susan@example.com, MyGroupName, ..." style="width:400px;height:100px;"></textarea>
+<!-- Testing above --> 
+ 
 </div>
   <div class="span7"><div id="messages"></div></div>
 </div>
@@ -80,11 +89,12 @@ background-color:yellow;
 <script>
 var get_permissions_url = '{% url 'api_get_permissions' share=share.id %}';
 var set_permissions_url = '{% url 'api_set_permissions' share=share.id %}';
+var share_with_url = '{% url 'api_share_with' share=share.id %}';
 var share_with_emails_url = '{% url 'api_share_with_emails' %}';
 var get_group_url = '{% url 'api_get_group' %}';
 var update_share_url = '{% url 'api_update_share' share=share.id %}'; 
 
 </script>
-<script src="{% static "lib/textcomplete/jquery.textcomplete.min.js" %}"></script>
+<script src="{% static "lib/textcomplete/jquery.textcomplete.js" %}"></script>
 <script src="{% static "js/share/permissions.js" %}"></script>
 {% endblock %}

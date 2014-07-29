@@ -72,7 +72,7 @@ class Share(models.Model):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
         groups = get_groups_with_perms(self,attach_perms=True)
-        group_perms = [{'group':{'name':group.name},'permissions':permissions} for group, permissions in groups.iteritems()]
+        group_perms = [{'group':{'name':group.name,'id':group.id},'permissions':permissions} for group, permissions in groups.iteritems()]
         return {'user_perms':user_perms,'group_perms':group_perms}
     def get_user_permissions(self,user,user_specific=False):
         if user_specific:
