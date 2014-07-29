@@ -23,7 +23,8 @@ def get_user(request):
 def get_address_book(request):
     try:
         emails = fetchall("SELECT u.email FROM biosharex.guardian_userobjectpermission p join auth_user u on p.user_id = u.id where object_pk in (select id from bioshareX_share where owner_id = %d) group by email;" % int(request.user.id))
-        return json_response({'emails':[email[0] for email in emails]})
+        groups = Group.objects.all()
+        return json_response({'emails':[email[0] for email in emails], 'groups':[g.name for g in groups]})
     except Exception, e:
         return json_error([e.message])
 
@@ -31,13 +32,21 @@ def share_with_emails(request):
     query = request.REQUEST.get('query')
     exists = []
     new_users = []
+    groups = []
     invalid = []
     try:
         emails = [email.strip() for email in query.split(',')]
         for email in emails:
             if email == '':
                 continue
-            if validate_email(email):
+            if email.startswith('Group:'):
+                name = email.split('Group:')[1]
+                try:
+                    group = Group.objects.get(name=name)
+                    groups.append({'group':{'id':group.id,'name':group.name}})
+                except:
+                    invalid.append(name)
+            elif validate_email(email):
                 try:
                     user = User.objects.get(email=email)
                     exists.append({'user':{'username':email}})
@@ -45,7 +54,38 @@ def share_with_emails(request):
                     new_users.append({'user':{'username':email}})
             else:
                 invalid.append(email)
-        return json_response({'exists':exists,'new_users':new_users,'invalid':invalid})
+        return json_response({'exists':exists,'groups':groups,'new_users':new_users,'invalid':invalid})
+    except Exception, e:
+        return json_error([e.message])
+    
+@share_access_decorator(['admin'])    
+def share_with(request,share):
+    query = request.REQUEST.get('query')
+    exists = []
+    new_users = []
+    groups = []
+    invalid = []
+    try:
+        emails = [email.strip() for email in query.split(',')]
+        for email in emails:
+            if email == '':
+                continue
+            if email.startswith('Group:'):
+                name = email.split('Group:')[1]
+                try:
+                    group = Group.objects.get(name=name)
+                    groups.append({'group':{'id':group.id,'name':group.name}})
+                except:
+                    invalid.append(name)
+            elif validate_email(email):
+                try:
+                    user = User.objects.get(email=email)
+                    exists.append({'user':{'username':email}})
+                except:
+                    new_users.append({'user':{'username':email}})
+            else:
+                invalid.append(email)
+        return json_response({'exists':exists, 'groups':groups,'new_users':new_users,'invalid':invalid})
     except Exception, e:
         return json_error([e.message])
     
@@ -102,18 +142,18 @@ def set_permissions(request,share,json=None):
     from bioshareX.utils import email_users
     from django.contrib.sites.models import get_current_site
     site = get_current_site(request)
-#     if not request.user.has_perm('admin',share_obj):
-#         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
-#     if json.has_key('groups'):
-#         for group, permissions in json['groups'].iteritems():
-#             g = Group.objects.get(name=group)
-#             current_perms = get_perms(g,share)
-#             removed_perms = list(set(current_perms) - set(permissions))
-#             added_perms = list(set(permissions) - set(current_perms))
-#             for perm in removed_perms:
-#                 remove_perm(perm,g,share)
-#             for perm in added_perms:
-#                 assign_perm(perm,g,share)
+    if not request.user.has_perm('admin',share):
+        return json_response({'status':'error','error':'You do not have permission to write to this share.'})
+    if json.has_key('groups'):
+        for group, permissions in json['groups'].iteritems():
+            g = Group.objects.get(id=group)
+            current_perms = get_perms(g,share)
+            removed_perms = list(set(current_perms) - set(permissions))
+            added_perms = list(set(permissions) - set(current_perms))
+            for perm in removed_perms:
+                remove_perm(perm,g,share)
+            for perm in added_perms:
+                assign_perm(perm,g,share)
     emailed=[]
     created=[]
     print 'JSON'

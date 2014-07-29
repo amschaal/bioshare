@@ -41,6 +41,7 @@ urlpatterns += patterns('bioshareX.api',
     url(r'^api/ssh_keys/delete/?$', 'delete_ssh_key', name='api_delete_ssh_key'),
     url(r'^api/edit_metadata/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'edit_metadata', name='api_edit_metadata'),
     url(r'^api/get_addresses/?$', 'get_address_book', name='api_get_address_book'),
+    url(r'^api/share/(?P<share>[\da-zA-Z]{15})/?$', 'share_with', name='api_share_with'),
 )
 
 urlpatterns += patterns('bioshareX.file_views',
