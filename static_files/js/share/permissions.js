@@ -56,46 +56,46 @@ function get_permissions(){
 		update_permissions(data);
 	});
 }
-function add_user(query){
-	$.get(share_with_emails_url,{query:query},function(data){
-		if(data.errors)
-			BC.handle_ajax_errors(data,'#messages');
-		else{
-			$.each(data.exists,function(index,obj){
-				obj.permissions=[];
-				add_user_row(obj);
-			});
-			$.each(data.new_users,function(index,obj){
-				obj.permissions=[];
-				obj.new_user = true;
-				add_user_row(obj);
-			});
-			if(data.invalid.length != 0){
-				var emails = data.invalid.join(', ');
-				$.bootstrapGrowl('The following emails are invalid: '+emails,{type:'error',delay: 10000});
-			}
-			if(data.new_users.length != 0){
-				var emails = $.map(data.new_users,function(obj,ind){return obj.user.username;}).join(', ');
-				$.bootstrapGrowl('Accounts will automatically be made for the following new users: '+emails,{type:'info',delay: 10000});
-			}
-			
-		}
-		show_hide_permissions();
-	});
-}
-function add_group(query){
-	$.get(get_group_url,{query:query},function(data){
-		if(data.errors)
-			BC.handle_ajax_errors(data,'#messages');
-		else if(data.group){
-			data.permissions=[];
-			add_group_row(data);
-//			BC.add_message(data.group.name);
-		}
-		show_hide_permissions();
-		console.log(data);
-	});
-}
+//function add_user(query){
+//	$.get(share_with_emails_url,{query:query},function(data){
+//		if(data.errors)
+//			BC.handle_ajax_errors(data,'#messages');
+//		else{
+//			$.each(data.exists,function(index,obj){
+//				obj.permissions=[];
+//				add_user_row(obj);
+//			});
+//			$.each(data.new_users,function(index,obj){
+//				obj.permissions=[];
+//				obj.new_user = true;
+//				add_user_row(obj);
+//			});
+//			if(data.invalid.length != 0){
+//				var emails = data.invalid.join(', ');
+//				$.bootstrapGrowl('The following emails are invalid: '+emails,{type:'error',delay: 10000});
+//			}
+//			if(data.new_users.length != 0){
+//				var emails = $.map(data.new_users,function(obj,ind){return obj.user.username;}).join(', ');
+//				$.bootstrapGrowl('Accounts will automatically be made for the following new users: '+emails,{type:'info',delay: 10000});
+//			}
+//			
+//		}
+//		show_hide_permissions();
+//	});
+//}
+//function add_group(query){
+//	$.get(get_group_url,{query:query},function(data){
+//		if(data.errors)
+//			BC.handle_ajax_errors(data,'#messages');
+//		else if(data.group){
+//			data.permissions=[];
+//			add_group_row(data);
+////			BC.add_message(data.group.name);
+//		}
+//		show_hide_permissions();
+//		console.log(data);
+//	});
+//}
 //
 //function add_user_row(obj){
 //	var classes = obj.new_user ? 'new-user ' : '';
@@ -181,7 +181,7 @@ function get_group_permissions(){
 	return permissions;
 }
 function show_hide_permissions(){
-	if($('#user_permissions tbody').length == 0)
+	if($('#user_permissions tbody tr').length == 0)
 		$('#user-permission-section').hide();
 	else
 		$('#user-permission-section').show();

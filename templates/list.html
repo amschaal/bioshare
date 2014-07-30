@@ -21,8 +21,8 @@
 	{% if "admin" in share_perms %}<a href="{% url 'share_permissions' share.id%}" class="btn btn-warning pull-right margin-3"><i class="fam-user-add"></i> Permissions</a><a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3">Edit</a>{% endif %}
 </h1>
 {% if "admin" in share_perms %}
-{% if num_shared > 0%}
-<div class="pull-right alert"><i class="icon-info-sign"></i> <a href="{% url 'share_permissions' share.id%}">Sharing</a> with {{num_shared}} user(s)</div>
+{% if num_shared > 0 or num_shared_groups %}
+<div class="pull-right alert"><i class="icon-info-sign"></i> <a href="{% url 'share_permissions' share.id%}">Sharing</a> with {{num_shared}} user(s) and {{num_shared_groups}} group(s)</div>
 {% else %}
 <div class="pull-right alert alert-error"><i class="icon-info-sign"></i> <a href="{% url 'share_permissions' share.id%}">Sharing</a> with {{num_shared}} user(s)</div>
 {% endif %}
