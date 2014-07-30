@@ -83,6 +83,11 @@ function check_row_permissions_modified(row){
 			row.find('td').first().append('<i class="fam-email" style="margin-left:5px" ></i>');
 	}else
 		row.find('.fam-email').remove();
+	if (permissions.length > 0 && row.find('input[data-perm]:checked').length == 0){
+		if(row.find('.fam-cross').length == 0)
+			row.find('td').first().append('<i class="fam-cross" style="margin-left:5px" data-toggle="tooltip" title="Remove access from this user"></i>');
+	}else
+		row.find('.fam-cross').remove();
 	if(modified)
 		row.addClass('modified');
 	else
