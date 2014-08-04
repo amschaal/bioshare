@@ -114,8 +114,8 @@ def set_permissions(request,share,json=None):
     emailed=[]
     created=[]
     site = get_current_site(request)
-    if not request.user.has_perm('admin',share):
-        return json_response({'status':'error','error':'You do not have permission to write to this share.'})
+#     if not request.user.has_perm('admin',share):
+#         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
     if json.has_key('groups'):
         for group, permissions in json['groups'].iteritems():
             g = Group.objects.get(id=group)
