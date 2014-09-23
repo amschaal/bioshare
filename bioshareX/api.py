@@ -143,7 +143,7 @@ def set_permissions(request,share,json=None):
                     try:
                         email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site':site})
                         emailed.append(username)
-                    except SMTPException:
+                    except:
                         failed.append(username)
             except:
                 if len(permissions) > 0:
@@ -154,7 +154,7 @@ def set_permissions(request,share,json=None):
                     try:
                         email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':share,'sharer':request.user,'site':site})
                         created.append(username)
-                    except SMTPException:
+                    except:
                         failed.append(username)
                         u.delete()
             current_perms = share.get_user_permissions(u,user_specific=True)
@@ -173,7 +173,7 @@ def set_permissions(request,share,json=None):
         data['messages'].append({'type':'info','content':'%s has/have been emailed'%', '.join(emailed)})
     if len(created) > 0:
         data['messages'].append({'type':'info','content':'Accounts has/have been created and emails have been sent to the following email addresses: %s'%', '.join(created)})
-    if len(created) > 0:
+    if len(failed) > 0:
         data['messages'].append({'type':'info','content':'Delivery has failed to the following addresses: %s'%', '.join(failed)})
     data['json']=json
     print 'RESPONSE'

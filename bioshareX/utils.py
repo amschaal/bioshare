@@ -175,7 +175,7 @@ def email_users(users, subject_template, body_template, ctx_dict):
     message = render_to_string(body_template, ctx_dict)
     msg = EmailMessage(subject, message, DEFAULT_FROM_EMAIL, [u.email for u in users])
     msg.content_subtype = "html"  # Main content is now text/html
-    msg.send()
+    msg.send(fail_silently=False)
 #     
 # def get_file_info(path):
 #     from os.path import basename
