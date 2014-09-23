@@ -111,8 +111,10 @@ def update_share(request,share,json=None):
 def set_permissions(request,share,json=None):
     from bioshareX.utils import email_users
     from django.contrib.sites.models import get_current_site
+    from smtplib import SMTPException
     emailed=[]
     created=[]
+    failed=[]
     site = get_current_site(request)
 #     if not request.user.has_perm('admin',share):
 #         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
@@ -138,16 +140,23 @@ def set_permissions(request,share,json=None):
             try:
                 u = User.objects.get(username=username)
                 if len(share.get_user_permissions(u,user_specific=True)) == 0 and json['email']:
-                    email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site':site})
-                    emailed.append(username)
+                    try:
+                        email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site':site})
+                        emailed.append(username)
+                    except SMTPException:
+                        failed.append(username)
             except:
                 if len(permissions) > 0:
                     password = User.objects.make_random_password()
                     u = User(username=username,email=username)
                     u.set_password(password)
                     u.save()
-                    email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':share,'sharer':request.user,'site':site})
-                    created.append(username)
+                    try:
+                        email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':share,'sharer':request.user,'site':site})
+                        created.append(username)
+                    except SMTPException:
+                        failed.append(username)
+                        u.delete()
             current_perms = share.get_user_permissions(u,user_specific=True)
             print 'CURRENT'
             print share.get_user_permissions(u,user_specific=True)
@@ -164,6 +173,8 @@ def set_permissions(request,share,json=None):
         data['messages'].append({'type':'info','content':'%s has/have been emailed'%', '.join(emailed)})
     if len(created) > 0:
         data['messages'].append({'type':'info','content':'Accounts has/have been created and emails have been sent to the following email addresses: %s'%', '.join(created)})
+    if len(created) > 0:
+        data['messages'].append({'type':'info','content':'Delivery has failed to the following addresses: %s'%', '.join(failed)})
     data['json']=json
     print 'RESPONSE'
     print data
