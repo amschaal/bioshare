@@ -15,16 +15,23 @@
 {% block title %}Share: {{share.name}}{% endblock %}
 
 {% block content %}
+
 <h1>
 	<a href="{% url 'list_directory' share.id %}" data-toggle="tooltip" title="{{share.notes}}">{{share.name}}</a>
 	{% if owner %}<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3">Delete Share</a>{% endif %}
 	{% if "admin" in share_perms %}<a href="{% url 'share_permissions' share.id%}" class="btn btn-warning pull-right margin-3"><i class="fam-user-add"></i> Permissions</a><a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3">Edit</a>{% endif %}
 </h1>
+<h4>Owner: {{share.owner.username}}</h4>
+
 {% if "admin" in share_perms %}
 {% if num_shared > 0 or num_shared_groups %}
-<div class="pull-right alert"><i class="icon-info-sign"></i> <a href="{% url 'share_permissions' share.id%}">Sharing</a> with {{num_shared}} user(s) and {{num_shared_groups}} group(s)</div>
+<div class="pull-right alert">
+<i class="icon-info-sign"></i> <a href="{% url 'share_permissions' share.id%}">Sharing</a> with {{num_shared}} user(s) and {{num_shared_groups}} group(s)
+</div>
 {% else %}
-<div class="pull-right alert alert-error"><i class="icon-info-sign"></i> <a href="{% url 'share_permissions' share.id%}">Sharing</a> with {{num_shared}} user(s)</div>
+<div class="pull-right alert alert-error">
+<i class="icon-info-sign"></i> <a href="{% url 'share_permissions' share.id%}">Sharing</a> with {{num_shared}} user(s)
+</div>
 {% endif %}
 {% endif %}
 {% if subdir %}<h3>{% link_full_path share=share subpath=subdir %}</h3> {% endif %}
