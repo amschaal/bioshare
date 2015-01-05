@@ -35,7 +35,7 @@ function generate_rsync_strings(share,subpath){
 		path = "'"+path.replace(re,'\\ ')+"'";
 	var files = selection.length > 1 ? '{'+selection.join(',')+'}' : selection.join('');
 	var download_string = "rsync -vrzt adam@phymaptest:"+path+files+" /to/my/local/directory";
-	var upload_string = "rsync -vrzt --perms --chmod=g+rw,u+rw,o+r /path/to/my/files  adam@phymaptest:"+path;
+	var upload_string = "rsync -vrzt --no-p --no-g --chmod=ugo=rwX /path/to/my/files  adam@phymaptest:"+path;
 	
 	$('#rsync-download-command').text(download_string);
 	$('#rsync-upload-command').text(upload_string);
@@ -77,7 +77,7 @@ function generate_rsync_upload(share,subpath){
 	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
-	var upload_string = "rsync -vrzt --perms --chmod=g+rw,u+rw,o+r /path/to/my/files "+rsync_url+":"+path;
+	var upload_string = "rsync -vrzt --no-p --no-g --chmod=ugo=rwX /path/to/my/files "+rsync_url+":"+path;
 	$('#rsync-upload-command').text(upload_string);
 	$('#rsync-upload').modal('show');
 }
