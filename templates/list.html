@@ -60,6 +60,7 @@
 		  </a>
 		  <ul class="dropdown-menu">
 		    <li><a href="#" id="download-zip">Zipfile</a></li>
+		    <li><a href="#" id="download-ftp">FTP</a></li>
 		    <li><a href="#" id="download-rsync">Rsync</a></li>
 		    <li><a href="#" id="download-wget">Wget</a></li>
 		  </ul>
@@ -191,7 +192,20 @@
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
   </div>
 </div>
-
+<div class="modal hide fade" id="ftp-download">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>FTP connection information</h3>
+  </div>
+  <div class="modal-body">
+	<b>Address:</b> bioshare.bioinformatics.ucdavis.edu<br>
+	<b>User: </b> {{share.id}}<br>
+	<b>Password: </b> {{share.ftp_user.password}}<br>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+</div>
 <div class="modal hide fade" id="rsync-upload">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>

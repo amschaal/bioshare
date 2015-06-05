@@ -6,7 +6,7 @@ from settings.settings import FILES_ROOT, AUTHORIZED_KEYS_FILE
 from models import Share, SSHKey, MetaData, Tag
 from forms import MetaDataForm, json_form_validate
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
-from django.utils import simplejson
+import json
 from utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email, fetchall
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
