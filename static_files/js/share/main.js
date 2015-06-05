@@ -60,16 +60,8 @@ function generate_rsync_download(share,subpath){
 	$('#rsync-download-all').text(download_all_string);
 	$('#rsync-download').modal('show');
 }
-function generate_wget_download(share,subpath){
-	//wget -r -nH -nc --cut-dirs=3 --no-parent --reject "index.html" http://127.0.0.1:8002/bioshare/wget/0000001234567890/wget_index.html
-	var re = new RegExp(' ', 'g');
-	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
-	if (path.indexOf(' ') > -1)
-		path = path.replace(re,'\\ ');
-	var command = '-r -nH -nc --cut-dirs=3 --no-parent --reject "wget_index.html" --no-check-certificate --header "Cookie: sessionid='+session_cookie+';" https://'+ base_url + '/bioshare/wget'+path+'wget_index.html';
-	$('#wget-linux').text('wget '+command);
-	$('#wget-windows').text('"C:\\Program Files\\GnuWin32\\bin\\wget.exe" '+command);
-	$('#wget-download').modal('show');
+function open_ftp_download(){
+	$('#ftp-download').modal('show');
 }
 
 function generate_rsync_upload(share,subpath){
@@ -387,6 +379,9 @@ $(function () {
     });
     $('#download-wget').click(function(){
     	generate_wget_download(share,subpath);
+    });
+    $('#download-ftp').click(function(){
+    	open_ftp_download();
     });
     $('#upload-rsync').click(function(){
     	generate_rsync_upload(share,subpath);

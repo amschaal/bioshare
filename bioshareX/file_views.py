@@ -5,7 +5,8 @@ from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from settings.settings import FILES_ROOT
 from models import Share
-from django.utils import simplejson
+# from django.utils import simplejson
+import json
 from forms import UploadFileForm, FolderForm, json_form_validate, RenameForm
 from utils import JSONDecorator, test_path, sizeof_fmt, json_error
 from file_utils import istext

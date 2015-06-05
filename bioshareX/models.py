@@ -211,6 +211,9 @@ def share_post_save(sender, **kwargs):
             os.makedirs(path)
             uid = pwd.getpwnam(FILES_OWNER).pw_uid
             gid = grp.getgrnam(FILES_GROUP).gr_gid
+        ShareFTPUser.create(kwargs['instance'])
+    else:
+        kwargs['instance'].ftp_user.update()
 #            os.chown(path, uid, gid)
 #            os.chmod(path, int(0775))            
 post_save.connect(share_post_save, sender=Share)
@@ -306,3 +309,18 @@ class SSHKey(models.Model):
             raise Exception('Unable to parse key')
         matches = match.groupdict()
         return matches['key']
+    
+class ShareFTPUser(models.Model):
+    share = models.OneToOneField(Share,related_name="ftp_user")
+    password = models.CharField(max_length=15, default=pkgen)
+    home = models.CharField(max_length=250)
+    @staticmethod
+    def create(share):
+        instance = ShareFTPUser.objects.create(share=share)
+        instance.home = share.get_path()
+        instance.save()
+        return instance
+    def update(self,update_password=False):
+        self.home = self.share.get_path()
+        if update_password:
+            self.password = pkgen()

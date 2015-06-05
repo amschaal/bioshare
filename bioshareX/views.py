@@ -6,7 +6,8 @@ from settings.settings import FILES_ROOT, RSYNC_URL
 from models import Share, SSHKey, MetaData, Tag, ShareStats
 from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
 from guardian.shortcuts import get_perms, get_users_with_perms
-from django.utils import simplejson
+#from django.utils import simplejson
+import json
 from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response
 from bioshareX.file_utils import istext
 from django.contrib.auth.decorators import login_required
@@ -98,7 +99,7 @@ def list_directory(request,share,subdir=None):
         return json_response({'files':file_list,'directories':dir_list})
     owner = request.user == share.owner
     all_perms = share.get_permissions(user_specific=True)
-    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":simplejson.dumps(share_perms),"num_shared":len(all_perms['user_perms']),"num_shared_groups":len(all_perms['group_perms'])})
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":json.dumps(share_perms),"num_shared":len(all_perms['user_perms']),"num_shared_groups":len(all_perms['group_perms'])})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
