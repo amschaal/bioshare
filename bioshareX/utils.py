@@ -97,8 +97,8 @@ def test_path(path):
 
 def json_response(dict):
     from django.http.response import HttpResponse
-    from django.utils import simplejson
-    return HttpResponse(simplejson.dumps(dict), mimetype='application/json')
+    import json
+    return HttpResponse(json.dumps(dict), mimetype='application/json')
 def json_error(messages):
     return json_response({'status':'error','errors':messages})
 
