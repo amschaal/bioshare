@@ -159,7 +159,7 @@ def main():
 
 
 if __name__ == '__main__':
-    #Should probably use argument parsing library, but trying to keep dependencies to a minumum
+    #Should probably use argument parsing library, but trying to keep dependencies to a minimum
     
     if len(sys.argv)==2:
         USER = sys.argv[1]
