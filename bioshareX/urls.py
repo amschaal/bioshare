@@ -25,7 +25,7 @@ urlpatterns = patterns('bioshareX.views',
 )
 
 urlpatterns += patterns('',
-    url(r'^account/update_password/$', 'django.contrib.auth.views.password_change',  {'password_change_form': PasswordChangeForm},name='update_password'),
+    url(r'^account/update_password/$', 'django.contrib.auth.views.password_change',  {'password_change_form': PasswordChangeForm,'post_change_redirect':'auth_password_change_done'},name='update_password'),
 )
 
 urlpatterns += patterns('bioshareX.api',
