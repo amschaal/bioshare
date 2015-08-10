@@ -8,6 +8,10 @@ from bioshareX.forms import RegistrationForm, SetPasswordForm
 from registration.backends.default.views import RegistrationView
 from django.contrib.auth.views import logout_then_login, password_reset_confirm
 
+# ***HACKY***  Monkey patching the authentication form so that the username field says email instead.
+from django.contrib.auth.forms import AuthenticationForm
+AuthenticationForm.base_fields['username'].label = 'Email' 
+
 urlpatterns = patterns('',
     # Examples:
     # url(r'^$', 'bioshare.views.home', name='home'),
