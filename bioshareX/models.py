@@ -6,6 +6,7 @@ from django.db.models import Q
 from settings.settings import FILES_ROOT, ARCHIVE_ROOT, REMOVED_FILES_ROOT
 import os
 from django.utils.html import strip_tags
+
 # Create your models here.
 def pkgen():
     import string, random
@@ -149,29 +150,17 @@ class Share(models.Model):
             return False
     def move_share(self,filesystem):
         import shutil
-#         old_path = self.get_path()
-#         temp_dir = "%s_temp" % (old_path)
-#         new_path = os.path.join(filesystem.path, self.id)
-#         new_archive_path = os.path.join(filesystem.archive_path, self.id)
-#         if not os.path.isdir(new_path):
-#             os.mkdir(new_path)
-#         if not os.path.isdir(new_archive_path):
-#             os.mkdir(new_archive_path)
-#         shutil.move(old_path, temp_dir)
-#         os.symlink(new_path, old_path)
-#         shutil.move(temp_dir,new_path)
-#         shutil.move(self.get_archive_path(),new_archive_path)
-#         self.filesystem = filesystem
-#         self.save()
-#         os.unlink(old_path)
         new_path = os.path.join(filesystem.path, self.id)
         new_archive_path = os.path.join(filesystem.archive_path, self.id)
         shutil.move(self.get_path(),new_path)
         if os.path.isdir(self.get_archive_path()):
             shutil.move(self.get_archive_path(),new_archive_path)
         self.filesystem = filesystem
-#         self.save()
-    def create_archive(self,items,subdir=None):
+    def create_archive_stream(self,items,subdir=None):
+        import zipstream
+        from django.http.response import StreamingHttpResponse
+    
+    
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
         from utils import zipdir, get_total_size
         from os.path import isfile, isdir
@@ -179,29 +168,23 @@ class Share(models.Model):
         if not os.path.exists(path):
             raise Exception('Invalid subdirectory provided')
         share_path = self.get_path()
-        archive_path = self.get_archive_path()#os.path.join(share_path,'.archives')
-        if not os.path.exists(archive_path):
-            os.makedirs(archive_path)
-        from datetime import datetime
-        zip_name = 'archive_'+datetime.now().strftime('%Y_%m_%d__%H_%M_%S')+'.zip'
-        zip_path = os.path.join(archive_path,zip_name)
-        from zipfile import ZipFile
-        archive =  ZipFile(zip_path, 'w')
-        size = get_total_size([os.path.join(path,item) for item in items])
-        if size > ZIPFILE_SIZE_LIMIT_BYTES:
-            raise Exception("%d bytes is above bioshare's limit for creating zipfiles, please use rsync instead" % (size))
+        z = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_DEFLATED)
+        
         for item in items:
             item_path = os.path.join(path,item)
             if not os.path.exists(item_path):
                 raise Exception("File or folder: '%s' does not exist" % (item))
             if isfile(item_path):
                 item_name = item#os.path.join(self.id,item)
-                archive.write(item_path,arcname=item_name)
+                z.write(item_path,arcname=item_name)
             elif isdir(item_path):
-                zipdir(share_path,item_path,archive)
-        details = {'namelist':archive.namelist(),'name':zip_name}
-        archive.close()
-        return {'name':zip_name,'subpath':zip_name}
+                zipdir(share_path,item_path,z)
+        
+        from datetime import datetime
+        zip_name = 'archive_'+datetime.now().strftime('%Y_%m_%d__%H_%M_%S')+'.zip'
+        response = StreamingHttpResponse(z, content_type='application/zip')
+        response['Content-Disposition'] = 'attachment; filename={}'.format(zip_name)
+        return response
 def share_post_save(sender, **kwargs):
     if kwargs['created']:
         path = kwargs['instance'].get_path()

@@ -55,7 +55,7 @@
 	  {% if "download_share_files" in share_perms %}
 	  <div class="btn-group">
 		  <a class="btn dropdown-toggle btn-primary" data-toggle="dropdown" href="#">
-		    Download
+		    Download via
 		    <span class="caret"></span>
 		  </a>
 		  <ul class="dropdown-menu">
@@ -71,11 +71,11 @@
 	    <div class="btn-group">
 		  <a class="btn dropdown-toggle btn-success" data-toggle="dropdown" href="#">
 		    <i class="icon-plus icon-white"></i>
-	        <span>Files</span>
+	        <span>Upload via</span>
 		    <span class="caret"></span>
 		  </a>
 		  <ul class="dropdown-menu">
-		    <li class="fileinput-button"><a href="#"  >Web</a><input id="fileupload" type="file" name="files[]" multiple></li>
+		    <li class="fileinput-button"><a href="#"  >Browser</a><input id="fileupload" type="file" name="files[]" multiple></li>
 		    <li><a href="#" id="upload-rsync">Rsync</a></li>
 		  </ul>
 	  </div>
@@ -267,6 +267,10 @@ Filtered by: <span id="filtered-tags"></span><br>
 <a class="btn btn-primary" id="reset-tag-button">Clear filters</a></div>
 
 {% include "dialogs/preview_file.html" %}
+
+<form id="download_archive_form" action="{% if subdir %}{% url 'download_archive_stream' share=share.id subdir=subdir %}{% else %}{% url 'download_archive_stream' share=share.id %}{% endif %}" method="GET">
+<input type="hidden" name="selection" id="archive_selection"/>
+</form>
 {% endblock %}
 
 {% block scripts %}
@@ -285,13 +289,11 @@ Filtered by: <span id="filtered-tags"></span><br>
     var upload_file_url = '{% url 'upload_file' share=share.id subdir=subdir %}';
     var delete_paths_url = '{% url 'delete_paths' share=share.id subdir=subdir %}';
     var move_paths_url = '{% url 'move_paths' share=share.id subdir=subdir %}';
-    var archive_files_url = '{% url 'archive_files' share=share.id subdir=subdir %}';
     var search_url = '{% url 'api_search_share' share=share.id subdir=subdir %}';
     {% else %}
    	var upload_file_url = '{% url 'upload_file' share=share.id %}';
    	var delete_paths_url = '{% url 'delete_paths' share=share.id %}';
    	var move_paths_url = '{% url 'move_paths' share=share.id %}';
-   	var archive_files_url = '{% url 'archive_files' share=share.id %}';
    	var search_url = '{% url 'api_search_share' share=share.id %}';
    	{% endif %}
    	var download_file_url = '{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:"__file__" %}';

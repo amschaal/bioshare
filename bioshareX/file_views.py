@@ -103,18 +103,16 @@ def move_paths(request, share, subdir=None, json={}):
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['download_share_files'])
-@JSONDecorator
-def archive_files(request, share, subdir=None, json={}):
-    response={}
-    try:
-        for item in json['selection']:
-            test_path(item)
-        details = share.create_archive(items=json['selection'],subdir=subdir)
-        response['url']=reverse('download_archive',kwargs={'share':share.id,'subpath':details['subpath']})
-        return json_response(response)
-    except Exception, e:
-        return json_error([e.message])
-    
+# @JSONDecorator
+def download_archive_stream(request, share, subdir=None):
+#     try:
+    selection = request.GET.get('selection').split(',')
+    for item in selection:
+        test_path(item)
+    return share.create_archive_stream(items=selection,subdir=subdir)
+#     except Exception, e:
+#         return json_error([e.message])
+
 @safe_path_decorator()    
 @share_access_decorator(['download_share_files'])
 def download_file(request, share, subpath=None):
