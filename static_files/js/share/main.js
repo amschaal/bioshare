@@ -100,7 +100,33 @@ function delete_paths(url,selection){
 		}
 	);
 }
-function archive_files(url,selection){
+function archive_files(selection){
+	if(selection.length  == 0){
+		alert('Please select at least 1 file to be archived.');
+	}
+	else{
+		$('#archive_selection').val(selection.join(','));
+		$('#download_archive_form').submit();
+		$.bootstrapGrowl('Download started',{type:'success'});
+	}
+	
+//	if(selection.length  == 0)
+//		alert('Please select at least 1 file to be archived.');
+//	else
+//		BC.ajax(
+//			{
+//				'url':url,
+//				'data':{'json':JSON.stringify({'selection':selection})},
+//				'success':function(data){
+//					if(data.url){
+//						var message = 'Archive ready for <a href="'+data.url+'">download</a>';
+//						$.bootstrapGrowl(message,{delay: 100000000,type:'success'});
+//					}
+//				}
+//			}
+//		);
+}
+function archive_files_old(url,selection){
 	if(selection.length  == 0)
 		alert('Please select at least 1 file to be archived.');
 	else
@@ -117,7 +143,6 @@ function archive_files(url,selection){
 			}
 		);
 }
-
 function toggle_table_visibility(){
 	if($('#file-table tbody tr').length == 1){
 		$('#add-files-message').removeClass('hidden');
@@ -372,7 +397,7 @@ $(function () {
 		$('.action-check').prop('checked',$(this).prop('checked'));
     });
     $('#download-zip').click(function(){
-    	archive_files(archive_files_url,get_selected_names());
+    	archive_files(get_selected_names());
     });
     $('#download-rsync').click(function(){
     	generate_rsync_download(share,subpath);
@@ -393,7 +418,7 @@ $(function () {
     $('#launch-action').click(function(){
     	switch($('#action').val()){
     		case 'download':
-    			archive_files(archive_files_url,get_selected_names());
+    			archive_files(get_selected_names());
     			break;
     		case 'delete':
     			//alert('delete '+get_selected_names());
