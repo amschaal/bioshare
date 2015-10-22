@@ -137,7 +137,11 @@ def create_share(request):
         if form.is_valid():
             share = form.save(commit=False)
             share.owner=request.user
-            share.save()
+            try:
+                share.save()
+            except Exception, e:
+                share.delete()
+                return render(request, 'share/new_share.html', {'form': form, 'error':e.message})
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id}))
     else:
         form = ShareForm(request.user)

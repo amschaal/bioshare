@@ -1,7 +1,8 @@
 # Create your views here.
 from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
-from django.http.response import HttpResponseRedirect, HttpResponse
+from django.http.response import HttpResponseRedirect, HttpResponse,\
+    JsonResponse
 from settings.settings import FILES_ROOT, AUTHORIZED_KEYS_FILE
 from models import Share, SSHKey, MetaData, Tag
 from forms import MetaDataForm, json_form_validate
@@ -11,6 +12,11 @@ from utils import JSONDecorator, json_response, json_error, share_access_decorat
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
+from django.contrib.auth.decorators import login_required
+from rest_framework.decorators import api_view
+from bioshareX.forms import ShareForm
+from guardian.decorators import permission_required
+
 
 def get_user(request):
     query = request.REQUEST.get('query')
@@ -239,3 +245,30 @@ def delete_ssh_key(request):
     except Exception, e:
         response = {'status':'error','message':'Unable to delete ssh key'+str(e)}
     return json_response(response)
+
+"""
+Requires: "name", "notes", "filesystem" arguments.
+Optional: "link_to_path", "read_only"
+
+"""
+@api_view(['POST'])
+@permission_required('bioshareX.add_share', return_403=True)
+def create_share(request):
+    print request.data
+    form = ShareForm(request.user,request.data)
+    if form.is_valid():
+        share = form.save(commit=False)
+        share.owner=request.user
+        link_to_path = request.data.get('link_to_path',None)
+        if link_to_path:
+            if not request.user.has_perm('bioshareX.link_to_path'):
+                return json_error("You do not have permission to link to a specific path.")
+            share.link_to_path = link_to_path
+        try:
+            share.save()
+        except Exception, e:
+            share.delete()
+            return JsonResponse({'error':e.message})
+        return JsonResponse({'url':reverse('list_directory',kwargs={'share':share.id})})
+    else:
+        return JsonResponse({'errors':form.errors})
