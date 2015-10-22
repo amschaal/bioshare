@@ -7,6 +7,7 @@
   <form class="form-horizontal" method="POST">
   <fieldset>
 	  <legend>Create a new Share</legend>
+	  {% if error %}<h3>Exception: {{error}}</h3>{% endif %}
 	    {{ form|crispy }}
 	  <div class="control-group">
 	    <div class="controls">

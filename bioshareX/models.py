@@ -3,9 +3,10 @@ from django.contrib.auth.models import User, AbstractUser
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.db.models import Q
-from settings.settings import FILES_ROOT, ARCHIVE_ROOT, REMOVED_FILES_ROOT
+from django.conf import settings
 import os
 from django.utils.html import strip_tags
+from bioshareX.utils import test_path, paths_contain
 
 # Create your models here.
 def pkgen():
@@ -47,8 +48,10 @@ class Share(models.Model):
     owner = models.ForeignKey(User)
     name = models.CharField(max_length=125)
     secure = models.BooleanField(default=True)
+    read_only = models.BooleanField(default=False)
     notes = models.TextField()
     tags = models.ManyToManyField('Tag')
+    link_to_path = models.CharField(max_length=200,blank=True,null=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
     def __unicode__(self):
         return self.name
@@ -58,6 +61,7 @@ class Share(models.Model):
             ('delete_share_files', 'Delete share files'),
             ('download_share_files', 'Download share files'),
             ('write_to_share', 'Write to share'),
+            ('link_to_path', 'Link to a specific path'),
             ('admin', 'Administer'),
         )
     def get_stats(self):
@@ -108,7 +112,7 @@ class Share(models.Model):
     def get_archive_path(self):
         return os.path.join(self.filesystem.archive_path,self.id)
     def get_removed_path(self):
-        return os.path.join(REMOVED_FILES_ROOT,self.id)
+        return os.path.join(settings.REMOVED_FILES_ROOT,self.id)
     def get_path_type(self,subpath):
         full_path = os.path.join(self.get_path(),subpath)
         if os.path.isfile(full_path):
@@ -187,13 +191,21 @@ class Share(models.Model):
         return response
 def share_post_save(sender, **kwargs):
     if kwargs['created']:
-        path = kwargs['instance'].get_path()
+        instance = kwargs['instance']
+        path = instance.get_path()
         import pwd, grp, os
         if not os.path.exists(path):
-            from settings.settings import FILES_GROUP, FILES_OWNER
-            os.makedirs(path)
-            uid = pwd.getpwnam(FILES_OWNER).pw_uid
-            gid = grp.getgrnam(FILES_GROUP).gr_gid
+            if instance.link_to_path:
+                test_path(instance.link_to_path,allow_absolute=True)
+                if not paths_contain(settings.LINK_TO_DIRECTORIES,instance.link_to_path):
+                    raise Exception('Path not allowed.')
+                os.symlink(instance.link_to_path,path)
+            else:
+                from settings.settings import FILES_GROUP, FILES_OWNER
+                os.makedirs(path)
+                uid = pwd.getpwnam(FILES_OWNER).pw_uid
+                gid = grp.getgrnam(FILES_GROUP).gr_gid
+            
         ShareFTPUser.create(kwargs['instance'])
     else:
         kwargs['instance'].ftp_user.update()
@@ -234,10 +246,13 @@ def share_post_delete(sender, **kwargs):
     path = kwargs['instance'].get_path()
     archive_path = kwargs['instance'].get_archive_path()
     import shutil
-    if os.path.isdir(path):
-        shutil.rmtree(path)
-    if os.path.isdir(archive_path):
-        shutil.rmtree(archive_path)
+    if os.path.islink(path):
+        os.unlink(path)
+    else:
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        if os.path.isdir(archive_path):
+            shutil.rmtree(archive_path)
 post_delete.connect(share_post_delete, sender=Share)
 # class ShareUser(models.Model):
 #     share = models.ForeignKey(Share)

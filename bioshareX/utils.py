@@ -1,5 +1,7 @@
 from django.shortcuts import redirect
 from django.core.urlresolvers import reverse
+import os
+
 class JSONDecorator(object):
         def __init__(self, orig_func):
                 self.orig_func = orig_func
@@ -90,13 +92,22 @@ class safe_path_decorator(object):
 #             print "After f(*args)"
         return wrapped_f
 
-def test_path(path):
+def test_path(path,allow_absolute=False):
     illegals = ['..','~','*']
     for illegal in illegals:
         if illegal in path:
             raise Exception('Illegal path encountered')
-    if path.startswith('/'):
+    if path.startswith('/') and not allow_absolute:
         raise Exception('Subpath may not start with slash')
+
+def path_contains(parent_path,child_path):
+    return os.path.realpath(child_path).startswith(os.path.realpath(parent_path)) 
+
+def paths_contain(paths,child_path):
+    for path in paths:
+        if path_contains(path, child_path):
+            return True
+    return False
 
 def json_response(dict):
     from django.http.response import HttpResponse
@@ -123,7 +134,7 @@ def fetchall(sql,args=[]):
 
 
 def find_python(pattern, path):
-    import os, fnmatch
+    import fnmatch
     result = []
     for root, dirs, files in os.walk(path):
         for name in files:
@@ -195,7 +206,6 @@ def sizeof_fmt(num):
     return "%3.1f%s" % (num, 'TB')
 
 def zipdir(base, path, zip):
-    import os
     from os.path import relpath
     for root, dirs, files in os.walk(path):
         for file in files:
@@ -204,7 +214,6 @@ def zipdir(base, path, zip):
             zip.write(file_path,arcname=rel_path)
 
 def get_size(path):
-    import os
     total_size = 0
     if os.path.isfile(path):
         return os.path.getsize(path)
@@ -216,7 +225,6 @@ def get_size(path):
         return total_size
 
 def get_share_stats(share):
-    import os
     path = os.path.abspath(share.get_path())
     total_size = 0
     total_files = 0
