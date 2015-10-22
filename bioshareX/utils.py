@@ -85,6 +85,7 @@ class safe_path_decorator(object):
             path = kwargs[self.path_param]
             if path is not None:
                 test_path(path)
+                
             return f(*args,**kwargs)
 #             print "After f(*args)"
         return wrapped_f
@@ -94,6 +95,8 @@ def test_path(path):
     for illegal in illegals:
         if illegal in path:
             raise Exception('Illegal path encountered')
+    if path.startswith('/'):
+        raise Exception('Subpath may not start with slash')
 
 def json_response(dict):
     from django.http.response import HttpResponse
