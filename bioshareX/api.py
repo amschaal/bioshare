@@ -219,7 +219,7 @@ def delete_ssh_key(request):
         id = request.POST.get('id')
         key = SSHKey.objects.get(user=request.user,id=id)
         import subprocess, re
-        subprocess.call(['sudo','/bin/chmod','660',AUTHORIZED_KEYS_FILE])
+#        subprocess.call(['/bin/chmod','600',AUTHORIZED_KEYS_FILE])
         keystring = key.get_key()
 #         remove_me = keystring.replace('/','\\/')#re.escape(key.extract_key())
 #         command = ['/bin/sed','-i','/%s/d'%remove_me,AUTHORIZED_KEYS_FILE]
@@ -232,7 +232,7 @@ def delete_ssh_key(request):
             if line.find(keystring) ==-1:
                 f.write(line)
         f.close()
-        subprocess.call(['sudo','/bin/chmod','600',AUTHORIZED_KEYS_FILE])
+#        subprocess.call(['/bin/chmod','400',AUTHORIZED_KEYS_FILE])
         key.delete()
         SSHKey.objects.filter(key__contains=keystring).delete()
         response = {'status':'success','deleted':id}

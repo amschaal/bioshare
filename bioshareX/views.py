@@ -171,11 +171,11 @@ def create_ssh_key(request):
             key.save()
             from settings.settings import AUTHORIZED_KEYS_FILE
             import subprocess
-            subprocess.check_call(['sudo','/bin/chmod','660',AUTHORIZED_KEYS_FILE])
+#            subprocess.check_call(['/bin/chmod','600',AUTHORIZED_KEYS_FILE])
             auth_keys = open(AUTHORIZED_KEYS_FILE, "a")
             auth_keys.write(key.create_authorized_key()+'\n')
             auth_keys.close()
-            subprocess.check_call(['sudo','/bin/chmod','600',AUTHORIZED_KEYS_FILE])
+#            subprocess.check_call(['/bin/chmod','400',AUTHORIZED_KEYS_FILE])
             return HttpResponseRedirect(reverse('list_ssh_keys'))
     else:
         form = SSHKeyForm()
