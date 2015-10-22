@@ -4,7 +4,7 @@
 import os
 CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir))
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -18,8 +18,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': 'biosharex',                      # Or path to database file if using sqlite3.
         # The following settings are not used with sqlite3:
-        'USER': 'dev',
-        'PASSWORD': 'dev',
+        'USER': 'bioshare_django',
+        'PASSWORD': '$char3Dat!',
         'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
         'PORT': '',                      # Set to empty string for default.
     },
@@ -33,7 +33,9 @@ DATABASES = {
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+        'bioshare.bioinformatics.ucdavis.edu',
+]
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -134,7 +136,7 @@ ROOT_URLCONF = 'urls'
 WSGI_APPLICATION = 'wsgi.application'
 
 TEMPLATE_DIRS = (
-    os.path.join(CURRENT_DIR, 'templates')
+    os.path.join(CURRENT_DIR, 'templates'),
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
@@ -144,7 +146,7 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.sites',
+#    'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Uncomment the next line to enable the admin:
@@ -156,7 +158,6 @@ INSTALLED_APPS = (
     'guardian',
     'registration',
     'django_extensions',
-    'djcelery',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -188,7 +189,7 @@ LOGGING = {
     }
 }
 
-SENDFILE_BACKEND='sendfile.backends.simple'
+SENDFILE_BACKEND='sendfile.backends.xsendfile'
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend', # this is default
@@ -204,11 +205,15 @@ DEFAULT_FROM_EMAIL = 'no-reply@bioshare.genomecenter.ucdavis.edu'
 FILE_UPLOAD_HANDLERS = (
     "django.core.files.uploadhandler.TemporaryFileUploadHandler",
 )
-AUTHORIZED_KEYS_FILE = '/home/adam/.ssh/authorized_keys'
+AUTHORIZED_KEYS_FILE = '/localhome/bioshare/.ssh/authorized_keys'
+SSH_WRAPPER_SCRIPT = os.path.join(CURRENT_DIR, 'sshwrapper.py')
 
-RSYNC_URL = 'bioshare@phymaptest'
+RSYNC_URL = 'bioshare@bioshare.bioinformatics.ucdavis.edu'
 
-FILES_OWNER = 'adam'
-FILES_GROUP = 'adam'
+FILES_OWNER = 'bioshare'
+FILES_GROUP = 'bioshare'
 
 ZIPFILE_SIZE_LIMIT_BYTES = 1000000000
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.ucdavis.edu'

@@ -18,11 +18,11 @@
 </form>
 
 <p>{% trans "Forgot password" %}? <a href="{% url 'auth_password_reset' %}">{% trans "Reset it" %}</a>!</p>
-<h3>What happened to the old Bioshare?</h3>
+<h3>Update: July 15, 2015</h3>
 <p>
-Bioshare has been redesigned from the ground up with security and usability in mind.  Don't worry, all previous data and permissions have been migrated to the new version.  For a brief introduction to the new Bioshare, take a look at the <a href="http://wiki.bioinformatics.ucdavis.edu/index.php/Bioshare_(Next_Gen)_User_Documentation">wiki page</a>.
+For improved performance, Bioshare has been migrated to a new server.  In addition to hopefully being a bit snappier, Bioshare also now has support for downloading files via SFTP!  For instructions on downloading via SFTP, while viewing a share, click on "Download" then "SFTP".
 </p>
 <p>
-Please note that users of the original Bioshare will need to <a href="{% url 'auth_password_reset' %}">reset</a> their passwords.
+Please report any issues you may encounter to <a href="mailto:webmaster@genomecenter.ucdavis.edu">webmaster@genomecenter.ucdavis.edu</a>.
 </p>
 {% endblock %}
