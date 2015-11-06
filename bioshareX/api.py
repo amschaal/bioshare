@@ -268,7 +268,9 @@ def create_share(request):
             share.save()
         except Exception, e:
             share.delete()
+            print e.message
             return JsonResponse({'error':e.message})
-        return JsonResponse({'url':reverse('list_directory',kwargs={'share':share.id})})
+        return JsonResponse({'url':reverse('list_directory',kwargs={'share':share.id}),'id':share.id})
     else:
+        print form.errors
         return JsonResponse({'errors':form.errors})
