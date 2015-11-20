@@ -57,3 +57,6 @@ span.tag{
 #content{
 	margin-top:10px;
 }
+.error{
+	color:red;
+}

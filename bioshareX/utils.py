@@ -1,6 +1,10 @@
 from django.shortcuts import redirect
 from django.core.urlresolvers import reverse
 import os
+import json
+from functools import wraps
+
+from django.http.response import JsonResponse
 
 class JSONDecorator(object):
         def __init__(self, orig_func):
@@ -13,18 +17,22 @@ class JSONDecorator(object):
                 return self.orig_func(*args, **kwargs)
 def share_access_decorator_old(perms,share_param='share'):
     def wrap(f):
-#         print "Inside wrap()"
         def wrapped_f(*args,**kwargs):
             from bioshareX.models import Share
             share = Share.objects.get(id=kwargs[share_param])
             kwargs[share_param]=share
-#             print "Inside wrapped_f()"
-#             print "Decorator arguments:", arg1, arg2, arg3
             f(*args,**kwargs)
-#             print "After f(*args)"
         return wrapped_f
     return wrap
-            
+
+def ajax_login_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_authenticated():
+            return view_func(request, *args, **kwargs)
+        return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']})
+    return wrapper
+
 class share_access_decorator(object):
 
     def __init__(self, perms,share_param='share'):
@@ -32,7 +40,6 @@ class share_access_decorator(object):
         If there are decorator arguments, the function
         to be decorated is not passed to the constructor!
         """
-#         print "Inside __init__()"
         self.perms = perms
         self.share_param  = share_param
     def __call__(self, f):
@@ -41,30 +48,27 @@ class share_access_decorator(object):
         once, as part of the decoration process! You can only give
         it a single argument, which is the function object.
         """
-#         print "Inside __call__()"
         def wrapped_f(*args,**kwargs):
-#             print "Inside wrapped_f()"
-#             print "Decorator arguments:", self.arg1, self.arg2, self.arg3
             from bioshareX.models import Share
             share = Share.objects.get(id=kwargs[self.share_param])
             kwargs[self.share_param]=share
             request = args[0]
-            if share.owner.username != request.user.username:
-                for perm in self.perms:
-                    if not share.secure and perm in ['view_share_files','download_share_files']:
-                        continue
-                    if not request.user.has_perm(perm,share):
-                        if request.is_ajax():
-                            return json_error(['You do not have access to this resource.'])
+            user_permissions = share.get_user_permissions(request.user)
+            for perm in self.perms:
+                if not share.secure and perm in ['view_share_files','download_share_files']:
+                    continue
+                if not perm in user_permissions:
+                    if request.is_ajax():
+                        if not request.user.is_authenticated():
+                            return json_response({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']})
                         else:
-                            if not request.user.is_authenticated():
-                                url = reverse('auth_login') + '?next=%s' % request.get_full_path()
-                                return redirect(url)
-                            return redirect('forbidden')
-    #                 if not request.user.has_perm('admin',share_obj):
-    #                     return json_response({'status':'error','error':'You do not have permission to write to this share.'})
+                            return json_error(['You do not have access to this resource.'])
+                    else:
+                        if not request.user.is_authenticated():
+                            url = reverse('auth_login') + '?next=%s' % request.get_full_path()
+                            return redirect(url)
+                        return redirect('forbidden')
             return f(*args,**kwargs)
-#             print "After f(*args)"
         return wrapped_f
 
 class safe_path_decorator(object):
@@ -74,7 +78,6 @@ class safe_path_decorator(object):
         If there are decorator arguments, the function
         to be decorated is not passed to the constructor!
         """
-#         print "Inside __init__()"
         self.path_param  = path_param
     def __call__(self, f):
         """
@@ -82,14 +85,12 @@ class safe_path_decorator(object):
         once, as part of the decoration process! You can only give
         it a single argument, which is the function object.
         """
-#         print "Inside __call__()"
         def wrapped_f(*args,**kwargs):
             path = kwargs[self.path_param]
             if path is not None:
                 test_path(path)
                 
             return f(*args,**kwargs)
-#             print "After f(*args)"
         return wrapped_f
 
 def test_path(path,allow_absolute=False):

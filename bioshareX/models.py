@@ -44,6 +44,7 @@ class Filesystem(models.Model):
         return '%s: %s' %(self.name, self.path)
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
+    parent = models.ForeignKey('self',null=True,blank=True)
     created = models.DateTimeField(auto_now_add=True)
     owner = models.ForeignKey(User)
     name = models.CharField(max_length=125)
@@ -52,7 +53,10 @@ class Share(models.Model):
     notes = models.TextField()
     tags = models.ManyToManyField('Tag')
     link_to_path = models.CharField(max_length=200,blank=True,null=True)
+    sub_directory = models.CharField(max_length=200,blank=True,null=True)
+    real_path = models.CharField(max_length=200,blank=True,null=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
+    path_exists = models.BooleanField(default=True)
     def __unicode__(self):
         return self.name
     class Meta:
@@ -92,6 +96,11 @@ class Share(models.Model):
                 perms = get_perms(user, self)
         if not self.secure and not user_specific:
             perms = list(set(perms+['view_share_files','download_share_files']))
+        if self.read_only:
+            if 'write_to_share' in perms:
+                perms.remove('write_to_share')
+            if 'delete_share_files' in perms:
+                perms.remove('delete_share_files')    
         return perms
     def get_all_user_permissions(self,user_specific=False):
         if not user_specific:
@@ -109,6 +118,8 @@ class Share(models.Model):
         return user_perms
     def get_path(self):
         return os.path.join(self.filesystem.path,self.id)
+    def check_path(self):
+        return os.path.exists(self.get_path())
     def get_archive_path(self):
         return os.path.join(self.filesystem.archive_path,self.id)
     def get_removed_path(self):
@@ -205,8 +216,10 @@ def share_post_save(sender, **kwargs):
                 os.makedirs(path)
                 uid = pwd.getpwnam(FILES_OWNER).pw_uid
                 gid = grp.getgrnam(FILES_GROUP).gr_gid
-            
         ShareFTPUser.create(kwargs['instance'])
+        if not instance.real_path:
+            instance.real_path = os.path.realpath(instance.get_path())
+            instance.save()
     else:
         kwargs['instance'].ftp_user.update()
 #            os.chown(path, uid, gid)
@@ -270,7 +283,7 @@ class Tag(models.Model):
         self.name = strip_tags(self.name)
 class MetaData(models.Model):
     share = models.ForeignKey(Share)
-    subpath = models.CharField(max_length=250)
+    subpath = models.CharField(max_length=250,null=True,blank=True)
     notes = models.TextField(blank=True,null=True)
     tags = models.ManyToManyField(Tag)
     class Meta:

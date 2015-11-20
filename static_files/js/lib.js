@@ -33,11 +33,16 @@ BC.ajax_form_submit=function(form,options){
 				options.success(data);
 		});
 }
-
+BC.login=function(){
+	console.log('login')
+	window.location = '/accounts/login';
+}
 BC.ajax=function(options){
 	var callback = options.success ? options.success : false;
 	options.success = function(data){
 		BC.handle_ajax_errors(data);
+		if (data.unauthenticated)
+			BC.login();
 		if(callback)
 			callback(data);
 	}

@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <!-- Le styles -->
+    <!-- Les styles -->
     <link href="{% static "lib/bootstrap/css/bootstrap.css" %}" rel="stylesheet">
     <link href="{% static "lib/famfamfam-bootstrap/css/fam-icons.css" %}" rel="stylesheet">
     <link href="{% static "lib/bootstrap/css/bootstrap-responsive.css" %}" rel="stylesheet">
@@ -80,16 +80,19 @@
               <li><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off"></li>
               <li class="nav-header">Search Files</li>
               <li><form class="input-append" action="{% url 'search_files' %}"><input  type="text" name="query" placeholder="eg: *.fasta"><button style="margin-bottom:10px" class="btn btn-primary">Search</button></form></li>
+              {% if bad_share_path.count != 0 %}
+              	<a href="{% url 'home' %}?bad_paths" class="error"><i class="icon-warning-sign"></i> {{bad_share_path.count}} bad shares</a>
+              {% endif %}
               {% if my_recent_shares|length != 0 %}
               <li class="nav-header">My Latest Shares</li>
               {% for share in my_recent_shares %}
-              <li><a href="{% url 'list_directory' share.id %}" data-toggle="tooltip" title="{{share.notes}}">{{share.name}}</a></li>	
+              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{{share.name}}</a></li>	
               {% endfor %}
               {% endif %}
               {% if shared_with_me|length != 0 %}
               <li class="nav-header">Recently shared with me</li>
               {% for share in shared_with_me %}
-              <li><a href="{% url 'list_directory' share.id %}" data-toggle="tooltip" title="{{share.notes}}">{{share.name}}</a></li>
+              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{{share.name}}</a></li>
               {% endfor %}
               {% endif %}
             </ul>
