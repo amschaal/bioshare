@@ -138,15 +138,17 @@ function show_hide_permissions(){
 }
 
 function add_permission_row(obj){
+	var write_permissions = read_only ? '' : '<td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td>';
 	if (obj.user){
 		if ($('.permissions tr[data-username="'+obj.user.username+'"]').length == 0){
 			var classes = obj.new_user ? 'new-user ' : '';
 			var warning = obj.new_user ? ' <i class="fam-error-add" data-toggle="tooltip" title="An account will automatically be made for this email address"></i>' : '';
-			var row = $('<tr data-username="'+obj.user.username+'" class="'+classes+'"><td><i class="fam-user"></i>'+obj.user.username + warning+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
+			 
+			var row = $('<tr data-username="'+obj.user.username+'" class="'+classes+'"><td><i class="fam-user"></i>'+obj.user.username + warning+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td>'+write_permissions+'<td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
 		}
 	}else if(obj.group){
 		if ($('.permissions tr[data-group-id="'+obj.group.id+'"]').length == 0)
-			var row = $('<tr data-group-id="'+obj.group.id+'" class="'+classes+'"><td><i class="fam-group"></i>'+obj.group.name+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td><td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
+			var row = $('<tr data-group-id="'+obj.group.id+'" class="'+classes+'"><td><i class="fam-group"></i>'+obj.group.name+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td>'+write_permissions+'<td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
 	}
 	
 	$.each(obj.permissions,function(i,perm){

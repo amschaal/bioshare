@@ -16,8 +16,10 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import api_view
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
+from django.contrib.sites.models import get_current_site
+from bioshareX.utils import ajax_login_required
 
-
+@ajax_login_required
 def get_user(request):
     query = request.REQUEST.get('query')
     try:
@@ -25,7 +27,8 @@ def get_user(request):
         return json_response({'user':{'username':user.username,'email':user.email}})
     except Exception, e:
         return json_error([e.message])
-    
+
+@ajax_login_required
 def get_address_book(request):
     try:
         emails = fetchall("SELECT u.email FROM biosharex.guardian_userobjectpermission p join auth_user u on p.user_id = u.id where object_pk in (select id from bioshareX_share where owner_id = %d) group by email;" % int(request.user.id))
@@ -64,12 +67,13 @@ def share_with(request,share):
         return json_response({'exists':exists, 'groups':groups,'new_users':new_users,'invalid':invalid})
     except Exception, e:
         return json_error([e.message])
-    
+
+@ajax_login_required
 def share_autocomplete(request):
     terms = [term.strip() for term in request.REQUEST.get('query').split()]
     query = reduce(lambda q,value: q&Q(name__icontains=value), terms , Q())
     try:
-        share_objs = Share.user_queryset(request.user).filter(query)[:10]
+        share_objs = Share.user_queryset(request.user).filter(query).order_by('-created')[:10]
         shares = [{'id':s.id,'url':reverse('list_directory',kwargs={'share':s.id}),'name':s.name,'notes':s.notes} for s in share_objs]
         return json_response({'status':'success','shares':shares})
     except Exception, e:
@@ -89,6 +93,8 @@ def get_permissions(request,share):
     data = share.get_permissions(user_specific=True)
     return json_response(data)
 
+@ajax_login_required
+@share_access_decorator(['admin'])
 def get_user_permissions(request,share):
     try:
         share = Share.objects.get(id=share)
@@ -97,6 +103,8 @@ def get_user_permissions(request,share):
         return json_response({'permissions':data, 'status':'success'})
     except Exception, e:
         return json_response({'permissions':[], 'status':'error'})
+    
+@share_access_decorator(['view_share_files'])
 def get_share_metadata(request,share):
     try:
         share = Share.objects.get(id=share)
@@ -116,7 +124,6 @@ def update_share(request,share,json=None):
 @JSONDecorator
 def set_permissions(request,share,json=None):
     from bioshareX.utils import email_users
-    from django.contrib.sites.models import get_current_site
     from smtplib import SMTPException
     emailed=[]
     created=[]
@@ -262,15 +269,16 @@ def create_share(request):
         link_to_path = request.data.get('link_to_path',None)
         if link_to_path:
             if not request.user.has_perm('bioshareX.link_to_path'):
-                return json_error("You do not have permission to link to a specific path.")
+                return JsonResponse({'error':"You do not have permission to link to a specific path."},status=400)
             share.link_to_path = link_to_path
         try:
             share.save()
         except Exception, e:
             share.delete()
             print e.message
-            return JsonResponse({'error':e.message})
-        return JsonResponse({'url':reverse('list_directory',kwargs={'share':share.id}),'id':share.id})
+            return JsonResponse({'error':e.message},status=400)
+        site = get_current_site(request)
+        return JsonResponse({'url':"https://%s%s"%(site.domain,reverse('list_directory',kwargs={'share':share.id})),'id':share.id})
     else:
         print form.errors
-        return JsonResponse({'errors':form.errors})
+        return JsonResponse({'errors':form.errors},status=400)

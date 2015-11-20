@@ -12,6 +12,8 @@ from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_
 from bioshareX.file_utils import istext
 from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
+import os
+from bioshareX.forms import SubShareForm
 
 def index(request):
     # View code here...
@@ -30,10 +32,13 @@ def list_shares(request):
     # View code here...
 #     shares = Share.objects.filter(owner=request.user)
 #     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
-    shares = Share.user_queryset(request.user).order_by('-created')
+    if request.GET.has_key('bad_paths'):
+        shares = Share.user_queryset(request.user).filter(path_exists=False).order_by('-created')
+    else:
+        shares = Share.user_queryset(request.user).order_by('-created')
     total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
     stats = ShareStats.objects.filter(share__owner=request.user)
-    return render(request,'share/shares.html', {"shares": shares,"total_size":total_size})
+    return render(request,'share/shares.html', {"shares": shares,"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths')})
 
 def forbidden(request):
     # View code here...
@@ -67,21 +72,25 @@ def edit_share(request,share):
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files'])
 def list_directory(request,share,subdir=None):
+    if not share.check_path():
+        return render(request,'index.html', {"message": "Unable to locate the files for this share.  Please contact the site administrator."})
     from os import listdir, stat
     from os.path import isfile, join, getsize, normpath
     import time, datetime
     PATH = share.get_path()
+    subshare = None
     if subdir is not None:
         PATH = join(PATH,subdir)
+        subshare = Share.objects.filter(parent=share,sub_directory=subdir).first()
     share_perms = share.get_user_permissions(request.user)
     if not share.secure:
         share_perms = list(set(share_perms+['view_share_files','download_share_files']))
     file_list=[]
-    dir_list=[]
+    directories={}
     regex = r'^%s[^/]+/?' % '' if subdir is None else normpath(subdir)+'/'
     metadatas = {}
     for md in MetaData.objects.filter(share=share,subpath__regex=regex):
-        metadatas[md.subpath]= md if not request.is_ajax() else md.json()
+        metadatas[md.subpath]= md if not request.is_ajax() else md.json()    
     for name in listdir(PATH):
         path = join(PATH,name)
         subpath= name if subdir is None else join(subdir,name)
@@ -91,15 +100,22 @@ def list_directory(request,share,subdir=None):
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
             file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata,'isText':istext(path)}
             file_list.append(file)
-        elif name not in []:#['.removed','.archives']:
+        else:
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
             dir={'name':name,'size':getsize(path),'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
-            dir_list.append(dir)
+            directories[os.path.realpath(path)]=dir
     if request.is_ajax():
-        return json_response({'files':file_list,'directories':dir_list})
+        return json_response({'files':file_list,'directories':directories.values()})
+    #Find any shares that point at this directory
+    print directories.keys()
+    for s in Share.user_queryset(request.user).filter(real_path__in=directories.keys()).exclude(id=share.id):
+        directories[s.real_path]['share']=s
+    
     owner = request.user == share.owner
     all_perms = share.get_permissions(user_specific=True)
-    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"share_perms_json":json.dumps(share_perms),"num_shared":len(all_perms['user_perms']),"num_shared_groups":len(all_perms['group_perms'])})
+    shared_users = all_perms['user_perms'].keys()
+    shared_groups = [g['group']['name'] for g in all_perms['group_perms']]
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
@@ -131,7 +147,7 @@ def wget_listing(request,share,subdir=None):
 @login_required
 def create_share(request):
     if not request.user.has_perm('bioshareX.add_share'):
-        return render(request,'index.html', {"message": "You must have permissions to create a Share.  You may request access from the <a href=\"mailto:amschaal@ucdavis.edu\">webmaster</a>."})
+        return render(request,'index.html', {"message": "You must have permissions to create a Share.  You may request access from the <a href=\"mailto:webmaster@genomecenter.ucdavis.edu\">webmaster</a>."})
     if request.method == 'POST':
         form = ShareForm(request.user,request.POST)
         if form.is_valid():
@@ -145,6 +161,36 @@ def create_share(request):
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id}))
     else:
         form = ShareForm(request.user)
+    return render(request, 'share/new_share.html', {'form': form})
+
+@share_access_decorator(['admin'])
+def create_subshare(request,share,subdir):
+    if not request.user.has_perm('bioshareX.add_share'):
+        return render(request,'index.html', {"message": "You must have permissions to create a Share.  You may request access from the <a href=\"mailto:webmaster@genomecenter.ucdavis.edu\">webmaster</a>."})
+    path = os.path.join(share.get_path(),subdir)
+    if not os.path.exists(path):
+        return render(request,'index.html', {"message": "Unable to create share.  The specified path does not exist."})
+    if request.method == 'POST':
+        form = SubShareForm(request.POST)
+        if form.is_valid():
+            subshare = form.save(commit=False)
+            subshare.owner=request.user
+            subshare.link_to_path = path
+            subshare.sub_directory=subdir
+            subshare.filesystem = share.filesystem
+            subshare.parent = share
+            if share.read_only:
+                subshare.read_only = True
+            try:
+                subshare.save()
+            except Exception, e:
+                subshare.delete()
+                return render(request, 'share/new_share.html', {'form': form, 'error':e.message})
+            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':subshare.id}))
+    else:
+        name = os.path.basename(os.path.normpath(subdir))
+        notes = "Shared from '%s': %s" % (share.name, subdir)
+        form = SubShareForm(initial={'name':'%s: %s'%(share.name,name),'filesystem':share.filesystem,'notes':notes})
     return render(request, 'share/new_share.html', {'form': form})
 
 @login_required
@@ -219,3 +265,4 @@ def search_files(request):
             r=find(s,query,prepend_share_id=False)
             results.append({'share':s,'results':r})
     return render(request, 'search/search_files.html', {'query':query,'results':results})
+
