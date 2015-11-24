@@ -152,6 +152,19 @@ class Share(models.Model):
                 shutil.rmtree(path)
                 return True
         return False
+    def add_tags(self,tags,save=True):
+        tag_list = []
+        for tag in tags:
+            tag = tag.strip()
+            if len(tag) > 2 :
+                tag_list.append(Tag.objects.get_or_create(name=tag)[0])
+        self.tags = tag_list
+        if save:
+            self.save()
+    def set_tags(self,tags,save=True):
+        print tags
+        self.tags.clear()
+        self.add_tags(tags,save)
     def move_path(self,item_subpath,destination_subpath=''):
         import shutil
         if destination_subpath.count('..') != 0:

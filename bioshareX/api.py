@@ -36,6 +36,14 @@ def get_address_book(request):
         return json_response({'emails':[email[0] for email in emails], 'groups':[g.name for g in groups]})
     except Exception, e:
         return json_error([e.message])
+
+@ajax_login_required
+def get_tags(request):
+    try:
+        tags = Tag.objects.filter(name__icontains=request.GET.get('tag'))
+        return json_response({'tags':[tag.name for tag in tags]})
+    except Exception, e:
+        return json_error([e.message])
     
 @share_access_decorator(['admin'])    
 def share_with(request,share):
