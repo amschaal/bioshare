@@ -73,10 +73,13 @@ class Share(models.Model):
         stats.update_stats()
         return stats
     @staticmethod
-    def user_queryset(user):
+    def user_queryset(user,include_stats=True):
         from guardian.shortcuts import get_objects_for_user
         shares = get_objects_for_user(user, 'bioshareX.view_share_files')
-        return Share.objects.select_related('stats').filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
+        if include_stats:
+            return Share.objects.select_related('stats').filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
+        else:
+            return Share.objects.filter(Q(id__in=[s.id for s in shares])|Q(owner=user))
     def get_permissions(self,user_specific=False):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
