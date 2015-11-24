@@ -112,7 +112,7 @@ def get_user_permissions(request,share):
     except Exception, e:
         return json_response({'permissions':[], 'status':'error'})
     
-@share_access_decorator(['view_share_files'])
+# @share_access_decorator(['view_share_files'])
 def get_share_metadata(request,share):
     try:
         share = Share.objects.get(id=share)
