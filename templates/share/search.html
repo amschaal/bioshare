@@ -13,7 +13,7 @@
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
 
-  	<form class="form-horizontal" action="." method="get">
+  	<form class="form" action="." method="get">
   	<div class="row">
 	  <div class="span6">
 		  <div class="control-group">
@@ -32,9 +32,11 @@
 	  </div>
   	  <div class="span6">
 	  	  <div class="control-group">
-		    <label class="control-label">Tags: </label>
+		    
 		    <div class="controls">
-			  <label class="inline radio"><input type="radio" name="TAGS_OPERATOR" value="AND" {% if query.TAGS_OPERATOR == 'AND' %}checked{% endif %}/>All of</label> <label class="inline radio"><input type="radio" name="TAGS_OPERATOR" value="OR" {% if query.TAGS_AND_OR != 'AND' %}checked{% endif %}/>Any of</label>			      
+			  <label class="inline">Tags: </label>
+			  <label class="inline radio"><input type="radio" name="TAGS_OPERATOR" value="OR" {% if query.TAGS_AND_OR != 'AND' %}checked{% endif %}/>Any of</label>
+			  <label class="inline radio"><input type="radio" name="TAGS_OPERATOR" value="AND" {% if query.TAGS_OPERATOR == 'AND' %}checked{% endif %}/>All of</label> 			      
 		    </div>
 		  </div>
 		  <div class="control-group">
