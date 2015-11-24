@@ -8,10 +8,45 @@
 <link rel="stylesheet" type="text/css" href="{% static "lib/datatables/DT_bootstrap.css" %}">
 {% endblock %}
 {% block content %}
-<h2>Shares</h2>
+<h2>Search shares</h2>
 {% if bad_paths %}
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
+
+  	<form class="form-horizontal" action="." method="get">
+  	<div class="row">
+	  <div class="span6">
+		  <div class="control-group">
+		    <label class="control-label" >Shared with any of: </label>
+		    <!-- 
+		    <div class="controls">
+			  <label class="inline radio"><input type="radio" name="SHARED_WITH_AND_OR" value="AND"/>All of</label> <label class="inline radio"><input type="radio" name="SHARED_WITH_AND_OR" value="AND"/>Any of</label>			      
+		    </div>
+		     -->
+		  </div>
+		  <div class="control-group">
+		    <div class="controls">
+		      <textarea id="search_users" name="USERS" class="no-margin" type="text" placeholder="joe@example.com, susan@example.com, ..." style="width:400px;height:100px;">{{query.USERS}}</textarea>
+		    </div>
+		  </div>
+	  </div>
+  	  <div class="span6">
+	  	  <div class="control-group">
+		    <label class="control-label">Tags: </label>
+		    <div class="controls">
+			  <label class="inline radio"><input type="radio" name="TAGS_OPERATOR" value="AND" {% if query.TAGS_OPERATOR == 'AND' %}checked{% endif %}/>All of</label> <label class="inline radio"><input type="radio" name="TAGS_OPERATOR" value="OR" {% if query.TAGS_AND_OR != 'AND' %}checked{% endif %}/>Any of</label>			      
+		    </div>
+		  </div>
+		  <div class="control-group">
+		    <div class="controls">
+		      <textarea id="search_tags" name="TAGS" class="no-margin" type="text" placeholder="joe@example.com, susan@example.com, ..." style="width:400px;height:100px;">{{query.TAGS}}</textarea>
+		    </div>
+		  </div>
+	  </div>
+    </div>
+    <button type="submit">Search</button>
+	</form>
+
 <table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="example">
 	<thead>
 		<tr>
@@ -47,6 +82,8 @@
 <script src="{% static "lib/datatables/jquery.dataTables.min.js" %}"></script>
 <script src="{% static "lib/datatables/datatables.filesize.js" %}"></script>
 <script src="{% static "lib/datatables/DT_bootstrap.js" %}"></script>
+<script src="{% static "lib/textcomplete/jquery.textcomplete.js" %}"></script>
+<script src="{% static "js/share/search.js" %}"></script>
 
 <script>
 /* Table initialisation */
@@ -70,3 +107,4 @@ $(document).ready(function() {
 } );
 </script>
 {% endblock %}
+

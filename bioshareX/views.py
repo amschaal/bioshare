@@ -14,6 +14,9 @@ from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
 import os
 from bioshareX.forms import SubShareForm
+from django.contrib.auth.models import User
+import operator
+from django.db.models.query_utils import Q
 
 def index(request):
     # View code here...
@@ -55,13 +58,7 @@ def edit_share(request,share):
         form = ShareForm(request.user,request.POST,instance=share)
         if form.is_valid():
             share = form.save(commit=False)
-            tags = []
-            for tag in form.cleaned_data['tags'].split(','):
-                tag = tag.strip()
-                if len(tag) > 2 :
-                    tags.append(Tag.objects.get_or_create(name=tag)[0])
-            share.tags = tags
-            share.save()
+            share.set_tags(form.cleaned_data['tags'].split(','))
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id}))
     else:
         tags = ','.join([tag.name for tag in share.tags.all()])
@@ -142,8 +139,6 @@ def wget_listing(request,share,subdir=None):
             dir_list.append(dir)
     return render(request,'wget_listing.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir})
 
-
-
 @login_required
 def create_share(request):
     if not request.user.has_perm('bioshareX.add_share'):
@@ -155,6 +150,7 @@ def create_share(request):
             share.owner=request.user
             try:
                 share.save()
+                share.set_tags(form.cleaned_data['tags'].split(','))
             except Exception, e:
                 share.delete()
                 return render(request, 'share/new_share.html', {'form': form, 'error':e.message})
@@ -185,13 +181,13 @@ def create_subshare(request,share,subdir):
                 subshare.save()
             except Exception, e:
                 subshare.delete()
-                return render(request, 'share/new_share.html', {'form': form, 'error':e.message})
+                return render(request, 'share/new_share.html', {'form': form, 'error':e.message,'share':share,'subdir':subdir})
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':subshare.id}))
     else:
         name = os.path.basename(os.path.normpath(subdir))
         notes = "Shared from '%s': %s" % (share.name, subdir)
         form = SubShareForm(initial={'name':'%s: %s'%(share.name,name),'filesystem':share.filesystem,'notes':notes})
-    return render(request, 'share/new_share.html', {'form': form})
+    return render(request, 'share/new_share.html', {'form': form,'share':share,'subdir':subdir})
 
 @login_required
 def update_password(request):
@@ -253,7 +249,6 @@ def delete_share(request, share, confirm=False):
     else:
         return render(request, 'share/delete_share.html', {'share':share,'show_confirm':True})
     
-    
 @login_required
 def search_files(request):
     from utils import find
@@ -266,3 +261,34 @@ def search_files(request):
             results.append({'share':s,'results':r})
     return render(request, 'search/search_files.html', {'query':query,'results':results})
 
+@login_required
+def search_shares(request):
+    # View code here...
+    tags = request.GET.get('TAGS',None)
+    tags_operator = request.GET.get('TAGS_OPERATOR','OR')
+    emails = request.GET.get('USERS',None)
+    shares = Share.objects.filter(owner=request.user).order_by('-created')
+    
+    from guardian.shortcuts import get_objects_for_user
+    if emails:
+        emails = [email.strip() for email in emails.split(',')]
+        users = User.objects.filter(email__in=emails)
+        
+        share_ids = []
+        for u in users:
+            u_share_ids = [s.id for s in get_objects_for_user(u, 'bioshareX.view_share_files')]
+            #OR
+            share_ids += u_share_ids
+        shares = shares.filter(id__in=share_ids)
+    if tags:
+        tags = [tag.strip() for tag in tags.split(',')]
+        if tags_operator == 'AND':
+            for tag in tags:
+                shares = shares.filter(tags__name=tag)
+        else: #OR
+            shares = shares.filter(tags__name__in=tags)
+        
+    shares = shares.distinct()  
+#         query = reduce(operator.or_, (Q(pk=x) for x in values))
+        
+    return render(request,'share/search.html', {"shares": shares,"query":request.GET})
