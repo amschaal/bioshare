@@ -267,7 +267,7 @@ def search_shares(request):
     tags = request.GET.get('TAGS',None)
     tags_operator = request.GET.get('TAGS_OPERATOR','OR')
     emails = request.GET.get('USERS',None)
-    shares = Share.objects.filter(owner=request.user).order_by('-created')
+    shares = Share.user_queryset(request.user,include_stats=False)
     
     from guardian.shortcuts import get_objects_for_user
     if emails:
@@ -288,7 +288,7 @@ def search_shares(request):
         else: #OR
             shares = shares.filter(tags__name__in=tags)
         
-    shares = shares.distinct()  
+    shares = shares.distinct().order_by('-created')  
 #         query = reduce(operator.or_, (Q(pk=x) for x in values))
         
     return render(request,'share/search.html', {"shares": shares,"query":request.GET})
