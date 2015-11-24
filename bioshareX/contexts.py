@@ -8,7 +8,7 @@ def user_contexts(request):
         else:
             recent_shares = []
             shared_with_me = []
-            share_path_errors = [] 
+            bad_share_path = [] 
         return {
             'my_recent_shares':recent_shares,
             'shared_with_me':shared_with_me,
