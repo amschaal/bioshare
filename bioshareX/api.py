@@ -101,8 +101,8 @@ def get_permissions(request,share):
     data = share.get_permissions(user_specific=True)
     return json_response(data)
 
-@ajax_login_required
-@share_access_decorator(['admin'])
+# @ajax_login_required
+# @share_access_decorator(['admin'])
 def get_user_permissions(request,share):
     try:
         share = Share.objects.get(id=share)
