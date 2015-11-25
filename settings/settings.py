@@ -4,7 +4,7 @@
 import os
 CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir))
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
@@ -13,17 +13,35 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'biosharex',                      # Or path to database file if using sqlite3.
+        # The following settings are not used with sqlite3:
+        'USER': 'bioshare_django',
+        'PASSWORD': '$char3Dat!',
+        'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
+        'PORT': '',                      # Set to empty string for default.
+    },
+    'import_db': {
+        'NAME': 'bioshare_old',
+        'ENGINE': 'django.db.backends.mysql',
+        'USER': 'dev',
+        'PASSWORD': 'dev'
+    }
+}
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+        'bioshare.bioinformatics.ucdavis.edu',
+]
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
 # In a Windows environment this must be set to your system time zone.
-TIME_ZONE = 'America/Los_Angeles'
+TIME_ZONE = 'America/Chicago'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
@@ -128,7 +146,7 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.sites',
+#    'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Uncomment the next line to enable the admin:
@@ -142,7 +160,6 @@ INSTALLED_APPS = (
     'django_extensions',
     'rest_framework',
     'rest_framework.authtoken',
-#     'djcelery',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -174,7 +191,7 @@ LOGGING = {
     }
 }
 
-SENDFILE_BACKEND='sendfile.backends.simple'
+SENDFILE_BACKEND='sendfile.backends.xsendfile'
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend', # this is default
@@ -199,6 +216,17 @@ DEFAULT_FROM_EMAIL = 'no-reply@bioshare.genomecenter.ucdavis.edu'
 FILE_UPLOAD_HANDLERS = (
     "django.core.files.uploadhandler.TemporaryFileUploadHandler",
 )
+AUTHORIZED_KEYS_FILE = '/localhome/bioshare/.ssh/authorized_keys'
 SSH_WRAPPER_SCRIPT = os.path.join(CURRENT_DIR, 'sshwrapper.py')
+
+RSYNC_URL = 'bioshare@bioshare.bioinformatics.ucdavis.edu'
+
+FILES_OWNER = 'bioshare'
+FILES_GROUP = 'bioshare'
+
+ZIPFILE_SIZE_LIMIT_BYTES = 1000000000
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.ucdavis.edu'
 
 from config import *
