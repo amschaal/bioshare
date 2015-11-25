@@ -1,4 +1,5 @@
 /urls.pyc
 /wsgi.pyc
 /media
+settings/config.py
 *.pyc
