@@ -4,6 +4,9 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from django.utils.html import strip_tags
 from django.core.validators import RegexValidator
+from bioshareX.utils import test_path, paths_contain
+from django.conf import settings
+import os   
 
 class ShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_message=('Please avoid special characters'))
@@ -12,9 +15,42 @@ class ShareForm(forms.ModelForm):
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
         self.fields['filesystem'].queryset = user.filesystems
+        if not user.has_perm('bioshareX.link_to_path'):
+            self.fields.pop('link_to_path')
+        self.the_instance = kwargs.get('instance',None)
+        if self.the_instance:
+            if not self.the_instance.link_to_path:
+                self.fields.pop('link_to_path')
+    def clean_link_to_path(self):
+        path = self.cleaned_data['link_to_path']
+        if path == '' or not path:
+            path = None
+        if path:
+            try:
+                test_path(path,allow_absolute=True)
+            except:
+                raise forms.ValidationError('Bad path: "%s"'%path)
+            if not os.path.isdir(path):
+                raise forms.ValidationError('Path: "%s" does not exist'%path)
+            if not paths_contain(settings.LINK_TO_DIRECTORIES,path):
+                raise forms.ValidationError('Path not allowed.')
+        if self.the_instance:
+            if self.the_instance.link_to_path and not path:
+                raise forms.ValidationError('It is not possible to change a linked share to a regular share.')
+            if not self.the_instance.link_to_path and path:
+                raise forms.ValidationError('It is not possible to change a regular share to a linked share.')
+        return path
+    
+    def clean(self):
+        cleaned_data = super(ShareForm, self).clean()
+        path = cleaned_data.get('link_to_path',None)
+        if path and not cleaned_data.get('read_only',None):
+            self.add_error('read_only', forms.ValidationError('Linked shares must be read only.'))
+        cleaned_data['read_only'] = True if path else self.cleaned_data['read_only']
+        return cleaned_data         
     class Meta:
         model = Share
-        fields = ('name', 'notes','filesystem','read_only')
+        fields = ('name', 'notes','filesystem','link_to_path','read_only')
 
 class SubShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_message=('Please avoid special characters'))

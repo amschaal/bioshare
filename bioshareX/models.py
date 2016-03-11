@@ -183,11 +183,30 @@ class Share(models.Model):
     def move_share(self,filesystem):
         import shutil
         new_path = os.path.join(filesystem.path, self.id)
+        if self.link_to_path and os.path.islink(self.get_path()):
+            self.check_link_path()
+            self.unlink()
+            os.symlink(self.link_to_path,new_path)
+        else:
+            shutil.move(self.get_path(),new_path)
+        
         new_archive_path = os.path.join(filesystem.archive_path, self.id)
-        shutil.move(self.get_path(),new_path)
         if os.path.isdir(self.get_archive_path()):
             shutil.move(self.get_archive_path(),new_archive_path)
         self.filesystem = filesystem
+    def check_link_path(self):
+        if self.link_to_path:
+            test_path(self.link_to_path,allow_absolute=True)
+            if not paths_contain(settings.LINK_TO_DIRECTORIES,self.link_to_path):
+                raise Exception('Path not allowed.')
+    def create_link(self):
+        self.check_link_path()
+        if self.link_to_path:
+            os.symlink(self.link_to_path,self.get_path())
+    def unlink(self):
+        path = self.get_path()
+        if os.path.islink(path):
+            os.unlink(path)
     def create_archive_stream(self,items,subdir=None):
         import zipstream
         from django.http.response import StreamingHttpResponse
@@ -224,10 +243,7 @@ def share_post_save(sender, **kwargs):
         import pwd, grp, os
         if not os.path.exists(path):
             if instance.link_to_path:
-                test_path(instance.link_to_path,allow_absolute=True)
-                if not paths_contain(settings.LINK_TO_DIRECTORIES,instance.link_to_path):
-                    raise Exception('Path not allowed.')
-                os.symlink(instance.link_to_path,path)
+                instance.create_link()
             else:
                 from settings.settings import FILES_GROUP, FILES_OWNER
                 os.makedirs(path)
@@ -249,7 +265,10 @@ def share_pre_save(sender, instance, **kwargs):
         old_share = Share.objects.get(pk=instance.pk)
         if instance.filesystem.pk != old_share.filesystem.pk:
             old_share.move_share(instance.filesystem)
-    except:
+        elif instance.link_to_path and instance.link_to_path != old_share.link_to_path:
+            old_share.unlink()
+            instance.create_link()
+    except Share.DoesNotExist, e:
         pass
         
     
@@ -272,12 +291,12 @@ def share_pre_save(sender, instance, **kwargs):
 #                 else:
 #                     shutil.rmtree(move_path)
 #             shutil.move(path, delete_path)
-def share_post_delete(sender, **kwargs):
-    path = kwargs['instance'].get_path()
-    archive_path = kwargs['instance'].get_archive_path()
+def share_post_delete(sender, instance, **kwargs):
+    path = instance.get_path()
+    archive_path = instance.get_archive_path()
     import shutil
     if os.path.islink(path):
-        os.unlink(path)
+        instance.unlink()
     else:
         if os.path.isdir(path):
             shutil.rmtree(path)
