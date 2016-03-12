@@ -21,6 +21,10 @@ class ShareForm(forms.ModelForm):
         if self.the_instance:
             if not self.the_instance.link_to_path:
                 self.fields.pop('link_to_path')
+            if self.the_instance.parent:
+                self.fields.pop('filesystem')
+                self.fields.pop('link_to_path')
+                self.fields.pop('read_only')
     def clean_link_to_path(self):
         path = self.cleaned_data['link_to_path']
         if path == '' or not path:
@@ -43,6 +47,8 @@ class ShareForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super(ShareForm, self).clean()
+        if self.the_instance.parent:
+            return cleaned_data
         path = cleaned_data.get('link_to_path',None)
         if path and not cleaned_data.get('read_only',None):
             self.add_error('read_only', forms.ValidationError('Linked shares must be read only.'))
