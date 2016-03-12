@@ -47,8 +47,9 @@ class ShareForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super(ShareForm, self).clean()
-        if self.the_instance.parent:
-            return cleaned_data
+        if self.the_instance:
+            if self.the_instance.parent:
+                return cleaned_data
         path = cleaned_data.get('link_to_path',None)
         if path and not cleaned_data.get('read_only',None):
             self.add_error('read_only', forms.ValidationError('Linked shares must be read only.'))
