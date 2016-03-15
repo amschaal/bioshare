@@ -20,7 +20,7 @@ class ShareForm(forms.ModelForm):
         self.the_instance = kwargs.get('instance',None)
         if self.the_instance:
             if not self.the_instance.link_to_path:
-                self.fields.pop('link_to_path')
+                self.fields.pop('link_to_path',None)
             if self.the_instance.parent:
                 self.fields.pop('filesystem',None)
                 self.fields.pop('link_to_path',None)
