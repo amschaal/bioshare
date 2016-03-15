@@ -16,15 +16,15 @@ class ShareForm(forms.ModelForm):
         super(ShareForm, self).__init__(*args, **kwargs)
         self.fields['filesystem'].queryset = user.filesystems
         if not user.has_perm('bioshareX.link_to_path'):
-            self.fields.pop('link_to_path')
+            self.fields.pop('link_to_path',None)
         self.the_instance = kwargs.get('instance',None)
         if self.the_instance:
             if not self.the_instance.link_to_path:
                 self.fields.pop('link_to_path')
             if self.the_instance.parent:
-                self.fields.pop('filesystem')
-                self.fields.pop('link_to_path')
-                self.fields.pop('read_only')
+                self.fields.pop('filesystem',None)
+                self.fields.pop('link_to_path',None)
+                self.fields.pop('read_only',None)
     def clean_link_to_path(self):
         path = self.cleaned_data['link_to_path']
         if path == '' or not path:
