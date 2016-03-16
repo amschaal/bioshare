@@ -2,7 +2,7 @@
 from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
-from settings.settings import FILES_ROOT, RSYNC_URL
+from settings.settings import RSYNC_URL
 from models import Share, SSHKey, MetaData, Tag, ShareStats
 from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
 from guardian.shortcuts import get_perms, get_users_with_perms

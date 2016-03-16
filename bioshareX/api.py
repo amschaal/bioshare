@@ -3,7 +3,7 @@ from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect, HttpResponse,\
     JsonResponse
-from settings.settings import FILES_ROOT, AUTHORIZED_KEYS_FILE
+from settings.settings import AUTHORIZED_KEYS_FILE
 from models import Share, SSHKey, MetaData, Tag
 from forms import MetaDataForm, json_form_validate
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
