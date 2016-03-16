@@ -146,7 +146,6 @@ LOGGING = {
     }
 }
 
-SENDFILE_BACKEND='sendfile.backends.simple'
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend', # this is default
