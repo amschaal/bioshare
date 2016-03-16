@@ -1,0 +1,49 @@
+#Copy this file to config.py and customize
+
+DEBUG = True
+TEMPLATE_DEBUG = DEBUG
+
+ADMINS = (
+    # ('Your Name', 'your_email@example.com'),
+)
+
+MANAGERS = ADMINS
+
+# Make this unique, and don't share it with anybody.
+SECRET_KEY = 'SOMEVERYLONGRANDOMSTRING'
+
+# Hosts/domain names that are valid for this site; required if DEBUG is False
+# See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
+ALLOWED_HOSTS = ['server.domain.net']
+
+# Local time zone for this installation. Choices can be found here:
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+# although not all choices may be available on all operating systems.
+# In a Windows environment this must be set to your system time zone.
+TIME_ZONE = 'America/Los_Angeles'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql', 
+        'NAME': 'bioshare',   
+        'USER': 'username',
+        'PASSWORD': 'password',
+        'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
+        'PORT': '',                      # Set to empty string for default.
+    },
+}
+
+LINK_TO_DIRECTORIES = [] #Whitelist of directories that can be pointed at if symlinking shares
+
+AUTHORIZED_KEYS_FILE = '/home/rsync_user/.ssh/authorized_keys'
+
+RSYNC_URL = 'rsync_user@server.domain.net'
+
+FILES_OWNER = 'www-data'
+FILES_GROUP = 'www-data'
+
+ZIPFILE_SIZE_LIMIT_BYTES = 1000000000
+
+ACCOUNT_ACTIVATION_DAYS = 7 #For Django registration
+
+DEFAULT_FROM_EMAIL = 'no-reply@server.domain.net'

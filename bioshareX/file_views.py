@@ -3,7 +3,6 @@
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
-from settings.settings import FILES_ROOT
 from models import Share
 # from django.utils import simplejson
 import json

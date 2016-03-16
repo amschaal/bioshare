@@ -4,45 +4,6 @@
 import os
 CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir))
 
-DEBUG = False
-TEMPLATE_DEBUG = DEBUG
-
-ADMINS = (
-    # ('Your Name', 'your_email@example.com'),
-)
-
-MANAGERS = ADMINS
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'biosharex',                      # Or path to database file if using sqlite3.
-        # The following settings are not used with sqlite3:
-        'USER': 'bioshare_django',
-        'PASSWORD': '$char3Dat!',
-        'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
-        'PORT': '',                      # Set to empty string for default.
-    },
-    'import_db': {
-        'NAME': 'bioshare_old',
-        'ENGINE': 'django.db.backends.mysql',
-        'USER': 'dev',
-        'PASSWORD': 'dev'
-    }
-}
-
-# Hosts/domain names that are valid for this site; required if DEBUG is False
-# See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = [
-        'bioshare.bioinformatics.ucdavis.edu',
-]
-
-# Local time zone for this installation. Choices can be found here:
-# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
-# although not all choices may be available on all operating systems.
-# In a Windows environment this must be set to your system time zone.
-TIME_ZONE = 'America/Chicago'
-
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = 'en-us'
@@ -62,15 +23,12 @@ USE_TZ = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/var/www/example.com/media/"
-MEDIA_ROOT = os.path.join(CURRENT_DIR, 'media')
-FILES_ROOT = os.path.join('/data/bioshareX')
-ARCHIVE_ROOT = os.path.join('/data/bioshare_archives')
-REMOVED_FILES_ROOT = os.path.join('/data/bioshare_deleted')
+# MEDIA_ROOT = os.path.join(CURRENT_DIR, 'media')
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
 # Examples: "http://example.com/media/", "http://media.example.com/"
-MEDIA_URL = ''
+# MEDIA_URL = ''
 
 # Absolute path to the directory static files should be collected to.
 # Don't put anything in this directory yourself; store your static files
@@ -95,11 +53,8 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-#    'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
 
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = 'r24q99k5=&%+st=v(jzd7#p0l&9%3xxczcd+x*$2_6smvh@@7c'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -146,7 +101,7 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-#    'django.contrib.sites',
+    'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Uncomment the next line to enable the admin:
@@ -191,7 +146,7 @@ LOGGING = {
     }
 }
 
-SENDFILE_BACKEND='sendfile.backends.xsendfile'
+SENDFILE_BACKEND='sendfile.backends.simple'
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend', # this is default
@@ -209,24 +164,9 @@ REST_FRAMEWORK = {
 
 ANONYMOUS_USER_ID = -1 #Guardian
 
-ACCOUNT_ACTIVATION_DAYS = 7 #For Django registration
-
-DEFAULT_FROM_EMAIL = 'no-reply@bioshare.genomecenter.ucdavis.edu'
-
 FILE_UPLOAD_HANDLERS = (
     "django.core.files.uploadhandler.TemporaryFileUploadHandler",
 )
-AUTHORIZED_KEYS_FILE = '/localhome/bioshare/.ssh/authorized_keys'
 SSH_WRAPPER_SCRIPT = os.path.join(CURRENT_DIR, 'sshwrapper.py')
-
-RSYNC_URL = 'bioshare@bioshare.bioinformatics.ucdavis.edu'
-
-FILES_OWNER = 'bioshare'
-FILES_GROUP = 'bioshare'
-
-ZIPFILE_SIZE_LIMIT_BYTES = 1000000000
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.ucdavis.edu'
 
 from config import *
