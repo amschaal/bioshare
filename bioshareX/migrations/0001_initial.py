@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
             name='MetaData',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('subpath', models.CharField(max_length=250)),
+                ('subpath', models.CharField(max_length=250, null=True, blank=True)),
                 ('notes', models.TextField(null=True, blank=True)),
             ],
         ),
@@ -40,12 +40,18 @@ class Migration(migrations.Migration):
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('name', models.CharField(max_length=125)),
                 ('secure', models.BooleanField(default=True)),
+                ('read_only', models.BooleanField(default=False)),
                 ('notes', models.TextField()),
+                ('link_to_path', models.CharField(max_length=200, null=True, blank=True)),
+                ('sub_directory', models.CharField(max_length=200, null=True, blank=True)),
+                ('real_path', models.CharField(max_length=200, null=True, blank=True)),
+                ('path_exists', models.BooleanField(default=True)),
                 ('filesystem', models.ForeignKey(to='bioshareX.Filesystem', on_delete=django.db.models.deletion.PROTECT)),
                 ('owner', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('parent', models.ForeignKey(blank=True, to='bioshareX.Share', null=True)),
             ],
             options={
-                'permissions': (('view_share_files', 'View share files'), ('delete_share_files', 'Delete share files'), ('download_share_files', 'Download share files'), ('write_to_share', 'Write to share'), ('admin', 'Administer')),
+                'permissions': (('view_share_files', 'View share files'), ('delete_share_files', 'Delete share files'), ('download_share_files', 'Download share files'), ('write_to_share', 'Write to share'), ('link_to_path', 'Link to a specific path'), ('admin', 'Administer')),
             },
         ),
         migrations.CreateModel(
