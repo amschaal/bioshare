@@ -1,0 +1,23 @@
+#Copy this file to config.py and customize
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql', 
+        'NAME': 'bioshare',   
+        'USER': 'username',
+        'PASSWORD': 'password',
+        'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
+        'PORT': '',                      # Set to empty string for default.
+    },
+}
+
+LINK_TO_DIRECTORIES = [] #Whitelist of directories that can be pointed at if symlinking shares
+
+AUTHORIZED_KEYS_FILE = '/home/rsync_user/.ssh/authorized_keys'
+
+RSYNC_URL = 'rsync_user@server.domain.net'
+
+FILES_OWNER = 'www-data'
+FILES_GROUP = 'www-data'
+
+ZIPFILE_SIZE_LIMIT_BYTES = 1000000000
