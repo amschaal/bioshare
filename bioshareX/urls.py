@@ -1,65 +1,63 @@
-from django.conf.urls import patterns, include, url
-from bioshareX.forms import PasswordChangeForm, SetPasswordForm
-from django.contrib.auth import urls
-
-urlpatterns = patterns('bioshareX.views',
-    url(r'^/?$', 'index', name='index'),
-    url(r'^forbidden/?$', 'forbidden', name='forbidden'),
-    url(r'^create/?$', 'create_share', name='create_share'),
-    url(r'^create_subshare/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'create_subshare', name='create_subshare'),
-    url(r'^edit/(?P<share>\w{15})/?$', 'edit_share', name='edit_share'),
-    url(r'^cloud/?$', 'tag_cloud', name='tag_cloud'),
-#     url(r'^list/(?P<share>\w{15})/$', 'list_directory', name='list_directory'),
-#     url(r'^list/(?P<share>\w{15})/(?P<subdir>.*/)$', 'list_directory', name='list_sub_directory'),
-    url(r'^list/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_directory_old'),
-    url(r'^view/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'list_directory', name='list_directory'),
-    url(r'^wget/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?wget_index.html$', 'wget_listing', name='wget_listing'),
-    url(r'^shares/$', 'list_shares', name='list_shares'),
-    url(r'^search/$', 'search_shares', name='search_shares'),
-    url(r'^permissions/(?P<share>[\da-zA-Z]{15})/?$', 'share_permissions', name='share_permissions'),
-    url(r'^goto/(?P<share>[\da-zA-Z]{15})/(?:(?P<subpath>.*/?))?$', 'go_to_file_or_folder', name='go_to_file_or_folder'),
-    url(r'^ssh_keys/list/?$', 'list_ssh_keys', name='list_ssh_keys'),
-    url(r'^ssh_keys/create/?$', 'create_ssh_key', name='create_ssh_key'),
+from django.conf.urls import  url
+# from bioshareX.forms import PasswordChangeForm, SetPasswordForm
+# from django.contrib.auth import urls
+from bioshareX import views as bioshare_views
+from bioshareX import api as api_views
+from bioshareX import file_views
+# from django.contrib.auth import views as auth_views
+urlpatterns = [
+    url(r'^$', bioshare_views.index, name='index'),
+    url(r'^forbidden/?$', bioshare_views.forbidden, name='forbidden'),
+    url(r'^create/?$', bioshare_views.create_share, name='create_share'),
+    url(r'^create_subshare/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', bioshare_views.create_subshare, name='create_subshare'),
+    url(r'^edit/(?P<share>\w{15})/?$', bioshare_views.edit_share, name='edit_share'),
+    url(r'^cloud/?$', bioshare_views.tag_cloud, name='tag_cloud'),
+    url(r'^list/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory_old'),
+    url(r'^view/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory'),
+    url(r'^wget/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?wget_index.html$', bioshare_views.wget_listing, name='wget_listing'),
+    url(r'^shares/$', bioshare_views.list_shares, name='list_shares'),
+    url(r'^search/$', bioshare_views.search_shares, name='search_shares'),
+    url(r'^permissions/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.share_permissions, name='share_permissions'),
+    url(r'^goto/(?P<share>[\da-zA-Z]{15})/(?:(?P<subpath>.*/?))?$', bioshare_views.go_to_file_or_folder, name='go_to_file_or_folder'),
+    url(r'^ssh_keys/list/?$', bioshare_views.list_ssh_keys, name='list_ssh_keys'),
+    url(r'^ssh_keys/create/?$', bioshare_views.create_ssh_key, name='create_ssh_key'),
 #     url(r'^account/update_password/?$', 'update_password', name='update_password'),
-    url(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', 'delete_share', kwargs={'confirm':False},name='delete_share'),
-    url(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', 'delete_share', kwargs={'confirm':True},name='confirm_delete_share'),
-    url(r'^search/files/?$', 'search_files', name='search_files'),
-)
+    url(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':False},name='delete_share'),
+    url(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':True},name='confirm_delete_share'),
+    url(r'^search/files/?$', bioshare_views.search_files, name='search_files'),
+]
 
-urlpatterns += patterns('',
-    url(r'^account/update_password/$', 'django.contrib.auth.views.password_change',  {'password_change_form': PasswordChangeForm,'post_change_redirect':'auth_password_change_done'},name='update_password'),
-)
+# urlpatterns += [
+#     url(r'^account/update_password/$', auth_views.password_change,  {'password_change_form': PasswordChangeForm,'post_change_redirect':'auth_password_change_done'},name='update_password'),
+# ]
 
-urlpatterns += patterns('bioshareX.api',
-    url(r'^api/get_permissions/(?P<share>[\da-zA-Z]{15})/?$', 'get_permissions', name='api_get_permissions'),
-    url(r'^api/get_user_permissions/(?P<share>[\da-zA-Z]{15})/?$', 'get_user_permissions', name='api_get_user_permissions'),
-    url(r'^api/share_metadata/(?P<share>[\da-zA-Z]{15})/?$', 'get_share_metadata', name='api_get_share_metadata'),
-    url(r'^api/set_permissions/(?P<share>[\da-zA-Z]{15})/?$', 'set_permissions', name='api_set_permissions'),
-    url(r'^api/update/(?P<share>[\da-zA-Z]{15})/?$', 'update_share', name='api_update_share'),
-    url(r'^api/get_group/?$', 'get_group', name='api_get_group'),
-    url(r'^api/search/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'search_share', name='api_search_share'),
-    url(r'^api/share_autocomplete/$', 'share_autocomplete', name='api_share_autocomplete'),
-    url(r'^api/ssh_keys/delete/?$', 'delete_ssh_key', name='api_delete_ssh_key'),
-    url(r'^api/edit_metadata/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'edit_metadata', name='api_edit_metadata'),
-    url(r'^api/get_addresses/?$', 'get_address_book', name='api_get_address_book'),
-    url(r'^api/get_tags/?$', 'get_tags', name='api_tags'),
-    url(r'^api/share/(?P<share>[\da-zA-Z]{15})/?$', 'share_with', name='api_share_with'),
-    url(r'^api/shares/create/?$', 'create_share', name='api_create_share'),
-    
-)
+urlpatterns += [
+    url(r'^api/get_permissions/(?P<share>[\da-zA-Z]{15})/?$', api_views.get_permissions, name='api_get_permissions'),
+    url(r'^api/get_user_permissions/(?P<share>[\da-zA-Z]{15})/?$', api_views.get_user_permissions, name='api_get_user_permissions'),
+    url(r'^api/share_metadata/(?P<share>[\da-zA-Z]{15})/?$', api_views.get_share_metadata, name='api_get_share_metadata'),
+    url(r'^api/set_permissions/(?P<share>[\da-zA-Z]{15})/?$', api_views.set_permissions, name='api_set_permissions'),
+    url(r'^api/update/(?P<share>[\da-zA-Z]{15})/?$', api_views.update_share, name='api_update_share'),
+    url(r'^api/get_group/?$', api_views.get_group, name='api_get_group'),
+    url(r'^api/search/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', api_views.search_share, name='api_search_share'),
+    url(r'^api/share_autocomplete/$', api_views.share_autocomplete, name='api_share_autocomplete'),
+    url(r'^api/ssh_keys/delete/?$', api_views.delete_ssh_key, name='api_delete_ssh_key'),
+    url(r'^api/edit_metadata/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', api_views.edit_metadata, name='api_edit_metadata'),
+    url(r'^api/get_addresses/?$', api_views.get_address_book, name='api_get_address_book'),
+    url(r'^api/get_tags/?$', api_views.get_tags, name='api_tags'),
+    url(r'^api/share/(?P<share>[\da-zA-Z]{15})/?$', api_views.share_with, name='api_share_with'),
+    url(r'^api/shares/create/?$', api_views.create_share, name='api_create_share'),
+]
 
-urlpatterns += patterns('bioshareX.file_views',
-#     url(r'^upload/(?P<share>\w{15})(?:/?P<subdir>.*/)$', 'upload_file', name='upload_file'),
-#     url(r'^upload/?$', 'upload_file', name='upload_file'),
-    url(r'^upload/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'upload_file', name='upload_file'),
-    url(r'^create_folder/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'create_folder', name='create_folder'),
-    url(r'^rename/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'modify_name', name='modify_name'),
-    url(r'^delete/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'delete_paths', name='delete_paths'),
-    url(r'^move/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'move_paths', name='move_paths'),
-    url(r'^stream_archive/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', 'download_archive_stream', name='download_archive_stream'),
-    url(r'^download/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'download_file', name='download_file'),
+urlpatterns += [
+    url(r'^upload/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.upload_file, name='upload_file'),
+    url(r'^create_folder/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.create_folder, name='create_folder'),
+    url(r'^rename/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.modify_name, name='modify_name'),
+    url(r'^delete/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.delete_paths, name='delete_paths'),
+    url(r'^move/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.move_paths, name='move_paths'),
+    url(r'^stream_archive/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.download_archive_stream, name='download_archive_stream'),
+    url(r'^download/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.download_file, name='download_file'),
 #     url(r'^download_archive/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'download_archive', name='download_archive'),
-    url(r'^preview/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'preview_file', name='preview_file'),
-    url(r'^directories/(?P<share>[\da-zA-Z]{15})/?$', 'get_directories', name='get_directories'),
-    url(r'^wget/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'download_file', name='wget_download_file'),
-)
+    url(r'^preview/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.preview_file, name='preview_file'),
+    url(r'^directories/(?P<share>[\da-zA-Z]{15})/?$', file_views.get_directories, name='get_directories'),
+    url(r'^wget/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.download_file, name='wget_download_file'),
+]

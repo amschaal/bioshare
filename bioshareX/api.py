@@ -3,7 +3,7 @@ from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect, HttpResponse,\
     JsonResponse
-from settings.settings import AUTHORIZED_KEYS_FILE
+from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
 from models import Share, SSHKey, MetaData, Tag
 from forms import MetaDataForm, json_form_validate
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
@@ -16,12 +16,11 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import api_view
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
-from django.contrib.sites.models import get_current_site
 from bioshareX.utils import ajax_login_required
 
 @ajax_login_required
 def get_user(request):
-    query = request.REQUEST.get('query')
+    query = request.GET.get('query')
     try:
         user = User.objects.get(Q(username=query)|Q(email=query))
         return json_response({'user':{'username':user.username,'email':user.email}})
@@ -47,7 +46,7 @@ def get_tags(request):
     
 @share_access_decorator(['admin'])    
 def share_with(request,share):
-    query = request.REQUEST.get('query')
+    query = request.POST.get('query',request.GET.get('query'))
     exists = []
     new_users = []
     groups = []
@@ -78,7 +77,7 @@ def share_with(request,share):
 
 @ajax_login_required
 def share_autocomplete(request):
-    terms = [term.strip() for term in request.REQUEST.get('query').split()]
+    terms = [term.strip() for term in request.GET.get('query').split()]
     query = reduce(lambda q,value: q&Q(name__icontains=value), terms , Q())
     try:
         share_objs = Share.user_queryset(request.user).filter(query).order_by('-created')[:10]
@@ -89,7 +88,7 @@ def share_autocomplete(request):
 
 
 def get_group(request):
-    query = request.REQUEST.get('query')
+    query = request.GET.get('query')
     try:
         group = Group.objects.get(name=query)
         return json_response({'group':{'name':group.name}})
@@ -136,7 +135,6 @@ def set_permissions(request,share,json=None):
     emailed=[]
     created=[]
     failed=[]
-    site = get_current_site(request)
 #     if not request.user.has_perm('admin',share):
 #         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
     if json.has_key('groups'):
@@ -147,7 +145,7 @@ def set_permissions(request,share,json=None):
             added_perms = list(set(permissions) - set(current_perms))
             for u in g.user_set.all():
                 if len(share.get_user_permissions(u,user_specific=True)) == 0 and len(added_perms) > 0 and json['email']:
-                    email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site':site})
+                    email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site_url':SITE_URL})
                     emailed.append(u.username)
             for perm in removed_perms:
                 remove_perm(perm,g,share)
@@ -162,7 +160,7 @@ def set_permissions(request,share,json=None):
                 u = User.objects.get(username=username)
                 if len(share.get_user_permissions(u,user_specific=True)) == 0 and json['email']:
                     try:
-                        email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site':site})
+                        email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site_url':SITE_URL})
                         emailed.append(username)
                     except:
                         failed.append(username)
@@ -173,7 +171,7 @@ def set_permissions(request,share,json=None):
                     u.set_password(password)
                     u.save()
                     try:
-                        email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':share,'sharer':request.user,'site':site})
+                        email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':share,'sharer':request.user,'site_url':SITE_URL})
                         created.append(username)
                     except:
                         failed.append(username)
@@ -219,7 +217,7 @@ def edit_metadata(request, share, subpath):
         if share.get_path_type(subpath) is None:
             raise Exception('The specified file or folder does not exist in this share.')
         metadata = MetaData.objects.get_or_create(share=share, subpath=subpath)[0]
-        form = MetaDataForm(request.REQUEST)
+        form = MetaDataForm(request.POST if request.method == 'POST' else request.GET)
         data = json_form_validate(form)
         if not form.is_valid():
             return json_response(data)#return json_error(form.errors)
@@ -285,8 +283,7 @@ def create_share(request):
             share.delete()
             print e.message
             return JsonResponse({'error':e.message},status=400)
-        site = get_current_site(request)
-        return JsonResponse({'url':"https://%s%s"%(site.domain,reverse('list_directory',kwargs={'share':share.id})),'id':share.id})
+        return JsonResponse({'url':"%s%s"%(SITE_URL,reverse('list_directory',kwargs={'share':share.id})),'id':share.id})
     else:
         print form.errors
         return JsonResponse({'errors':form.errors},status=400)

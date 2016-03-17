@@ -11,7 +11,7 @@ class JSONDecorator(object):
                 self.orig_func = orig_func
         def __call__(self,  *args, **kwargs):
                 import json
-                json_arg = args[0].REQUEST.get('json',None)
+                json_arg = args[0].POST.get('json',args[0].GET.get('json',None))
                 if json_arg is not None:
                     kwargs['json']=json.loads(json_arg)
                 return self.orig_func(*args, **kwargs)
@@ -150,7 +150,6 @@ def find_in_shares(shares, pattern):
     return output.split('\n')
 
 def find(share, pattern, subdir=None,prepend_share_id=True):
-    from settings.settings import FILES_ROOT
     import subprocess, os
 #     @todo: use -prune option to get rid of .archive and .removed directories
     path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
