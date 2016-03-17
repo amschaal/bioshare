@@ -151,7 +151,6 @@ def find_in_shares(shares, pattern):
 
 def find(share, pattern, subdir=None,prepend_share_id=True):
     import subprocess, os
-#     @todo: use -prune option to get rid of .archive and .removed directories
     path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
     base_path = os.path.realpath(path) 
     output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0]

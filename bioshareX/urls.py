@@ -56,7 +56,6 @@ urlpatterns += [
     url(r'^move/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.move_paths, name='move_paths'),
     url(r'^stream_archive/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.download_archive_stream, name='download_archive_stream'),
     url(r'^download/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.download_file, name='download_file'),
-#     url(r'^download_archive/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', 'download_archive', name='download_archive'),
     url(r'^preview/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.preview_file, name='preview_file'),
     url(r'^directories/(?P<share>[\da-zA-Z]{15})/?$', file_views.get_directories, name='get_directories'),
     url(r'^wget/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.download_file, name='wget_download_file'),

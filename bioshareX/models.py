@@ -38,7 +38,6 @@ class Filesystem(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField()
     path = models.CharField(max_length=200)
-    archive_path = models.CharField(max_length=200)
     users = models.ManyToManyField(User, related_name='filesystems')
     def __unicode__(self):
         return '%s: %s' %(self.name, self.path)
@@ -124,8 +123,6 @@ class Share(models.Model):
         return os.path.join(self.filesystem.path,self.id)
     def check_path(self):
         return os.path.exists(self.get_path())
-    def get_archive_path(self):
-        return os.path.join(self.filesystem.archive_path,self.id)
     def get_removed_path(self):
         return os.path.join(settings.REMOVED_FILES_ROOT,self.id)
     def get_path_type(self,subpath):
@@ -189,10 +186,6 @@ class Share(models.Model):
             os.symlink(self.link_to_path,new_path)
         else:
             shutil.move(self.get_path(),new_path)
-        
-        new_archive_path = os.path.join(filesystem.archive_path, self.id)
-        if os.path.isdir(self.get_archive_path()):
-            shutil.move(self.get_archive_path(),new_archive_path)
         self.filesystem = filesystem
     def check_link_path(self):
         if self.link_to_path:
@@ -293,15 +286,12 @@ def share_pre_save(sender, instance, **kwargs):
 #             shutil.move(path, delete_path)
 def share_post_delete(sender, instance, **kwargs):
     path = instance.get_path()
-    archive_path = instance.get_archive_path()
     import shutil
     if os.path.islink(path):
         instance.unlink()
     else:
         if os.path.isdir(path):
             shutil.rmtree(path)
-        if os.path.isdir(archive_path):
-            shutil.rmtree(archive_path)
 post_delete.connect(share_post_delete, sender=Share)
 # class ShareUser(models.Model):
 #     share = models.ForeignKey(Share)
