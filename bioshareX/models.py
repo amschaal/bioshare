@@ -238,7 +238,7 @@ def share_post_save(sender, **kwargs):
         os.umask(settings.UMASK)
         instance = kwargs['instance']
         path = instance.get_path()
-        import pwd, grp, os
+        import pwd, grp
         if not os.path.exists(path):
             if instance.link_to_path:
                 instance.create_link()
