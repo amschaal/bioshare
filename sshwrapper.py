@@ -160,7 +160,7 @@ def main():
 
 if __name__ == '__main__':
     #Should probably use argument parsing library, but trying to keep dependencies to a minimum
-    
+    os.umask(0002)
     if len(sys.argv)==2:
         USER = sys.argv[1]
     elif len(sys.argv)==3:

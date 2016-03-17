@@ -134,6 +134,7 @@ class Share(models.Model):
         else:
             return None
     def create_folder(self,name,subdir=None):
+        os.umask(settings.UMASK)
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
         if os.path.exists(path):
             folder_path = os.path.join(path,name)
@@ -167,6 +168,7 @@ class Share(models.Model):
         self.tags.clear()
         self.add_tags(tags,save)
     def move_path(self,item_subpath,destination_subpath=''):
+        os.umask(settings.UMASK)
         import shutil
         if destination_subpath.count('..') != 0:
             return False
@@ -178,6 +180,7 @@ class Share(models.Model):
         else:
             return False
     def move_share(self,filesystem):
+        os.umask(settings.UMASK)
         import shutil
         new_path = os.path.join(filesystem.path, self.id)
         if self.link_to_path and os.path.islink(self.get_path()):
@@ -193,6 +196,7 @@ class Share(models.Model):
             if not paths_contain(settings.LINK_TO_DIRECTORIES,self.link_to_path):
                 raise Exception('Path not allowed.')
     def create_link(self):
+        os.umask(settings.UMASK)
         self.check_link_path()
         if self.link_to_path:
             os.symlink(self.link_to_path,self.get_path())
@@ -231,6 +235,7 @@ class Share(models.Model):
         return response
 def share_post_save(sender, **kwargs):
     if kwargs['created']:
+        os.umask(settings.UMASK)
         instance = kwargs['instance']
         path = instance.get_path()
         import pwd, grp, os
@@ -346,7 +351,7 @@ class SSHKey(models.Model):
             raise Exception('Unable to parse key')
         matches = match.groupdict()
         return matches['key']
-    
+
 class ShareFTPUser(models.Model):
     share = models.OneToOneField(Share,related_name="ftp_user")
     password = models.CharField(max_length=15, default=pkgen)
