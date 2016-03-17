@@ -7,3 +7,4 @@ django-guardian==1.4.2
 django-sendfile==0.3.10
 djangorestframework==3.3.3
 longerusername==0.4
+zipstream==1.1.0

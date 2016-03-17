@@ -3,3 +3,4 @@
 /media
 settings/config.py
 *.pyc
+bioshareX/migrations/backup
