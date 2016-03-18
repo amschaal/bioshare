@@ -170,7 +170,7 @@ if __name__ == '__main__':
     if ORIGINAL_COMMAND is None:
         ORIGINAL_COMMAND = os.environ['SSH_ORIGINAL_COMMAND']
     logger = logging.getLogger('bioshare')
-    hdlr = logging.FileHandler('/var/log/sshwrapper.log')
+    hdlr = logging.FileHandler(config.get('config','logfile'))
     formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
     hdlr.setFormatter(formatter)
     logger.addHandler(hdlr) 

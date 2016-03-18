@@ -36,7 +36,7 @@ SENDFILE_BACKEND = 'sendfile.backends.xsendfile' # may use 'sendfile.backends.si
 
 LINK_TO_DIRECTORIES = [] # Whitelist of directories that can be pointed at if symlinking shares
 
-AUTHORIZED_KEYS_FILE = '/home/rsync_user/.ssh/authorized_keys'
+AUTHORIZED_KEYS_FILE = '/home/bioshare/.ssh/authorized_keys'
 
 RSYNC_URL = 'bioshare@server.domain.net'
 
