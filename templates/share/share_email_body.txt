@@ -2,7 +2,7 @@
 Greetings,<br>
 <p>
 User {{sharer.username}} has shared '{{share.name}}' with you on Bioshare.  You may access the share at the following URL:
-<a href="http://{{ site.domain }}{% url 'list_directory' share.id %}">http://{{ site.domain }}{% url 'list_directory' share.id %}</a>
+<a href="{{ site_url }}{% url 'list_directory' share.id %}">{{ site_url }}{% url 'list_directory' share.id %}</a>
 </p>
 <p>
 Kind regards,

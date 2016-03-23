@@ -1,5 +1,6 @@
 from models import Share
 from guardian.shortcuts import get_objects_for_user
+from django.conf import settings
 def user_contexts(request):
         if request.user.is_authenticated() and not request.is_ajax():
             recent_shares = Share.objects.filter(owner=request.user).order_by('-created')[:5]
@@ -12,7 +13,8 @@ def user_contexts(request):
         return {
             'my_recent_shares':recent_shares,
             'shared_with_me':shared_with_me,
-            'bad_share_path':bad_share_path
+            'bad_share_path':bad_share_path,
+            'SITE_URL':settings.SITE_URL
         }
 
 

@@ -5,13 +5,15 @@ import json
 from functools import wraps
 
 from django.http.response import JsonResponse
+from django.conf import settings
+
 
 class JSONDecorator(object):
         def __init__(self, orig_func):
                 self.orig_func = orig_func
         def __call__(self,  *args, **kwargs):
                 import json
-                json_arg = args[0].REQUEST.get('json',None)
+                json_arg = args[0].POST.get('json',args[0].GET.get('json',None))
                 if json_arg is not None:
                     kwargs['json']=json.loads(json_arg)
                 return self.orig_func(*args, **kwargs)
@@ -93,6 +95,9 @@ class safe_path_decorator(object):
             return f(*args,**kwargs)
         return wrapped_f
 
+def get_setting(key, default=None):
+    return getattr(settings, key, default)
+
 def test_path(path,allow_absolute=False):
     illegals = ['..','~','*']
     for illegal in illegals:
@@ -150,9 +155,7 @@ def find_in_shares(shares, pattern):
     return output.split('\n')
 
 def find(share, pattern, subdir=None,prepend_share_id=True):
-    from settings.settings import FILES_ROOT
     import subprocess, os
-#     @todo: use -prune option to get rid of .archive and .removed directories
     path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
     base_path = os.path.realpath(path) 
     output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0]

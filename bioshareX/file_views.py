@@ -12,6 +12,7 @@ from file_utils import istext
 import os
 from utils import share_access_decorator, safe_path_decorator, json_response
 import datetime
+from django.conf import settings
 
 def handle_uploaded_file(path,file):
     with open(path, 'wb+') as destination:
@@ -22,6 +23,7 @@ def handle_uploaded_file(path,file):
 @share_access_decorator(['write_to_share'])
 def upload_file(request, share, subdir=None):
     from os.path import join
+    os.umask(settings.UMASK)
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
@@ -120,24 +122,6 @@ def download_file(request, share, subpath=None):
     response={'path':file_path}
     return sendfile(request, os.path.realpath(file_path))
 
-@safe_path_decorator()
-@share_access_decorator(['download_share_files'])
-def download_archive(request, share, subpath):
-    from sendfile import sendfile
-    file_path = os.path.join(share.get_archive_path(),subpath)
-    response={'path':file_path}
-    return sendfile(request, os.path.realpath(file_path))
-#     return HttpResponse(simplejson.dumps(data), mimetype='application/json')
-#     if request.method == 'POST':
-#         form = FolderForm(request.POST)
-#         if form.is_valid():
-#             share = form.save(commit=False)
-#             share.owner=request.user
-#             share.save()
-#             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id}))
-#     else:
-#         form = FolderForm()
-#     return render(request, 'share/new_folder.html', {'form': form})
 
 @safe_path_decorator()    
 @share_access_decorator(['download_share_files'])

@@ -38,7 +38,6 @@ class Filesystem(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField()
     path = models.CharField(max_length=200)
-    archive_path = models.CharField(max_length=200)
     users = models.ManyToManyField(User, related_name='filesystems')
     def __unicode__(self):
         return '%s: %s' %(self.name, self.path)
@@ -124,8 +123,6 @@ class Share(models.Model):
         return os.path.join(self.filesystem.path,self.id)
     def check_path(self):
         return os.path.exists(self.get_path())
-    def get_archive_path(self):
-        return os.path.join(self.filesystem.archive_path,self.id)
     def get_removed_path(self):
         return os.path.join(settings.REMOVED_FILES_ROOT,self.id)
     def get_path_type(self,subpath):
@@ -137,6 +134,7 @@ class Share(models.Model):
         else:
             return None
     def create_folder(self,name,subdir=None):
+        os.umask(settings.UMASK)
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
         if os.path.exists(path):
             folder_path = os.path.join(path,name)
@@ -170,6 +168,7 @@ class Share(models.Model):
         self.tags.clear()
         self.add_tags(tags,save)
     def move_path(self,item_subpath,destination_subpath=''):
+        os.umask(settings.UMASK)
         import shutil
         if destination_subpath.count('..') != 0:
             return False
@@ -181,6 +180,7 @@ class Share(models.Model):
         else:
             return False
     def move_share(self,filesystem):
+        os.umask(settings.UMASK)
         import shutil
         new_path = os.path.join(filesystem.path, self.id)
         if self.link_to_path and os.path.islink(self.get_path()):
@@ -189,10 +189,6 @@ class Share(models.Model):
             os.symlink(self.link_to_path,new_path)
         else:
             shutil.move(self.get_path(),new_path)
-        
-        new_archive_path = os.path.join(filesystem.archive_path, self.id)
-        if os.path.isdir(self.get_archive_path()):
-            shutil.move(self.get_archive_path(),new_archive_path)
         self.filesystem = filesystem
     def check_link_path(self):
         if self.link_to_path:
@@ -200,6 +196,7 @@ class Share(models.Model):
             if not paths_contain(settings.LINK_TO_DIRECTORIES,self.link_to_path):
                 raise Exception('Path not allowed.')
     def create_link(self):
+        os.umask(settings.UMASK)
         self.check_link_path()
         if self.link_to_path:
             os.symlink(self.link_to_path,self.get_path())
@@ -238,9 +235,10 @@ class Share(models.Model):
         return response
 def share_post_save(sender, **kwargs):
     if kwargs['created']:
+        os.umask(settings.UMASK)
         instance = kwargs['instance']
         path = instance.get_path()
-        import pwd, grp, os
+        import pwd, grp
         if not os.path.exists(path):
             if instance.link_to_path:
                 instance.create_link()
@@ -293,15 +291,12 @@ def share_pre_save(sender, instance, **kwargs):
 #             shutil.move(path, delete_path)
 def share_post_delete(sender, instance, **kwargs):
     path = instance.get_path()
-    archive_path = instance.get_archive_path()
     import shutil
     if os.path.islink(path):
         instance.unlink()
     else:
         if os.path.isdir(path):
             shutil.rmtree(path)
-        if os.path.isdir(archive_path):
-            shutil.rmtree(archive_path)
 post_delete.connect(share_post_delete, sender=Share)
 # class ShareUser(models.Model):
 #     share = models.ForeignKey(Share)
@@ -356,7 +351,7 @@ class SSHKey(models.Model):
             raise Exception('Unable to parse key')
         matches = match.groupdict()
         return matches['key']
-    
+
 class ShareFTPUser(models.Model):
     share = models.OneToOneField(Share,related_name="ftp_user")
     password = models.CharField(max_length=15, default=pkgen)

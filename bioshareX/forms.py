@@ -9,9 +9,9 @@ from django.conf import settings
 import os   
 
 class ShareForm(forms.ModelForm):
-    name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_message=('Please avoid special characters'))
-    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:,]+$',error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
-    tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_message=('Only use comma delimited alphanumeric tags'),widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
+    name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:\(\),;\\\/]+$',error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}))
+    tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
         self.fields['filesystem'].queryset = user.filesystems
@@ -60,15 +60,15 @@ class ShareForm(forms.ModelForm):
         fields = ('name', 'notes','filesystem','link_to_path','read_only')
 
 class SubShareForm(forms.ModelForm):
-    name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_message=('Please avoid special characters'))
-    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:,\/]+$',error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
+    name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:,\/]+$',error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}))
     class Meta:
         model = Share
         fields = ('name', 'notes')
         
 class MetaDataForm(forms.Form):
-    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@]+$',required=False,error_message=('Please avoid special characters'),widget=forms.Textarea(attrs={'rows':5,'cols':80}))
-    tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_message=('Only use comma delimited alphanumeric tags'),widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@]+$',required=False,error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}))
+    tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
 #     def clean(self):
 #         cleaned_data = super(MetaDataForm, self).clean()
 # #         cleaned_data['tags'] = [tag.strip() for tag in cleaned_data['tags'].split(',')]
@@ -102,11 +102,11 @@ class UploadFileForm(forms.Form):
     file  = forms.FileField()
     
 class FolderForm(forms.Form):
-    name = forms.RegexField(regex=r'^[\w\d\ ]+$',error_message=('Only letters, numbers, and spaces are allowed'))
+    name = forms.RegexField(regex=r'^[\w\d\ ]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'})
 
 class RenameForm(forms.Form):
-    from_name = forms.RegexField(regex=r'^[^/]+$',error_message=('Only letters, numbers, and spaces are allowed'),widget=forms.HiddenInput())
-    to_name = forms.RegexField(regex=r'^[^/]+$',error_message=('Only letters, numbers, and spaces are allowed'))
+    from_name = forms.RegexField(regex=r'^[^/]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'},widget=forms.HiddenInput())
+    to_name = forms.RegexField(regex=r'^[^/]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'})
 
 
 

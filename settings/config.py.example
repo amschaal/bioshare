@@ -1,7 +1,6 @@
 #Copy this file to config.py and customize
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -37,15 +36,18 @@ SENDFILE_BACKEND = 'sendfile.backends.xsendfile' # may use 'sendfile.backends.si
 
 LINK_TO_DIRECTORIES = [] # Whitelist of directories that can be pointed at if symlinking shares
 
-AUTHORIZED_KEYS_FILE = '/home/rsync_user/.ssh/authorized_keys'
+AUTHORIZED_KEYS_FILE = '/home/bioshare/.ssh/authorized_keys'
 
-RSYNC_URL = 'rsync_user@server.domain.net'
+RSYNC_URL = 'bioshare@server.domain.net'
 
-FILES_OWNER = 'www-data'
-FILES_GROUP = 'www-data'
+FILES_OWNER = 'bioshare'
+FILES_GROUP = 'bioshare'
 
 ZIPFILE_SIZE_LIMIT_BYTES = 1000000000
 
-ACCOUNT_ACTIVATION_DAYS = 7 #For Django registration
-
 DEFAULT_FROM_EMAIL = 'no-reply@server.domain.net'
+
+SFTP_PORT = 2200
+
+HOST = 'server.domain.net'
+SITE_URL = 'https://server.domain.net'
