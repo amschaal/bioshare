@@ -64,7 +64,9 @@
 		  </a>
 		  <ul class="dropdown-menu">
 		    <li><a href="#" id="download-zip">Zipfile</a></li>
+		    {% if HOST and SFTP_PORT %}
 		    <li><a href="#" id="download-ftp">SFTP</a></li>
+		    {% endif %}
 		    <li><a href="#" id="download-rsync">Rsync</a></li>
 		    <li><a href="#" id="download-wget">Wget</a></li>
 		  </ul>
@@ -248,8 +250,8 @@
   </div>
   <div class="modal-body">
 	<b>Protocol:</b> SFTP<br>
-	<b>Host:</b> bioshare.bioinformatics.ucdavis.edu<br>
-	<b>Port:</b> 2200<br>
+	<b>Host:</b> {{HOST}}<br>
+	<b>Port:</b> {{SFTP_PORT}}<br>
 	<b>User: </b> {{share.id}}<br>
 	<b>Password: </b> {{share.ftp_user.password}}<br>
   </div>

@@ -47,4 +47,7 @@ ZIPFILE_SIZE_LIMIT_BYTES = 1000000000
 
 DEFAULT_FROM_EMAIL = 'no-reply@server.domain.net'
 
+SFTP_PORT = 2200
+
+HOST = 'server.domain.net'
 SITE_URL = 'https://server.domain.net'

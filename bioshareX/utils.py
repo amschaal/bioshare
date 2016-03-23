@@ -5,6 +5,8 @@ import json
 from functools import wraps
 
 from django.http.response import JsonResponse
+from django.conf import settings
+
 
 class JSONDecorator(object):
         def __init__(self, orig_func):
@@ -92,6 +94,9 @@ class safe_path_decorator(object):
                 
             return f(*args,**kwargs)
         return wrapped_f
+
+def get_setting(key, default=None):
+    return getattr(settings, key, default)
 
 def test_path(path,allow_absolute=False):
     illegals = ['..','~','*']

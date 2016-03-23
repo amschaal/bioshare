@@ -2,13 +2,13 @@
 from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect
-from settings.settings import RSYNC_URL
 from models import Share, SSHKey, MetaData, Tag, ShareStats
 from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
 from guardian.shortcuts import get_perms, get_users_with_perms
 #from django.utils import simplejson
 import json
-from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response
+from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response,\
+    get_setting
 from bioshareX.file_utils import istext
 from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
@@ -112,7 +112,7 @@ def list_directory(request,share,subdir=None):
     all_perms = share.get_permissions(user_specific=True)
     shared_users = all_perms['user_perms'].keys()
     shared_groups = [g['group']['name'] for g in all_perms['group_perms']]
-    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':RSYNC_URL,"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups})
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
