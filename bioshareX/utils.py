@@ -67,7 +67,7 @@ class share_access_decorator(object):
                             return json_error(['You do not have access to this resource.'])
                     else:
                         if not request.user.is_authenticated():
-                            url = reverse('auth_login') + '?next=%s' % request.get_full_path()
+                            url = reverse('login') + '?next=%s' % request.get_full_path()
                             return redirect(url)
                         return redirect('forbidden')
             return f(*args,**kwargs)
