@@ -12,6 +12,7 @@ class WrapperException(Exception):
 class Command(BaseCommand):
     help = 'Wrap rsync commands'
     logger = None
+    requires_system_checks = False
     def add_arguments(self, parser):
         parser.add_argument('user')
     def log(self,message,level='info'):
@@ -20,7 +21,7 @@ class Command(BaseCommand):
                 self.logger.info(message)
             elif level == 'error':
                 self.logger.error(message)
-    def analyze_path(self, path, share):
+    def analyze_path(self, path):
         match = re.match('/(?P<share>[a-zA-Z0-9]{15})(?:/(?P<subpath>.*))', path)
         try:
             matches = match.groupdict()
@@ -72,14 +73,13 @@ class Command(BaseCommand):
             self.log('handle_rsync exception: %s' % str(e))
     def handle(self, *args, **options):
         os.umask(0002)
-        print options
         self.user = User.objects.get(username=options['user'])
         self.ORIGINAL_COMMAND = os.environ['SSH_ORIGINAL_COMMAND']
         
         RSYNC_LOGFILE = get_setting('RSYNC_LOGFILE',None)
         if RSYNC_LOGFILE:
             self.logger = logging.getLogger('bioshare')
-            hdlr = logging.FileHandler()
+            hdlr = logging.FileHandler(RSYNC_LOGFILE)
             formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
             hdlr.setFormatter(formatter)
             self.logger.addHandler(hdlr) 
