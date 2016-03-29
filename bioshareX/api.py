@@ -183,9 +183,11 @@ def set_permissions(request,share,json=None):
             removed_perms = list(set(current_perms) - set(permissions))
             added_perms = list(set(permissions) - set(current_perms))
             for perm in removed_perms:
-                remove_perm(perm,u,share)
+                if u.username not in failed:
+                    remove_perm(perm,u,share)
             for perm in added_perms:
-                assign_perm(perm,u,share)
+                if u.username not in failed:
+                    assign_perm(perm,u,share)
     data = share.get_permissions(user_specific=True)
     data['messages']=[]
     if len(emailed) > 0:
