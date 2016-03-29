@@ -346,7 +346,7 @@ class SSHKey(models.Model):
     key = models.TextField(blank=False,null=False)
     def create_authorized_key(self):
         key = self.get_key()
-        return 'command="~/sshwrapper.py %s" ssh-rsa %s %s' % (self.user.username,key,self.user.username)
+        return 'command="%s %s/manage.py rsync %s" ssh-rsa %s %s' % (settings.PYTHON_BIN, settings.CURRENT_DIR, self.user.username, key, self.user.username)
     def get_key(self):
         return self.extract_key(self.key)
     @staticmethod
