@@ -56,17 +56,14 @@ class Share(models.Model):
     real_path = models.CharField(max_length=200,blank=True,null=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
     path_exists = models.BooleanField(default=True)
+    PERMISSION_VIEW = 'view_share_files'
+    PERMISSION_DELETE = 'delete_share_files'
+    PERMISSION_DOWNLOAD = 'download_share_files'
+    PERMISSION_WRITE = 'write_to_share'
+    PERMISSION_LINK_TO_PATH = 'link_to_path'
+    PERMISSION_ADMIN = 'admin'
     def __unicode__(self):
         return self.name
-    class Meta:
-        permissions = (
-            ('view_share_files', 'View share files'),
-            ('delete_share_files', 'Delete share files'),
-            ('download_share_files', 'Download share files'),
-            ('write_to_share', 'Write to share'),
-            ('link_to_path', 'Link to a specific path'),
-            ('admin', 'Administer'),
-        )
     def get_stats(self):
         stats = ShareStats.objects.get_or_create(share=self)[0]
         stats.update_stats()
@@ -233,6 +230,15 @@ class Share(models.Model):
         response = StreamingHttpResponse(z, content_type='application/zip')
         response['Content-Disposition'] = 'attachment; filename={}'.format(zip_name)
         return response
+Share._meta.permissions = (
+            (Share.PERMISSION_VIEW, 'View share files'),
+            (Share.PERMISSION_DELETE, 'Delete share files'),
+            (Share.PERMISSION_DOWNLOAD, 'Download share files'),
+            (Share.PERMISSION_WRITE, 'Write to share'),
+            (Share.PERMISSION_LINK_TO_PATH, 'Link to a specific path'),
+            (Share.PERMISSION_ADMIN, 'Administer'),
+        )    
+
 def share_post_save(sender, **kwargs):
     if kwargs['created']:
         os.umask(settings.UMASK)
@@ -340,7 +346,7 @@ class SSHKey(models.Model):
     key = models.TextField(blank=False,null=False)
     def create_authorized_key(self):
         key = self.get_key()
-        return 'command="~/sshwrapper.py %s" ssh-rsa %s %s' % (self.user.username,key,self.user.username)
+        return 'command="%s %s/manage.py rsync %s" ssh-rsa %s %s' % (settings.PYTHON_BIN, settings.CURRENT_DIR, self.user.username, key, self.user.username)
     def get_key(self):
         return self.extract_key(self.key)
     @staticmethod

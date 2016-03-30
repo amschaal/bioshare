@@ -40,6 +40,8 @@ AUTHORIZED_KEYS_FILE = '/home/bioshare/.ssh/authorized_keys'
 
 RSYNC_URL = 'bioshare@server.domain.net'
 
+RSYNC_LOGFILE = '/home/bioshare/rsync_wrapper.log'
+
 FILES_OWNER = 'bioshare'
 FILES_GROUP = 'bioshare'
 
