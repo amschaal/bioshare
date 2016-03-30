@@ -4,7 +4,7 @@ from django.conf.urls import  url
 from bioshareX import views as bioshare_views
 from bioshareX import api as api_views
 from bioshareX import file_views
-# from django.contrib.auth import views as auth_views
+# from django.contrib.auth import views as auth_views 
 urlpatterns = [
     url(r'^$', bioshare_views.index, name='index'),
     url(r'^forbidden/?$', bioshare_views.forbidden, name='forbidden'),
@@ -33,8 +33,6 @@ urlpatterns = [
 
 urlpatterns += [
     url(r'^api/get_permissions/(?P<share>[\da-zA-Z]{15})/?$', api_views.get_permissions, name='api_get_permissions'),
-    url(r'^api/get_user_permissions/(?P<share>[\da-zA-Z]{15})/?$', api_views.get_user_permissions, name='api_get_user_permissions'),
-    url(r'^api/share_metadata/(?P<share>[\da-zA-Z]{15})/?$', api_views.get_share_metadata, name='api_get_share_metadata'),
     url(r'^api/set_permissions/(?P<share>[\da-zA-Z]{15})/?$', api_views.set_permissions, name='api_set_permissions'),
     url(r'^api/update/(?P<share>[\da-zA-Z]{15})/?$', api_views.update_share, name='api_update_share'),
     url(r'^api/get_group/?$', api_views.get_group, name='api_get_group'),
