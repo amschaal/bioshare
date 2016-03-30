@@ -39,15 +39,18 @@ LINK_TO_DIRECTORIES = [] # Whitelist of directories that can be pointed at if sy
 AUTHORIZED_KEYS_FILE = '/home/bioshare/.ssh/authorized_keys'
 
 RSYNC_URL = 'bioshare@server.domain.net'
-
 RSYNC_LOGFILE = '/home/bioshare/rsync_wrapper.log'
+PYTHON_BIN = '/virtualenv/bioshare/bin/python' # This is set to system python in settings.py, but you may need to override this if using virtual environments
 
 FILES_OWNER = 'bioshare'
 FILES_GROUP = 'bioshare'
 
 ZIPFILE_SIZE_LIMIT_BYTES = 1000000000
 
+# Set up email backend.  For options, see Django docs: https://docs.djangoproject.com/en/1.9/topics/email/#email-backends
 DEFAULT_FROM_EMAIL = 'no-reply@server.domain.net'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.domain.net'
 
 SFTP_PORT = 2200
 
