@@ -18,11 +18,12 @@
 
 <h1>
 	<a href="{% url 'list_directory' share.id %}" data-toggle="tooltip" title="{{share.notes}}">{{share.name}}</a>
-	{% if owner %}<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3">Delete Share</a>{% endif %}
+	{% if owner %}<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete Share</a>{% endif %}
 	{% if "admin" in share_perms %}
-		<a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3">Edit</a>
-		<a href="{% url 'share_permissions' share.id%}" class="btn btn-warning pull-right margin-3">Permissions</a>
+		<a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3"><i class="icon-edit icon-white"></i> Edit</a>
+		<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary pull-right margin-3"><i class="icon-lock icon-white"></i> Permissions</a>
 	{% endif %}
+	<button class="btn btn-primary pull-right margin-3" id="email-users"><i class="icon-envelope icon-white"></i> Email</a>
 </h1>
 
 
@@ -59,7 +60,7 @@
 	  {% if "download_share_files" in share_perms %}
 	  <div class="btn-group">
 		  <a class="btn dropdown-toggle btn-primary" data-toggle="dropdown" href="#">
-		    Download via
+		    <i class="icon-download-alt icon-white"></i> Download via
 		    <span class="caret"></span>
 		  </a>
 		  <ul class="dropdown-menu">
@@ -318,6 +319,7 @@ Filtered by: <span id="filtered-tags"></span><br>
 <a class="btn btn-primary" id="reset-tag-button">Clear filters</a></div>
 
 {% include "dialogs/preview_file.html" %}
+{% include "dialogs/email_users.html" %}
 
 <form id="download_archive_form" action="{% if subdir %}{% url 'download_archive_stream' share=share.id subdir=subdir %}{% else %}{% url 'download_archive_stream' share=share.id %}{% endif %}" method="GET">
 <input type="hidden" name="selection" id="archive_selection"/>

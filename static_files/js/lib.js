@@ -1,5 +1,6 @@
 var BC = {}; //Bioinformatics Core namespace
 BC.handle_ajax_errors = function(data,message_target){
+	console.log(data);
 	var errors = data.errors ? data.errors : [];
 	if(data.error)
 		errors.push(data.error);
@@ -31,6 +32,12 @@ BC.ajax_form_submit=function(form,options){
 				$(form).html(data.html);
 			if(options.success)
 				options.success(data);
+			
+		}).error(function(data){
+			if (options.error)
+				options.error(data);
+			if (data.responseJSON)
+				BC.handle_ajax_errors(data.responseJSON);
 		});
 }
 BC.login=function(){

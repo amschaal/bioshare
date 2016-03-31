@@ -6,6 +6,7 @@ from functools import wraps
 
 from django.http.response import JsonResponse
 from django.conf import settings
+from django.template import Context, Template
 
 
 class JSONDecorator(object):
@@ -183,15 +184,21 @@ def validate_email( email ):
     except ValidationError:
         return False
 
-def email_users(users, subject_template, body_template, ctx_dict):
+def email_users(users, subject_template=None, body_template=None, ctx_dict={},subject=None,body=None, from_email=settings.DEFAULT_FROM_EMAIL):
     from django.template.loader import render_to_string
-    from settings.settings import DEFAULT_FROM_EMAIL 
     from django.core.mail import EmailMessage
-    subject = render_to_string(subject_template,ctx_dict)
-    # Email subject *must not* contain newlines
+    if subject:
+        t = Template(subject)
+        subject = t.render(Context(ctx_dict))
+    else:
+        subject = render_to_string(subject_template,ctx_dict)
     subject = ''.join(subject.splitlines())
-    message = render_to_string(body_template, ctx_dict)
-    msg = EmailMessage(subject, message, DEFAULT_FROM_EMAIL, [u.email for u in users])
+    if body:
+        t = Template(body)
+        message = t.render(Context(ctx_dict))
+    else:
+        message = render_to_string(body_template, ctx_dict)
+    msg = EmailMessage(subject, message, from_email, [u.email for u in users])
     msg.content_subtype = "html"  # Main content is now text/html
     msg.send(fail_silently=False)
 #     

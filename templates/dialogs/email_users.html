@@ -1,0 +1,49 @@
+<div class="modal hide fade" id="email-users-dialog">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>Email participants</h3>
+  </div>
+  <div class="modal-body">
+  	<form id="email-users-form" action="{% url 'api_email_participants' share=share.id subdir=subdir|default_if_none:"" %}" method="POST">
+  	<fieldset>
+  	{% csrf_token %}
+    <label>Subject</label> 
+    <input type="text" name="subject" value='Bioshare: "{{share.name}}" updated' class="input-block-level"/>
+    <label>Body</label> 
+    <textarea name="body" class="input-block-level" rows="15">Greetings,
+
+"{{share.name}}" has been updated on Bioshare.  Please visit the following URL to see changes:
+{{SITE_URL}}{% url 'list_directory' share.id %}
+</textarea>
+    </fieldset>
+    </form>
+    <button class="btn btn-primary" aria-hidden="true" id="send-email-button">Send</button>
+    <!-- <button class="btn btn-primary" id="preview-more">More</button> -->
+  </div>
+  <div class="modal-footer">
+  <span id="lines-loaded" class="pull-left"></span>
+	<button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+</div>
+<script>
+function email_users(){
+	$("#send-email-button").prop("disabled",true);
+	BC.ajax_form_submit('#email-users-form',{
+		'success':function(data){
+            $.bootstrapGrowl('Emailed users: ' + data.sent_to.join(', '),{type:'info',delay: 3000});
+			$('#email-users-dialog').modal('hide');
+		},
+		'error':function(){
+			$("#send-email-button").prop("disabled",false);
+		}
+	});
+	return false;
+}
+$(function () {
+	$('#email-users').click(function(){
+		$("#send-email-button").prop("disabled",false);
+		$('#email-users-dialog').modal('show');
+	});
+	$('#send-email-button').click(email_users);
+});
+</script>
