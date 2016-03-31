@@ -16,7 +16,7 @@ from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import api_view
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
-from bioshareX.utils import ajax_login_required
+from bioshareX.utils import ajax_login_required, email_users
 
 @ajax_login_required
 def get_user(request):
@@ -110,7 +110,6 @@ def update_share(request,share,json=None):
 @share_access_decorator(['admin'])
 @JSONDecorator
 def set_permissions(request,share,json=None):
-    from bioshareX.utils import email_users
     from smtplib import SMTPException
     emailed=[]
     created=[]
@@ -269,3 +268,15 @@ def create_share(request):
     else:
         print form.errors
         return JsonResponse({'errors':form.errors},status=400)
+
+@share_access_decorator(['view_share_files'])
+def email_participants(request,share,subdir=None):
+    try:
+        subject = request.POST.get('subject')
+        body = request.POST.get('body')
+        users = get_users_with_perms(share, attach_perms=False, with_superusers=False, with_group_users=True)
+        email_users(users, ctx_dict={}, subject=subject, body=body,from_email=request.user.email)
+        response = {'status':'success','sent_to':[u.email for u in users]}
+        return json_response(response)
+    except Exception, e:
+        return JsonResponse({'errors':[str(e)]},status=400)
