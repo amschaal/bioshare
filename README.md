@@ -24,6 +24,10 @@ Make a copy of the configuration file and edit it for your database and other se
 ~~~
 cp settings/config.py.example settings/config.py
 ~~~
+Copy footer.template.html to footer.html, and modify for your organization.
+~~~
+cp footer.template.html footer.html
+~~~
 Install all of the python requirements with pip.  Be sure to activate your virtualenv if you are using one:
 ~~~
 pip install -r requirements.txt
