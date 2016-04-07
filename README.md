@@ -26,7 +26,7 @@ cp settings/config.py.example settings/config.py
 ~~~
 Copy footer.template.html to footer.html, and modify for your organization.
 ~~~
-cp footer.template.html footer.html
+cp templates/footer.template.html templates/footer.html
 ~~~
 Install all of the python requirements with pip.  Be sure to activate your virtualenv if you are using one:
 ~~~
