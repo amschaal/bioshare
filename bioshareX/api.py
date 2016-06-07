@@ -265,6 +265,7 @@ def create_share(request):
     else:
         return JsonResponse({'errors':form.errors},status=400)
 
+@ajax_login_required
 @share_access_decorator(['view_share_files'])
 def email_participants(request,share,subdir=None):
     try:

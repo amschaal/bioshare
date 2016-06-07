@@ -32,12 +32,16 @@ BC.ajax_form_submit=function(form,options){
 				$(form).html(data.html);
 			if(options.success)
 				options.success(data);
+			if (data.unauthenticated)
+				BC.login();
 			
 		}).error(function(data){
 			if (options.error)
 				options.error(data);
 			if (data.responseJSON)
 				BC.handle_ajax_errors(data.responseJSON);
+			if (data.unauthenticated)
+				BC.login();
 		});
 }
 BC.login=function(){
