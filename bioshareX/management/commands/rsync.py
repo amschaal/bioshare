@@ -5,6 +5,7 @@ from bioshareX.utils import get_setting, test_path
 from django.contrib.auth.models import User
 import sys
 from os.path import join
+from datetime import datetime
 
 class WrapperException(Exception):
     pass
@@ -60,6 +61,8 @@ class Command(BaseCommand):
                     for perm in [Share.PERMISSION_WRITE,Share.PERMISSION_DELETE]:
                         if perm not in user_permissions:
                             raise WrapperException('User %s cannot write to share %s' % (self.user.username,share.id))
+                    share.updated = datetime.now()
+                    share.save()
                 command = ['rsync', '--server', '-vrtze.iLsf', '.'] + paths
     #             command = parts[:4]+paths
 #             if TEST:

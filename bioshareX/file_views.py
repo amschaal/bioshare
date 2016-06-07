@@ -34,9 +34,11 @@ def upload_file(request, share, subdir=None):
         subpath = file.name if subdir is None else subdir + file.name
         url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
-        data['files'].append({'name':file.name,'size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"), 'isText':istext(FILE_PATH)}) 
+        data['files'].append({'name':file.name,'extension':file.name.split('.').pop() if '.' in file.name else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"), 'isText':istext(FILE_PATH)}) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
+    share.updated = datetime.datetime.now()
+    share.save()
     return json_response(data)
 
 @safe_path_decorator(path_param='subdir')
@@ -48,6 +50,8 @@ def create_folder(request, share, subdir=None):
         folder_path = share.create_folder(form.cleaned_data['name'],subdir)
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
         data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}]
+    share.updated = datetime.datetime.now()
+    share.save()
     return json_response(data)
 
 @safe_path_decorator(path_param='subdir')
@@ -65,6 +69,8 @@ def modify_name(request, share, subdir=None):
             to_path = os.path.join(share.get_path(),subdir,form.cleaned_data['to_name'])
         os.rename(from_path, to_path)
         data['objects']=[{'from_name':form.cleaned_data['from_name'],'to_name':form.cleaned_data['to_name']}]
+    share.updated = datetime.datetime.now()
+    share.save()
     return json_response(data)
 
 
@@ -83,6 +89,8 @@ def delete_paths(request, share, subdir=None, json={}):
                 response['failed'].append(item)
         except:
             response['failed'].append(item)
+    share.updated = datetime.datetime.now()
+    share.save()
     return json_response(response)
 
 @safe_path_decorator(path_param='subdir')
@@ -100,6 +108,8 @@ def move_paths(request, share, subdir=None, json={}):
                 response['failed'].append(item)
         except Exception, e:
             print e.message
+    share.updated = datetime.datetime.now()
+    share.save()
     return json_response(response)
 
 @safe_path_decorator(path_param='subdir')

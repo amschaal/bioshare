@@ -20,6 +20,7 @@ Handlebars.registerHelper('list_tags', function(tags) {
 <td class="name" {{#if metadata.notes}}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-folder"></i><a href="{{name}}">{{ name }}</a></td>
 <td class="tags">{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td></td>
+<td></td>
 <td>{{ modified }}</td>
 <td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i><i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i></td>
 </tr>
@@ -30,6 +31,7 @@ Handlebars.registerHelper('list_tags', function(tags) {
 <td><input class="action-check" type="checkbox"/></td>
 <td class="name" {{#if metadata.notes }}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-page-white"></i>{{#if download }}<a href="{{url}}">{{ name }}</a>{{else}}{{ name }}{{/if}}</td>
 <td class="tags">{{#if metadata.tags }}{{{list_tags metadata.tags}}}{{/if}}</td>
+<td>{{ extension }}</td>
 <td>{{ size }}</td>
 <td>{{ modified }}</td>
 <td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i>{{#if download }}{{#if isText }}<i class="fam-eye" data-toggle="tooltop" title="Preview contents" data-action="preview"></i>{{/if}}{{/if}}<i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i></td>
