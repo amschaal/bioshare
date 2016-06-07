@@ -111,7 +111,7 @@
 	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Tags</th><th>Extension</th><th style="width:100px;">Size</th><th style="width:150px;">Modified</th><th>Actions</th></tr></thead>
 	  <tbody>
 	  {% if subdir %}
-	 	<tr class="directory"><td></td><td><i class="fam-folder"></i><a href="../">../</a></td><td></td><td></td><td></td><td></td></tr>
+	 	<tr class="directory"><td></td><td><i class="fam-folder"></i><a href="../">../</a></td><td></td><td></td><td></td><td></td><td></td></tr>
 	  {% endif %}
 	  {% for dir in directories %}
 		<tr class="directory real-directory" data-id="{{dir.name}}" data-notes="{{dir.metadata.notes}}" data-tags="{{dir.metadata.tags.all|join:','}}">
