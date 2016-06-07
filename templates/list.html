@@ -108,7 +108,7 @@
 	  {% endif %}
 	  <div id="messages"></div>
 	  <table class="table table-striped table-condensed" id="file-table">
-	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Tags</th><th style="width:100px;">Size</th><th style="width:150px;">Modified</th><th>Actions</th></tr></thead>
+	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Tags</th><th>Extension</th><th style="width:100px;">Size</th><th style="width:150px;">Modified</th><th>Actions</th></tr></thead>
 	  <tbody>
 	  {% if subdir %}
 	 	<tr class="directory"><td></td><td><i class="fam-folder"></i><a href="../">../</a></td><td></td><td></td><td></td><td></td></tr>
@@ -126,6 +126,7 @@
 			<td class="tags">
 				{% if dir.metadata.tags %}{% for tag in dir.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}
 			</td>
+			<td></td>
 			<td></td>
 			<td>
 				{{ dir.modified }}
@@ -150,6 +151,7 @@
 			<td class="name" {% if file.metadata.notes %}data-toggle="tooltip" title="{{file.metadata.notes}}"{% endif %}>
 				<i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}<td class="tags">{% if file.metadata.tags %}{% for tag in file.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}
 			</td>
+			<td>{% if file.extension %}{{ file.extension }}{% endif %}</td>
 			<td>{{ file.size }}</td>
 			<td>{{ file.modified }}</td>
 			<td>
@@ -385,6 +387,7 @@ $(document).ready(function() {
 		},
 		"aoColumns": [
 		                {bSortable: false},
+		                null,
 		                null,
 		                null,
 		                { "sType": "file-size" },

@@ -95,7 +95,7 @@ def list_directory(request,share,subdir=None):
         metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
         if isfile(path):
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata,'isText':istext(path)}
+            file={'name':name,'extension':name.split('.').pop() if '.' in name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata,'isText':istext(path)}
             file_list.append(file)
         else:
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
