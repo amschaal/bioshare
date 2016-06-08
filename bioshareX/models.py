@@ -45,7 +45,7 @@ class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     parent = models.ForeignKey('self',null=True,blank=True)
     created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True,null=True,blank=True)
+    updated = models.DateTimeField(auto_now_add=True,null=True,blank=True)
     owner = models.ForeignKey(User)
     name = models.CharField(max_length=125)
     secure = models.BooleanField(default=True)
