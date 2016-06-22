@@ -1,12 +1,12 @@
 from django.db import models
-from django.contrib.auth.models import User, AbstractUser
+from django.contrib.auth.models import User
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.db.models import Q
 from django.conf import settings
 import os
 from django.utils.html import strip_tags
-from bioshareX.utils import test_path, paths_contain
+from bioshareX.utils import test_path, paths_contain, path_contains
 
 # Create your models here.
 def pkgen():
@@ -119,6 +119,8 @@ class Share(models.Model):
         return user_perms
     def get_path(self):
         return os.path.join(self.filesystem.path,self.id)
+    def get_realpath(self):
+        return os.path.realpath(self.get_path())
     def check_path(self):
         return os.path.exists(self.get_path())
     def get_removed_path(self):
@@ -189,7 +191,10 @@ class Share(models.Model):
             shutil.move(self.get_path(),new_path)
         self.filesystem = filesystem
     def check_link_path(self):
-        if self.link_to_path:
+        if self.parent:
+            if not path_contains(self.parent.get_path(), self.link_to_path,real_path=False):
+                raise Exception('Subshare must be under the real share.')
+        elif self.link_to_path:
             test_path(self.link_to_path,allow_absolute=True)
             if not paths_contain(settings.LINK_TO_DIRECTORIES,self.link_to_path):
                 raise Exception('Path not allowed.')

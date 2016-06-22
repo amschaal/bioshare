@@ -135,8 +135,11 @@ def test_path(path,allow_absolute=False):
     if path.startswith('/') and not allow_absolute:
         raise Exception('Subpath may not start with slash')
 
-def path_contains(parent_path,child_path):
-    return os.path.realpath(child_path).startswith(os.path.realpath(parent_path)) 
+def path_contains(parent_path,child_path,real_path=True):
+    if real_path:
+        return os.path.realpath(child_path).startswith(os.path.realpath(parent_path))
+    else:
+        return child_path.startswith(parent_path)
 
 def paths_contain(paths,child_path):
     for path in paths:

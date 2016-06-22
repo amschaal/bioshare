@@ -170,9 +170,9 @@ def create_subshare(request,share,subdir):
         form = SubShareForm(request.POST)
         if form.is_valid():
             subshare = form.save(commit=False)
-            subshare.owner=request.user
+            subshare.owner = request.user
             subshare.link_to_path = path
-            subshare.sub_directory=subdir
+            subshare.sub_directory = subdir
             subshare.filesystem = share.filesystem
             subshare.parent = share
             if share.read_only:
