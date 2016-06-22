@@ -74,6 +74,34 @@ class share_access_decorator(object):
             return f(*args,**kwargs)
         return wrapped_f
 
+class share_path_decorator(object):
+
+    def __init__(self, share_param='share',path_param='subpath'):
+        """
+        If there are decorator arguments, the function
+        to be decorated is not passed to the constructor!
+        """
+        self.share_param  = share_param
+        self.path_param  = path_param
+    def __call__(self, f):
+        """
+        If there are decorator arguments, __call__() is only called
+        once, as part of the decoration process! You can only give
+        it a single argument, which is the function object.
+        """
+        def wrapped_f(*args,**kwargs):
+            from bioshareX.models import Share
+            share = kwargs[self.share_param]
+            if not isinstance(kwargs[self.share_param], Share):
+                share = Share.objects.get(id=share)
+            path = kwargs[self.path_param]
+            if path is not None:
+                test_path(path)
+                if not path_contains(share.get_path(),os.path.join(share.get_path(),path)):
+                    raise Exception('Illegal path encountered')
+            return f(*args,**kwargs)
+        return wrapped_f
+
 class safe_path_decorator(object):
 
     def __init__(self, path_param='subpath'):
