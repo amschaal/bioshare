@@ -74,7 +74,7 @@ class share_access_decorator(object):
             return f(*args,**kwargs)
         return wrapped_f
 
-class share_path_decorator(object):
+class safe_path_decorator(object):
 
     def __init__(self, share_param='share',path_param='subpath'):
         """
@@ -91,18 +91,23 @@ class share_path_decorator(object):
         """
         def wrapped_f(*args,**kwargs):
             from bioshareX.models import Share
-            share = kwargs[self.share_param]
-            if not isinstance(kwargs[self.share_param], Share):
-                share = Share.objects.get(id=share)
-            path = kwargs[self.path_param]
+            share = kwargs.get(self.share_param,None)
+            if share:
+                if not isinstance(kwargs[self.share_param], Share):
+                    share = Share.objects.get(id=share)
+                if not paths_contain(settings.DIRECTORY_WHITELIST,share.get_realpath()):
+                    raise Exception('Share has an invalid root path: %s'%share.get_realpath())
+            path = kwargs.get(self.path_param,None)
             if path is not None:
                 test_path(path)
-                if not path_contains(share.get_path(),os.path.join(share.get_path(),path)):
-                    raise Exception('Illegal path encountered')
+                if share:
+                    full_path = os.path.join(share.get_path(),path)
+                    if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
+                        raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
             return f(*args,**kwargs)
         return wrapped_f
 
-class safe_path_decorator(object):
+class safe_path_decorator_old(object):
 
     def __init__(self, path_param='subpath'):
         """
@@ -137,9 +142,9 @@ def test_path(path,allow_absolute=False):
 
 def path_contains(parent_path,child_path,real_path=True):
     if real_path:
-        return os.path.realpath(child_path).startswith(os.path.realpath(parent_path))
+        return os.path.realpath(child_path).startswith(os.path.join(os.path.realpath(parent_path),''))
     else:
-        return child_path.startswith(parent_path)
+        return child_path.startswith(os.path.join(parent_path,''))
 
 def paths_contain(paths,child_path):
     for path in paths:

@@ -35,6 +35,8 @@ DATABASES = {
 SENDFILE_BACKEND = 'sendfile.backends.xsendfile' # may use 'sendfile.backends.simple' in development for small files, see https://github.com/johnsensible/django-sendfile
 
 LINK_TO_DIRECTORIES = [] # Whitelist of directories that can be pointed at if symlinking shares
+FILESYSTEM_DIRECTORIES = []
+DIRECTORY_WHITELIST = LINK_TO_DIRECTORIES + FILESYSTEM_DIRECTORIES
 
 AUTHORIZED_KEYS_FILE = '/home/bioshare/.ssh/authorized_keys'
 
