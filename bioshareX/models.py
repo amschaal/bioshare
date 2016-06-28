@@ -7,6 +7,7 @@ from django.conf import settings
 import os
 from django.utils.html import strip_tags
 from bioshareX.utils import test_path, paths_contain, path_contains
+from jsonfield import JSONField
 
 # Create your models here.
 def pkgen():
@@ -378,3 +379,14 @@ class ShareFTPUser(models.Model):
         self.home = self.share.get_path()
         if update_password:
             self.password = pkgen()
+            
+class ShareLog(models.Model):
+    ACTION_FILE_ADDED = 'File Added'
+    ACTION_FILE_DELETED = 'File Deleted'
+    ACTION_FILE_RENAMED = 'File Renamed'
+    ACTION_RSYNC = 'Files rsynced'
+    share = models.ForeignKey(Share, related_name="logs")
+    timestamp = models.DateTimeField(auto_now_add=True)
+    action = models.CharField(max_length=30,null=True,blank=True)
+    text = models.CharField(max_length=250,null=True,blank=True)
+    paths = JSONField()
