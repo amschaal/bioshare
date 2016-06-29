@@ -45,6 +45,7 @@ urlpatterns += [
     url(r'^api/share/(?P<share>[\da-zA-Z]{15})/?$', api_views.share_with, name='api_share_with'),
     url(r'^api/shares/create/?$', api_views.create_share, name='api_create_share'),
     url(r'^api/email_participants/(?P<share>[\da-zA-Z]{15})/(?P<subdir>.*)/?$', api_views.email_participants, name='api_email_participants'),
+    url(r'^api/logs/$', api_views.ShareLogList.as_view()),
 ]
 
 urlpatterns += [

@@ -54,6 +54,7 @@
  <ul class="nav nav-tabs" id="page-tabs">
   <li class="active"><a href="#file-tab" data-toggle="tab">Files</a></li>
   <li><a href="#search-tab" data-toggle="tab">Search</a></li>
+  <li><a href="#log-tab" data-toggle="tab">Logs</a></li>
 </ul>
 <div class="tab-content">
   <div class="tab-pane active" id="file-tab">
@@ -175,6 +176,23 @@
   		<div id="searchResults">
   		</div>
   </div>
+  <div class="tab-pane" id="log-tab">
+  		<table id="log-table" class="display" cellspacing="0" width="100%">
+	        <thead>
+	            <tr>
+	                <th>Timestamp</th>
+	                <th>Action</th>
+	                <th>User</th>
+	                <th>Text</th>
+	                <th>Paths</th>
+	            </tr>
+	        </thead>
+	    </table>
+  </div>
+  
+  
+
+  
 </div>
 
 <div class="modal hide fade" id="new-folder">
@@ -398,6 +416,22 @@ $(document).ready(function() {
 	         "sSearch": "Filter:"
 	       }
 	} );
+} );
+
+$(document).ready(function() {
+    $('#log-table').DataTable( {
+        "processing": true,
+        "fServerSide": true,
+        "sAjaxSource": "/bioshare/api/logs/",
+        "sAjaxDataProp": "results",
+        "aoColumns": [
+            { "mData": "timestamp" },
+            { "mData": "action" },
+            { "mData": "user" },
+            { "mData": "text" },
+            { "mData": "paths" }
+        ]
+    } );
 } );
 </script>
 

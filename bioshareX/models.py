@@ -8,6 +8,7 @@ import os
 from django.utils.html import strip_tags
 from bioshareX.utils import test_path, paths_contain, path_contains
 from jsonfield import JSONField
+import datetime
 
 # Create your models here.
 def pkgen():
@@ -379,14 +380,27 @@ class ShareFTPUser(models.Model):
         self.home = self.share.get_path()
         if update_password:
             self.password = pkgen()
-            
+
 class ShareLog(models.Model):
     ACTION_FILE_ADDED = 'File Added'
-    ACTION_FILE_DELETED = 'File Deleted'
-    ACTION_FILE_RENAMED = 'File Renamed'
+    ACTION_FOLDER_CREATED = 'Folder Created'
+    ACTION_DELETED = 'File(s)/Folder(s) Deleted'
+    ACTION_MOVED = 'File(s)/Folder(s) Moved'
+    ACTION_RENAMED = 'File/Folder Renamed'
     ACTION_RSYNC = 'Files rsynced'
+    ACTION_PERMISSIONS_UPDATED = 'Permissions updated'
     share = models.ForeignKey(Share, related_name="logs")
+    user = models.ForeignKey(User, null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=30,null=True,blank=True)
     text = models.CharField(max_length=250,null=True,blank=True)
     paths = JSONField()
+    @staticmethod
+    def create(share,action,user=None,text='',paths=[],subdir=None,share_updated=True):
+        if subdir:
+            paths = [os.path.join(subdir,path) for path in paths]
+        log = ShareLog.objects.create(share=share,user=user,action=action,text=text,paths=paths)
+        if share_updated:
+            share.updated = datetime.datetime.now()
+            share.save()
+        return log

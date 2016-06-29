@@ -17,6 +17,9 @@ from rest_framework.decorators import api_view
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
+from rest_framework import generics
+from bioshareX.models import ShareLog
+from bioshareX.serializers import ShareLogSerializer
 
 @ajax_login_required
 def get_user(request):
@@ -278,3 +281,9 @@ def email_participants(request,share,subdir=None):
         return json_response(response)
     except Exception, e:
         return JsonResponse({'errors':[str(e)]},status=400)
+    
+class ShareLogList(generics.ListAPIView):
+    serializer_class = ShareLogSerializer
+    def get_queryset(self):
+        shares = Share.user_queryset(self.request.user,include_stats=False)
+        return ShareLog.objects.filter(share__in=shares)
