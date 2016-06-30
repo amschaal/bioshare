@@ -284,6 +284,7 @@ def email_participants(request,share,subdir=None):
     
 class ShareLogList(generics.ListAPIView):
     serializer_class = ShareLogSerializer
+    filter_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains']}
     def get_queryset(self):
         shares = Share.user_queryset(self.request.user,include_stats=False)
         return ShareLog.objects.filter(share__in=shares)

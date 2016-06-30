@@ -3,7 +3,7 @@
 {% load i18n %}
 
 {% block content %}
-<form method="post" action=".">
+<form method="post" action="#">
   <legend>Login</legend>
   {% csrf_token %} 
   {{ form|crispy }}

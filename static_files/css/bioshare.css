@@ -64,3 +64,13 @@ span.tag{
 	padding-top: 20px;
 	padding-left: 10px;
 }
+
+.table-break-word tr td{
+	word-wrap: break-word;
+}
+.limit-col-width td p {
+  text-overflow: ellipsis !important;
+  overflow: hidden; 
+  white-space: nowrap;
+  max-width:400px;
+}

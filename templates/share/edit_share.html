@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
-{% block title %}Hello World!{% endblock %}
 
 {% block content %}
   <p>
-  <form class="form-horizontal" method="POST">
+  <form class="form-horizontal" method="POST" action="#">
   <fieldset>
 	  <legend>Edit Share</legend>
 	    {{ form|crispy }}

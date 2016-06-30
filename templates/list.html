@@ -181,13 +181,13 @@
 	    {% verbatim %}
 	    {{greeting}}
 	    {{share}}
-	     <table ng-table="tableParams" class="table table-bordered table-striped table-condensed">
+	     <table ng-table="tableParams" class="limit-col-width table table-bordered table-striped table-condensed" style="max-width:600px !important;">
 	      <tr ng-repeat="row in $data track by row.id">
-	        <td data-title="'Timestamp'" sortable="'timestamp'">{{row.timestamp}}</td>
+	        <td data-title="'Timestamp'" sortable="'timestamp'">{{row.timestamp | date : 'short'}}</td>
 	        <td data-title="'Action'" filter="{action__icontains: 'text'}" sortable="'action'">{{row.action}}</td>
-	        <td data-title="'User'" filter="{user: 'text'}" sortable="'user'">{{row.user}}</td>
-	        <td data-title="'Text'" filter="{text__icontains: 'text'}" sortable="'text'">{{row.text}}</td>
-	        <td data-title="'Paths'" filter="{paths__icontains: 'text'}">{{row.paths}}</td>
+	        <td data-title="'User'" filter="{user__username__icontains: 'text'}" sortable="'user__username'">{{row.user.username}}</td>
+	        <td data-title="'Text'" filter="{text__icontains: 'text'}" sortable="'text'"><p title="{{row.text}}">{{row.text}}</p></td>
+	        <td data-title="'Paths'" filter="{paths__icontains: 'text'}"><p ng-repeat="path in row.paths" title="{{path}}">{{path}}</p></td>
 	      </tr>
 	    </table>
 	    {% endverbatim %}
