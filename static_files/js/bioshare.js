@@ -1,3 +1,5 @@
+angular.module("bioshare", ["ngTable","ngResource"]);
+
 function share_autocomplete(query,process){
 	$.get(share_autocomplete_url,{query:query},function(data){
 		if(data.errors)

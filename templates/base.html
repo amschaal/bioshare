@@ -14,16 +14,20 @@
     <link href="{% static "lib/famfamfam-bootstrap/css/fam-icons.css" %}" rel="stylesheet">
     <link href="{% static "lib/bootstrap/css/bootstrap-responsive.css" %}" rel="stylesheet">
 	<link href="{% static "css/bioshare.css" %}" rel="stylesheet">
+	<link href="{% static "lib/ng-table/ng-table.min.css" %}" rel="stylesheet">
     <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="{% static "lib/bootstrap/js/html5shiv.js"></script>
     <![endif]-->
     <script src="{% static "lib/jquery-1.10.1.min.js" %}"></script>
+    <script src="{% static "lib/angular/angular.min.js" %}"></script>
+    <script src="{% static "lib/angular/angular-resource.min.js" %}"></script>
+    <script src="{% static "lib/ng-table/ng-table.min.js" %}"></script>
   
   {% endblock %}
   </head>
 
-  <body>
+  <body ng-app="bioshare">
 
     <div class="navbar navbar-inverse navbar-static-top">
       <div class="navbar-inner">

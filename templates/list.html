@@ -177,17 +177,21 @@
   		</div>
   </div>
   <div class="tab-pane" id="log-tab">
-  		<table id="log-table" class="display" cellspacing="0" width="100%">
-	        <thead>
-	            <tr>
-	                <th>Timestamp</th>
-	                <th>Action</th>
-	                <th>User</th>
-	                <th>Text</th>
-	                <th>Paths</th>
-	            </tr>
-	        </thead>
+	    <div ng-controller="LogController" ng-init="init('{{share.id}}')">
+	    {% verbatim %}
+	    {{greeting}}
+	    {{share}}
+	     <table ng-table="tableParams" class="table table-bordered table-striped table-condensed">
+	      <tr ng-repeat="row in $data track by row.id">
+	        <td data-title="'Timestamp'" sortable="'timestamp'">{{row.timestamp}}</td>
+	        <td data-title="'Action'" filter="{action__icontains: 'text'}" sortable="'action'">{{row.action}}</td>
+	        <td data-title="'User'" filter="{user: 'text'}" sortable="'user'">{{row.user}}</td>
+	        <td data-title="'Text'" filter="{text__icontains: 'text'}" sortable="'text'">{{row.text}}</td>
+	        <td data-title="'Paths'" filter="{paths__icontains: 'text'}">{{row.paths}}</td>
+	      </tr>
 	    </table>
+	    {% endverbatim %}
+	    </div>
   </div>
   
   
@@ -437,4 +441,7 @@ $(document).ready(function() {
 
 
 <script src="{% static "js/share/main.js" %}"></script>
+<script src="{% static "js/services/ng-table-services.js" %}"></script>
+<script src="{% static "js/controllers/share-logs-controller.js" %}"></script>
+
 {% endblock%}
