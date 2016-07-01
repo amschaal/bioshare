@@ -179,8 +179,6 @@
   <div class="tab-pane" id="log-tab">
 	    <div ng-controller="LogController" ng-init="init('{{share.id}}')">
 	    {% verbatim %}
-	    {{greeting}}
-	    {{share}}
 	     <table ng-table="tableParams" class="limit-col-width table table-bordered table-striped table-condensed" style="max-width:600px !important;">
 	      <tr ng-repeat="row in $data track by row.id">
 	        <td data-title="'Timestamp'" sortable="'timestamp'">{{row.timestamp | date : 'short'}}</td>
@@ -422,21 +420,7 @@ $(document).ready(function() {
 	} );
 } );
 
-$(document).ready(function() {
-    $('#log-table').DataTable( {
-        "processing": true,
-        "fServerSide": true,
-        "sAjaxSource": "/bioshare/api/logs/",
-        "sAjaxDataProp": "results",
-        "aoColumns": [
-            { "mData": "timestamp" },
-            { "mData": "action" },
-            { "mData": "user" },
-            { "mData": "text" },
-            { "mData": "paths" }
-        ]
-    } );
-} );
+
 </script>
 
 

@@ -1,4 +1,4 @@
-from bioshareX.models import ShareLog
+from bioshareX.models import ShareLog, Share, Tag, ShareStats
 from rest_framework import serializers
 from django.contrib.auth.models import User
 class UserSerializer(serializers.ModelSerializer):
@@ -7,10 +7,23 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
 class ShareLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-#     name = serializers.SerializerMethodField()
-#     def get_name(self, user):
-#         return '%s %s'%(user.first_name,user.last_name)
     paths = serializers.JSONField()
-        
     class Meta:
         model = ShareLog
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+
+class ShareStatsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ShareStats
+        fields = ('num_files','bytes','updated')
+        
+class ShareSerializer(serializers.ModelSerializer):
+    stats = ShareStatsSerializer(many=False,read_only=True)
+    tags = TagSerializer(many=True,read_only=True)
+    owner = UserSerializer(read_only=True)
+    class Meta:
+        model = Share
+

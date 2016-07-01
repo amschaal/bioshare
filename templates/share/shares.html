@@ -12,30 +12,22 @@
 {% if bad_paths %}
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
-<table cellpadding="0" cellspacing="0" border="0" class="table table-striped table-bordered" id="example">
-	<thead>
-		<tr>
-			<th style="width:40%">Share</th>
-			<th style="width:25%">Owner</th>
-			<th style="width:10%">Created</th>
-			<th style="width:15%">Modified</th>
-			<th style="width:10%">Files*</th>
-			<th style="width:10%">Size*</th>
-		</tr>
-	</thead>
-	<tbody>
-		{% for share in shares%}
-		<tr>
-			<td data-toggle="tooltip" title="{{share.notes}}"><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% endif %} href="{% url 'list_directory' share.id %}">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{{share.name}}</a></td>
-			<td>{{share.owner.email}}</td>
-			<td>{{share.created|date:"m/d/Y"}}</td>
-			<td>{{share.updated|date:"m/d/Y H:i"}}</td>
-			<td data-toggle="tooltip" title="Last updated: {{share.stats.updated|date:'r'}}">{{share.stats.num_files}}</td>
-			<td data-toggle="tooltip" title="Last updated: {{share.stats.updated|date:'r'}}">{{share.stats.hr_size}}</td>
-		</tr>
-		{% endfor%}
-	</tbody>
-</table>
+
+ <div ng-controller="SharesController" ng-init="init()">
+	    {% verbatim %}
+	     <table ng-table="tableParams" class="limit-col-width table table-bordered table-striped table-condensed" style="max-width:600px !important;">
+	      <tr ng-repeat="row in $data track by row.id">
+	        <td data-title="'Share'" filter="{name__icontains: 'text'}" sortable="'name'">{{row.name}}</td>
+	        <td data-title="'Owner'" filter="{owner__username__icontains: 'text'}" sortable="'owner__username'">{{row.owner.username}}</td>
+	        <td data-title="'Created'" sortable="'created'">{{row.created | date : 'short'}}</td>
+	        <td data-title="'Modified'" sortable="'updated'">{{row.updated | date : 'short'}}</td>
+	        <td data-title="'Files'" >{{row.stats.num_files}}</td>
+	        <td data-title="'Bytes'" >{{row.stats.bytes}}</td>
+	      </tr>
+	    </table>
+	    {% endverbatim %}
+</div>
+
 <p>
 {{total_size}} of storage being used by {{request.user.username}}.*
 </p>
@@ -50,26 +42,6 @@
 <script src="{% static "lib/datatables/datatables.filesize.js" %}"></script>
 <script src="{% static "lib/datatables/DT_bootstrap.js" %}"></script>
 
-<script>
-/* Table initialisation */
-$(document).ready(function() {
-	$('#example').dataTable( {
-		//"sDom": "<'row'<'span6'l><'span6'f>r>t<'row'<'span6'i><'span6'p>>",
-		"sPaginationType": "bootstrap",
-		"oLanguage": {
-			"sLengthMenu": "_MENU_ records per page",
-			"sSearch": "Filter:"
-		},
-		"aaSorting": [[ 3, "desc" ],[ 2, "desc" ]],
-		"aoColumns": [
-		                null,
-		                null,
-		                { "sType": "date" },
-		                { "sType": "date" },
-		                { "sType": "numeric" },
-		                { "sType": "file-size" }
-		            ]
-	} );
-} );
-</script>
+<script src="{% static "js/services/ng-table-services.js" %}"></script>
+<script src="{% static "js/controllers/shares-controller.js" %}"></script>
 {% endblock %}

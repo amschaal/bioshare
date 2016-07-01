@@ -19,7 +19,7 @@ from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
 from rest_framework import generics
 from bioshareX.models import ShareLog
-from bioshareX.serializers import ShareLogSerializer
+from bioshareX.serializers import ShareLogSerializer, ShareSerializer
 
 @ajax_login_required
 def get_user(request):
@@ -284,7 +284,13 @@ def email_participants(request,share,subdir=None):
     
 class ShareLogList(generics.ListAPIView):
     serializer_class = ShareLogSerializer
-    filter_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains']}
+    filter_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains'],'share':['exact']}
     def get_queryset(self):
         shares = Share.user_queryset(self.request.user,include_stats=False)
         return ShareLog.objects.filter(share__in=shares)
+    
+class ShareList(generics.ListAPIView):
+    serializer_class = ShareSerializer
+    filter_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains']}
+    def get_queryset(self):
+        return Share.user_queryset(self.request.user,include_stats=False)
