@@ -1,4 +1,7 @@
-angular.module("bioshare", ["ngTable","ngResource"]);
+angular.module("bioshare", ["ngTable","ngResource"])
+.run(function($rootScope) {
+    $rootScope.getURL = django_js_utils.urls.resolve;
+})
 
 function share_autocomplete(query,process){
 	$.get(share_autocomplete_url,{query:query},function(data){

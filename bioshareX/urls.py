@@ -1,7 +1,7 @@
 from django.conf.urls import  url
 # from bioshareX.forms import PasswordChangeForm, SetPasswordForm
 # from django.contrib.auth import urls
-from bioshareX import views as bioshare_views
+from bioshareX import views as bioshare_views, jsutils
 from bioshareX import api as api_views
 from bioshareX import file_views
 # from django.contrib.auth import views as auth_views 
@@ -25,6 +25,7 @@ urlpatterns = [
     url(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':False},name='delete_share'),
     url(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':True},name='confirm_delete_share'),
     url(r'^search/files/?$', bioshare_views.search_files, name='search_files'),
+    url(r'^jsurls.js$', jsutils.jsurls, {}, 'jsurls'),
 ]
 
 # urlpatterns += [
