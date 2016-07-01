@@ -2,7 +2,15 @@ angular.module("bioshare", ["ngTable","ngResource"])
 .run(function($rootScope) {
     $rootScope.getURL = django_js_utils.urls.resolve;
 })
-
+.filter('bytes', function() {
+	return function(bytes, precision) {
+		if (bytes==0 ||isNaN(parseFloat(bytes)) || !isFinite(bytes)) return '-';
+		if (typeof precision === 'undefined') precision = 1;
+		var units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'],
+			number = Math.floor(Math.log(bytes) / Math.log(1024));
+		return (bytes / Math.pow(1024, Math.floor(number))).toFixed(precision) +  ' ' + units[number];
+	}
+});
 function share_autocomplete(query,process){
 	$.get(share_autocomplete_url,{query:query},function(data){
 		if(data.errors)

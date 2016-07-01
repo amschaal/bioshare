@@ -18,12 +18,12 @@
 	    {{getURL}}
 	     <table ng-table="tableParams" class="limit-col-width table table-bordered table-striped table-condensed">
 	      <tr ng-repeat="row in $data track by row.id">
-	        <td data-title="'Share'" filter="{name__icontains: 'text'}" sortable="'name'"><a href="{{getURL('list_directory',{share:row.id,subdir:'blah'})}}">{{row.name}}</a></td>
+	        <td data-title="'Share'" filter="{name__icontains: 'text'}" sortable="'name'"><a href="/bioshare/list/{{row.id}}/"">{{row.name}}</a></td>
 	        <td data-title="'Owner'" filter="{owner__username__icontains: 'text'}" sortable="'owner__username'">{{row.owner.username}}</td>
 	        <td data-title="'Created'" sortable="'created'">{{row.created | date : 'short'}}</td>
 	        <td data-title="'Modified'" sortable="'updated'">{{row.updated | date : 'short'}}</td>
-	        <td data-title="'Files'" >{{row.stats.num_files}}</td>
-	        <td data-title="'Bytes'" >{{row.stats.bytes}}</td>
+	        <td data-title="'Files*'" >{{row.stats.num_files}}</td>
+	        <td data-title="'Size*'" >{{row.stats.bytes | bytes}}</td>
 	      </tr>
 	    </table>
 	    {% endverbatim %}
