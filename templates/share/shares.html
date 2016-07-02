@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load guardian_tags %}
+{% load compress %}
 {% block title %}Shares{% endblock %}
 {% block head %}
 {{block.super}}
@@ -22,8 +23,8 @@
 	        <td data-title="'Owner'" filter="{owner__username__icontains: 'text'}" sortable="'owner__username'">{{row.owner.username}}</td>
 	        <td data-title="'Created'" sortable="'created'">{{row.created | date : 'short'}}</td>
 	        <td data-title="'Modified'" sortable="'updated'">{{row.updated | date : 'short'}}</td>
-	        <td data-title="'Files*'" >{{row.stats.num_files}}</td>
-	        <td data-title="'Size*'" >{{row.stats.bytes | bytes}}</td>
+	        <td data-title="'Files*'" sortable="'stats__num_files'">{{row.stats.num_files}}</td>
+	        <td data-title="'Size*'" sortable="'stats__bytes'">{{row.stats.bytes | bytes}}</td>
 	      </tr>
 	    </table>
 	    {% endverbatim %}
@@ -37,12 +38,11 @@
 
 {% block scripts %}
 {{block.super}}
-<script>
-</script>
+{% compress js %}
 <script src="{% static "lib/datatables/jquery.dataTables.min.js" %}"></script>
 <script src="{% static "lib/datatables/datatables.filesize.js" %}"></script>
 <script src="{% static "lib/datatables/DT_bootstrap.js" %}"></script>
-
 <script src="{% static "js/services/ng-table-services.js" %}"></script>
 <script src="{% static "js/controllers/shares-controller.js" %}"></script>
+{% endcompress %}
 {% endblock %}

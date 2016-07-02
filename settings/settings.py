@@ -60,6 +60,7 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'compressor.finders.CompressorFinder',
 )
 
 APPEND_SLASH = True
@@ -145,6 +146,7 @@ INSTALLED_APPS = (
     'guardian',
     'rest_framework',
     'rest_framework.authtoken',
+    'compressor',
 )
 
 # A sample logging configuration. The only tangible logging

@@ -292,5 +292,6 @@ class ShareLogList(generics.ListAPIView):
 class ShareList(generics.ListAPIView):
     serializer_class = ShareSerializer
     filter_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains']}
+    ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
         return Share.user_queryset(self.request.user,include_stats=False)

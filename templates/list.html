@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load compress %}
 {% load share_tags %}
 {% load crispy_forms_tags %}
 {% load guardian_tags %}
@@ -350,13 +351,9 @@ Filtered by: <span id="filtered-tags"></span><br>
 
 {% block scripts %}
 {{block.super}}
-<!-- The jQuery UI widget factory, can be omitted if jQuery UI is already included -->
-<script src="{{STATIC_URL}}lib/jquery_upload/js/vendor/jquery.ui.widget.js"></script>
-<!-- The Iframe Transport is required for browsers without support for XHR file uploads -->
-<script src="{{STATIC_URL}}lib/jquery_upload/js/jquery.iframe-transport.js"></script>
-<!-- The basic File Upload plugin -->
-<script src="{{STATIC_URL}}lib/jquery_upload/js/jquery.fileupload.js"></script>
 {% include "handlebars/list_files.html" %}
+
+
 <script>
 /*jslint unparam: true */
 /*global window, $ */
@@ -383,7 +380,13 @@ Filtered by: <span id="filtered-tags"></span><br>
 	var session_cookie = '{{session_cookie}}';
 	var get_directories_url = '{% url 'get_directories' share=share.id %}';
 </script>
-
+{% compress js %}
+<!-- The jQuery UI widget factory, can be omitted if jQuery UI is already included -->
+<script src="{{STATIC_URL}}lib/jquery_upload/js/vendor/jquery.ui.widget.js"></script>
+<!-- The Iframe Transport is required for browsers without support for XHR file uploads -->
+<script src="{{STATIC_URL}}lib/jquery_upload/js/jquery.iframe-transport.js"></script>
+<!-- The basic File Upload plugin -->
+<script src="{{STATIC_URL}}lib/jquery_upload/js/jquery.fileupload.js"></script>
 <script src="{% static "lib/datatables/jquery.dataTables.min.js" %}"></script>
 <script src="{% static "lib/datatables/datatables.filesize.js" %}"></script>
 <script src="{% static "lib/datatables/datatables.addtr.js" %}"></script>
@@ -427,5 +430,5 @@ $(document).ready(function() {
 <script src="{% static "js/share/main.js" %}"></script>
 <script src="{% static "js/services/ng-table-services.js" %}"></script>
 <script src="{% static "js/controllers/share-logs-controller.js" %}"></script>
-
+{% endcompress %}
 {% endblock%}
