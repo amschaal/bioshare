@@ -27,7 +27,7 @@ class ShareSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True,read_only=True)
     owner = UserSerializer(read_only=True)
     def get_url(self,obj):
-        reverse('list_directory',kwargs={'share':obj.id})
+        return reverse('list_directory',kwargs={'share':obj.id})
     class Meta:
         model = Share
 
