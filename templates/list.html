@@ -67,7 +67,7 @@
 		  </a>
 		  <ul class="dropdown-menu">
 		    <li><a href="#" id="download-zip">Zipfile</a></li>
-		    {% if HOST and SFTP_PORT %}
+		    {% if HOST and SFTP_PORT and ftp_user%}
 		    <li><a href="#" id="download-ftp">SFTP</a></li>
 		    {% endif %}
 		    <li><a href="#" id="download-rsync">Rsync</a></li>
@@ -277,7 +277,7 @@
 	<b>Host:</b> {{HOST}}<br>
 	<b>Port:</b> {{SFTP_PORT}}<br>
 	<b>User: </b> {{share.id}}<br>
-	<b>Password: </b> {{share.ftp_user.password}}<br>
+	<b>Password: </b> {{ftp_user.password}}<br>
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>

@@ -18,7 +18,7 @@ from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
 from rest_framework import generics
-from bioshareX.models import ShareLog
+from bioshareX.models import ShareLog, ShareFTPUser
 from bioshareX.serializers import ShareLogSerializer, ShareSerializer
 
 @ajax_login_required
@@ -108,6 +108,7 @@ def get_permissions(request,share):
 def update_share(request,share,json=None):
     share.secure = json['secure']
     share.save()
+    ShareFTPUser.update_share_ftp_users(share)
     return json_response({'status':'okay'})
 
 @share_access_decorator(['admin'])
@@ -133,9 +134,6 @@ def set_permissions(request,share,json=None):
                 remove_perm(perm,g,share)
             for perm in added_perms:
                 assign_perm(perm,g,share)
-
-    print 'JSON'
-    print json
     if json.has_key('users'):
         for username, permissions in json['users'].iteritems():
             try:
@@ -179,8 +177,7 @@ def set_permissions(request,share,json=None):
     if len(failed) > 0:
         data['messages'].append({'type':'info','content':'Delivery has failed to the following addresses: %s'%', '.join(failed)})
     data['json']=json
-    print 'RESPONSE'
-    print data
+    ShareFTPUser.update_share_ftp_users(share)
     return json_response(data)
 
 @share_access_decorator(['view_share_files'])

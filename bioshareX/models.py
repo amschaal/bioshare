@@ -9,6 +9,7 @@ from django.utils.html import strip_tags
 from bioshareX.utils import test_path, paths_contain, path_contains
 from jsonfield import JSONField
 import datetime
+from guardian.shortcuts import get_users_with_perms
 
 # Create your models here.
 def pkgen():
@@ -261,12 +262,12 @@ def share_post_save(sender, **kwargs):
                 os.makedirs(path)
                 uid = pwd.getpwnam(FILES_OWNER).pw_uid
                 gid = grp.getgrnam(FILES_GROUP).gr_gid
-        ShareFTPUser.create(kwargs['instance'])
+        ShareFTPUser.update_share_ftp_users(kwargs['instance'])
         if not instance.real_path:
             instance.real_path = os.path.realpath(instance.get_path())
             instance.save()
-    else:
-        kwargs['instance'].ftp_user.update()
+#     else:
+#         kwargs['instance'].ftp_user.update()
 #            os.chown(path, uid, gid)
 #            os.chmod(path, int(0775))            
 post_save.connect(share_post_save, sender=Share)
@@ -367,19 +368,37 @@ class SSHKey(models.Model):
         return matches['key']
 
 class ShareFTPUser(models.Model):
-    share = models.OneToOneField(Share,related_name="ftp_user")
+    share = models.ForeignKey(Share,related_name="ftp_users")
+    user = models.ForeignKey(User,null=True,blank=True)
     password = models.CharField(max_length=15, default=pkgen)
     home = models.CharField(max_length=250)
     @staticmethod
-    def create(share):
+    def create(share,user=None):
         instance = ShareFTPUser.objects.create(share=share)
         instance.home = share.get_path()
+        if user:
+            instance.user = user
         instance.save()
         return instance
     def update(self,update_password=False):
         self.home = self.share.get_path()
         if update_password:
             self.password = pkgen()
+    @staticmethod
+    def update_share_ftp_users(share):
+        authorized_ids=[share.owner.id]
+        for user, permissions in get_users_with_perms(share, attach_perms=True, with_superusers=False, with_group_users=True).iteritems():
+            if Share.PERMISSION_VIEW in permissions and Share.PERMISSION_DOWNLOAD in permissions:
+                authorized_ids.append(user.id)
+        ShareFTPUser.objects.filter(share=share,user__isnull=False).exclude(user__in=authorized_ids).delete()
+        for uid in authorized_ids:
+            if not ShareFTPUser.objects.filter(share=share,user_id=uid).first():
+                ShareFTPUser.create(share,user)
+        share_user = ShareFTPUser.objects.filter(share=share,user__isnull=True).first()
+        if share.secure and share_user:
+            share_user.delete()
+        elif not share.secure and not share_user:
+            ShareFTPUser.create(share)
 
 class ShareLog(models.Model):
     ACTION_FILE_ADDED = 'File Added'
