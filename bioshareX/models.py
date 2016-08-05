@@ -380,14 +380,17 @@ class SSHKey(models.Model):
 class ShareFTPUser(models.Model):
     share = models.ForeignKey(Share,related_name="ftp_users")
     user = models.ForeignKey(User,null=True,blank=True)
+    username = models.CharField(max_length=65,null=True,blank=True)
     password = models.CharField(max_length=15, default=pkgen)
     home = models.CharField(max_length=250)
     @staticmethod
     def create(share,user=None):
         instance = ShareFTPUser.objects.create(share=share)
         instance.home = share.get_path()
+        instance.username = share.id
         if user:
             instance.user = user
+            instance.username = '%s_%s'%(instance.username,user.username)
         instance.save()
         return instance
     def update(self,update_password=False):
