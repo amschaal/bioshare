@@ -1,7 +1,8 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from django.dispatch import receiver
-from django.db.models.signals import post_save, post_delete, pre_save
+from django.db.models.signals import post_save, post_delete, pre_save,\
+    m2m_changed
 from django.db.models import Q
 from django.conf import settings
 import os
@@ -9,7 +10,7 @@ from django.utils.html import strip_tags
 from bioshareX.utils import test_path, paths_contain, path_contains
 from jsonfield import JSONField
 import datetime
-from guardian.shortcuts import get_users_with_perms
+from guardian.shortcuts import get_users_with_perms, get_objects_for_group
 
 # Create your models here.
 def pkgen():
@@ -284,7 +285,16 @@ def share_pre_save(sender, instance, **kwargs):
     except Share.DoesNotExist, e:
         pass
         
-    
+
+
+def update_group_ftp_users(sender, instance,pk_set,action, **kwargs):
+    if action in ['post_add','post_remove']:
+        groups = Group.objects.filter(id__in=pk_set) 
+        for group in groups:
+            for share in get_objects_for_group(group, [Share.PERMISSION_DOWNLOAD,Share.PERMISSION_VIEW],klass=Share):
+                ShareFTPUser.update_share_ftp_users(share)
+m2m_changed.connect(update_group_ftp_users, sender=Group.user_set.through)
+#  
     
 # def delete_share(sender, **kwargs):
 #     if kwargs['created']:
