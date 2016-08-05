@@ -386,13 +386,13 @@ class ShareFTPUser(models.Model):
             self.password = pkgen()
     @staticmethod
     def update_share_ftp_users(share):
-        authorized_ids=[share.owner.id]
+        authorized=[share.owner]
         for user, permissions in get_users_with_perms(share, attach_perms=True, with_superusers=False, with_group_users=True).iteritems():
             if Share.PERMISSION_VIEW in permissions and Share.PERMISSION_DOWNLOAD in permissions:
-                authorized_ids.append(user.id)
-        ShareFTPUser.objects.filter(share=share,user__isnull=False).exclude(user__in=authorized_ids).delete()
-        for uid in authorized_ids:
-            if not ShareFTPUser.objects.filter(share=share,user_id=uid).first():
+                authorized.append(user)
+        ShareFTPUser.objects.filter(share=share,user__isnull=False).exclude(user__in=[u.id for u in authorized]).delete()
+        for user in authorized:
+            if not ShareFTPUser.objects.filter(share=share,user=user).first():
                 ShareFTPUser.create(share,user)
         share_user = ShareFTPUser.objects.filter(share=share,user__isnull=True).first()
         if share.secure and share_user:
