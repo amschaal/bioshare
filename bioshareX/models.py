@@ -383,6 +383,8 @@ class ShareFTPUser(models.Model):
     username = models.CharField(max_length=65,null=True,blank=True)
     password = models.CharField(max_length=15, default=pkgen)
     home = models.CharField(max_length=250)
+    class Meta:
+        unique_together = (('share','user'))
     @staticmethod
     def create(share,user=None):
         instance = ShareFTPUser.objects.create(share=share)
