@@ -19,9 +19,11 @@
 
 <h1>
 	<a href="{% url 'list_directory' share.id %}" data-toggle="tooltip" title="{{share.notes}}">{{share.name}}</a>
-	{% if owner %}<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete Share</a>{% endif %}
-	{% if "admin" in share_perms %}
+	{% if owner or user.is_superuser %}
+		<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete Share</a>
 		<a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3"><i class="icon-edit icon-white"></i> Edit</a>
+	{% endif %}
+	{% if "admin" in share_perms %}
 		<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary pull-right margin-3"><i class="icon-lock icon-white"></i> Permissions</a>
 	{% endif %}
 	{% if "download_share_files" in share_perms and user.is_authenticated %}<button class="btn btn-primary pull-right margin-3" id="email-users"><i class="icon-envelope icon-white"></i> Email</a>{%endif%}

@@ -1,7 +1,7 @@
 # Create your views here.
 from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
-from django.http.response import HttpResponseRedirect
+from django.http.response import HttpResponseRedirect, HttpResponseForbidden
 from models import Share, SSHKey, MetaData, Tag, ShareStats
 from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
 from guardian.shortcuts import get_perms, get_users_with_perms
@@ -55,6 +55,8 @@ def share_permissions(request,share):
 
 @share_access_decorator(['admin'])
 def edit_share(request,share):
+    if share.owner != request.user and not request.user.is_superuser:
+        return HttpResponseForbidden('Only share owners or admins may edit a share')
     if request.method == 'POST':
         form = ShareForm(request.user,request.POST,instance=share)
         if form.is_valid():
