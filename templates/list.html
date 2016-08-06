@@ -67,7 +67,9 @@
 		  </a>
 		  <ul class="dropdown-menu">
 		    <li><a href="#" id="download-zip">Zipfile</a></li>
+		    {% if HOST and SFTP_PORT and ftp_user%}
 		    <li><a href="#" id="download-ftp">SFTP</a></li>
+		    {% endif %}
 		    <li><a href="#" id="download-rsync">Rsync</a></li>
 		    <li><a href="#" id="download-wget">Wget</a></li>
 		  </ul>
