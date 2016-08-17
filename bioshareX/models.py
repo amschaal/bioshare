@@ -438,3 +438,5 @@ class ShareLog(models.Model):
             share.updated = datetime.datetime.now()
             share.save()
         return log
+
+Group._meta.permissions += (('manage_group', 'Manage group'),)

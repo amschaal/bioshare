@@ -1,4 +1,4 @@
-angular.module("bioshare", ["ngTable","ngResource"])
+angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap"])
 .run(function($rootScope) {
     $rootScope.getURL = django_js_utils.urls.resolve;
 })

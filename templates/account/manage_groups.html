@@ -8,8 +8,30 @@
  <div ng-controller="GroupsController" ng-init="init({user:{{user}}})">
 	    {% verbatim %}
 	    {{user}}
+	    <table ng-table="tableParams" class="table" show-filter="true">
+		    <tr ng-repeat="group in $data">
+		        <td title="'Name'" filter="{ name: 'text'}" sortable="'name'">
+		            {{group.name}}</td>
+		        <td title="'Actions'">
+		            <button ng-click="manageGroup(group)" class="btn btn-primary" ng-if="group.permissions.indexOf('manage_group') != -1">Manage</button></td>
+		    </tr>
+		</table>
 	    {% endverbatim %}
 </div>
+{% verbatim %}
+<script type="text/ng-template" id="manageGroup.html">
+        <div class="modal-header">
+            <h3 class="modal-title">Manage "{{group.name}}"</h3>
+        </div>
+        <div class="modal-body">
+            {{group}}
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+{% endverbatim %}
 {% endblock %}
 
 {% block scripts %}

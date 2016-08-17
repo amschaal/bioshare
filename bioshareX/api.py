@@ -17,7 +17,7 @@ from rest_framework.decorators import api_view
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
-from rest_framework import generics
+from rest_framework import generics, viewsets
 from bioshareX.models import ShareLog, ShareFTPUser
 from bioshareX.serializers import ShareLogSerializer, ShareSerializer
 
@@ -292,3 +292,6 @@ class ShareList(generics.ListAPIView):
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
         return Share.user_queryset(self.request.user,include_stats=False)
+
+# class GroupViewSet(viewsets.ModelViewSet):
+#     serializer_class = GroupSerializer
