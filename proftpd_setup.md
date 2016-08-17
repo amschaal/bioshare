@@ -40,7 +40,7 @@ Modify /etc/proftpd/sql.conf to look like the following:
   #
   # Describes both users/groups tables
   #
-  SQLUserInfo bioshareX_shareftpuser share_id password NULL NULL home NULL
+  SQLUserInfo bioshareX_shareftpuser username password NULL NULL home NULL
   
   SqlLogFile /var/log/proftpd/sql.log
 </IfModule>

@@ -29,7 +29,7 @@ SQLConnectInfo biosharex@localhost dev dev
 #SQLUserInfo users userid passwd uid gid homedir shell
 #SQLGroupInfo groups groupname gid members
 #
-SQLUserInfo bioshareX_shareftpuser share_id password NULL NULL home NULL
+SQLUserInfo bioshareX_shareftpuser username password NULL NULL home NULL
 
 SqlLogFile /var/log/proftpd/sql.log
 </IfModule>

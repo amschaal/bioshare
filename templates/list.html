@@ -19,9 +19,11 @@
 
 <h1>
 	<a href="{% url 'list_directory' share.id %}" data-toggle="tooltip" title="{{share.notes}}">{{share.name}}</a>
-	{% if owner %}<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete Share</a>{% endif %}
-	{% if "admin" in share_perms %}
+	{% if owner or user.is_superuser %}
+		<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete Share</a>
 		<a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3"><i class="icon-edit icon-white"></i> Edit</a>
+	{% endif %}
+	{% if "admin" in share_perms %}
 		<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary pull-right margin-3"><i class="icon-lock icon-white"></i> Permissions</a>
 	{% endif %}
 	{% if "download_share_files" in share_perms and user.is_authenticated %}<button class="btn btn-primary pull-right margin-3" id="email-users"><i class="icon-envelope icon-white"></i> Email</a>{%endif%}
@@ -67,7 +69,7 @@
 		  </a>
 		  <ul class="dropdown-menu">
 		    <li><a href="#" id="download-zip">Zipfile</a></li>
-		    {% if HOST and SFTP_PORT %}
+		    {% if HOST and SFTP_PORT and ftp_user%}
 		    <li><a href="#" id="download-ftp">SFTP</a></li>
 		    {% endif %}
 		    <li><a href="#" id="download-rsync">Rsync</a></li>
@@ -273,11 +275,18 @@
     <h3>SFTP connection information</h3>
   </div>
   <div class="modal-body">
+  	<h4>
+	  	{% if ftp_user.user %}
+	  		FTP user/password for {{ftp_user.user}}
+	  	{% else %}
+	  		General FTP user/password (share is open to anyone with the URL)
+	  	{% endif %}
+  	</h3>
 	<b>Protocol:</b> SFTP<br>
 	<b>Host:</b> {{HOST}}<br>
 	<b>Port:</b> {{SFTP_PORT}}<br>
-	<b>User: </b> {{share.id}}<br>
-	<b>Password: </b> {{share.ftp_user.password}}<br>
+	<b>User: </b> {{ftp_user.username}}<br>
+	<b>Password: </b> {{ftp_user.password}}<br>
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
