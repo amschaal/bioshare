@@ -17,6 +17,8 @@ from bioshareX.forms import SubShareForm
 from django.contrib.auth.models import User
 import operator
 from django.db.models.query_utils import Q
+from bioshareX.serializers import UserSerializer
+from rest_framework.renderers import JSONRenderer
 
 def index(request):
     # View code here...
@@ -201,6 +203,9 @@ def update_password(request):
         form = PasswordChangeForm()
     return render(request, 'registration/update_password.html', {'form': form})
 
+def manage_groups(request):
+    context ={'user':JSONRenderer().render(UserSerializer(request.user,include_perms=True).data)}
+    return render(request,'account/manage_groups.html',context)
 
 def list_ssh_keys(request):
     context ={'keys':SSHKey.objects.filter(user=request.user)}

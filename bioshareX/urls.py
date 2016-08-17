@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^goto/(?P<share>[\da-zA-Z]{15})/(?:(?P<subpath>.*/?))?$', bioshare_views.go_to_file_or_folder, name='go_to_file_or_folder'),
     url(r'^ssh_keys/list/?$', bioshare_views.list_ssh_keys, name='list_ssh_keys'),
     url(r'^ssh_keys/create/?$', bioshare_views.create_ssh_key, name='create_ssh_key'),
+    url(r'^groups/manage/?$', bioshare_views.manage_groups, name='manage_groups'),
 #     url(r'^account/update_password/?$', 'update_password', name='update_password'),
     url(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':False},name='delete_share'),
     url(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':True},name='confirm_delete_share'),

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+{% load guardian_tags %}
+{% load compress %}
+{% block title %}Manage groups{% endblock %}
+{% block content %}
+<h2>Manage Groups</h2>
+ <div ng-controller="GroupsController" ng-init="init({user:{{user}}})">
+	    {% verbatim %}
+	    {{user}}
+	    {% endverbatim %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{block.super}}
+{% compress js %}
+<script src="{% static "js/services/ng-table-services.js" %}"></script>
+<script src="{% static "js/controllers/groups-controller.js" %}"></script>
+{% endcompress %}
+{% endblock %}

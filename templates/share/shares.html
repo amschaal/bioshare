@@ -4,10 +4,6 @@
 {% load guardian_tags %}
 {% load compress %}
 {% block title %}Shares{% endblock %}
-{% block head %}
-{{block.super}}
-<link rel="stylesheet" type="text/css" href="{% static "lib/datatables/DT_bootstrap.css" %}">
-{% endblock %}
 {% block content %}
 <h2>Shares</h2>
 {% if bad_paths %}
@@ -39,9 +35,6 @@
 {% block scripts %}
 {{block.super}}
 {% compress js %}
-<script src="{% static "lib/datatables/jquery.dataTables.min.js" %}"></script>
-<script src="{% static "lib/datatables/datatables.filesize.js" %}"></script>
-<script src="{% static "lib/datatables/DT_bootstrap.js" %}"></script>
 <script src="{% static "js/services/ng-table-services.js" %}"></script>
 <script src="{% static "js/controllers/shares-controller.js" %}"></script>
 {% endcompress %}
