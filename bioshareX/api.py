@@ -13,13 +13,17 @@ from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
 from django.contrib.auth.decorators import login_required
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, detail_route
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
 from rest_framework import generics, viewsets
 from bioshareX.models import ShareLog, ShareFTPUser
-from bioshareX.serializers import ShareLogSerializer, ShareSerializer
+from bioshareX.serializers import ShareLogSerializer, ShareSerializer,\
+    GroupSerializer
+from rest_framework.permissions import DjangoModelPermissions
+from bioshareX.permissions import ManageGroupPermission
+from rest_framework.response import Response
 
 @ajax_login_required
 def get_user(request):
@@ -293,5 +297,16 @@ class ShareList(generics.ListAPIView):
     def get_queryset(self):
         return Share.user_queryset(self.request.user,include_stats=False)
 
-# class GroupViewSet(viewsets.ModelViewSet):
-#     serializer_class = GroupSerializer
+class GroupViewSet(viewsets.ModelViewSet):
+    serializer_class = GroupSerializer
+    permission_classes = (ManageGroupPermission,)
+    model = Group
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Group.objects.all()
+        else:
+            return self.request.user.groups.all()
+    @detail_route(['POST','GET'])
+    def update_users(self, request, *args, **kwargs):
+        return Response({'foo':'bar'})
+        

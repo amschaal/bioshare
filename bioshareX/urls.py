@@ -1,10 +1,13 @@
-from django.conf.urls import  url
-# from bioshareX.forms import PasswordChangeForm, SetPasswordForm
-# from django.contrib.auth import urls
+from django.conf.urls import  url, include
 from bioshareX import views as bioshare_views, jsutils
 from bioshareX import api as api_views
 from bioshareX import file_views
-# from django.contrib.auth import views as auth_views 
+from rest_framework import routers
+from bioshareX.api import GroupViewSet
+router = routers.DefaultRouter()
+router.register(r'groups', GroupViewSet,'Group')
+
+
 urlpatterns = [
     url(r'^$', bioshare_views.index, name='index'),
     url(r'^forbidden/?$', bioshare_views.forbidden, name='forbidden'),
@@ -49,6 +52,7 @@ urlpatterns += [
     url(r'^api/email_participants/(?P<share>[\da-zA-Z]{15})/(?P<subdir>.*)/?$', api_views.email_participants, name='api_email_participants'),
     url(r'^api/logs/$', api_views.ShareLogList.as_view()),
     url(r'^api/shares/$', api_views.ShareList.as_view()),
+    url(r'^api/', include(router.urls)),
 ]
 
 urlpatterns += [

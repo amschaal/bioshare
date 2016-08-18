@@ -25,6 +25,15 @@
         </div>
         <div class="modal-body">
             {{group}}
+		<table ng-table="groupMembers" class="table" show-filter="true">
+		    <tr ng-repeat="user in $data">
+		        <td title="'Username'" filter="{ username: 'text'}" sortable="'username'">
+		            {{user.username}}
+				</td>
+		        <td title="'Permissions'">
+		            </td>
+		    </tr>
+		</table>
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
@@ -39,5 +48,7 @@
 {% compress js %}
 <script src="{% static "js/services/ng-table-services.js" %}"></script>
 <script src="{% static "js/controllers/groups-controller.js" %}"></script>
+<script src="{% static "js/resources/models.js" %}"></script>
+
 {% endcompress %}
 {% endblock %}

@@ -2,6 +2,7 @@ from bioshareX.models import ShareLog, Share, Tag, ShareStats
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group
 from django.core.urlresolvers import reverse
+from guardian.shortcuts import get_users_with_perms
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -18,23 +19,15 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 class GroupSerializer(serializers.ModelSerializer):
-#     def __init__(self, *args, **kwargs):
-#         self.include_perms = kwargs.pop('include_perms', False)
-#         super(UserSerializer,self).__init__(*args,**kwargs)
+    users = UserSerializer(source='user_set',many=True)
+    class Meta:
+        model = Group
+        fields = ('id','name','users')
     def to_representation(self, instance):
         data = serializers.ModelSerializer.to_representation(self, instance)
-        if self.include_perms:
-            data['permissions'] = instance.get_all_permissions()
-            groups = Group.objects.all() if instance.is_superuser else instance.groups.all()
-            data['groups'] = [{'id':g.id,'name':g.name,'permissions':instance.get_all_permissions(g)} for g in groups]
+        user_perms = get_users_with_perms(instance,attach_perms=True,with_group_users=False)
+        data['permissions'] = [{'user':UserSerializer(user).data,'permissions':permissions} for user, permissions in user_perms.iteritems()]
         return data
-#         return {
-#             'score': obj.score,
-#             'player_name': obj.player_name
-#         }
-    class Meta:
-        fields=('first_name','last_name','email','username','id')
-        model = User
 class ShareLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     paths = serializers.JSONField()
