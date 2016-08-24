@@ -26,7 +26,10 @@ class GroupSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = serializers.ModelSerializer.to_representation(self, instance)
         user_perms = get_users_with_perms(instance,attach_perms=True,with_group_users=False)
-        data['permissions'] = [{'user':UserSerializer(user).data,'permissions':permissions} for user, permissions in user_perms.iteritems()]
+#         data['permissions'] = [{'user':UserSerializer(user).data,'permissions':permissions} for user, permissions in user_perms.iteritems()]
+        perm_map = {user.id:permissions for user, permissions in user_perms.iteritems()}
+        for user in data['users']:
+            user['permissions'] = [] if not perm_map.has_key(user['id']) else perm_map['id']
         return data
 class ShareLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

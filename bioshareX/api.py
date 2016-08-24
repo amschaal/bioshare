@@ -309,4 +309,3 @@ class GroupViewSet(viewsets.ModelViewSet):
     @detail_route(['POST','GET'])
     def update_users(self, request, *args, **kwargs):
         return Response({'foo':'bar'})
-        
