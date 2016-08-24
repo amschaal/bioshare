@@ -1,7 +1,14 @@
-angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap"])
+angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap","checklist-model"])
 .run(function($rootScope) {
     $rootScope.getURL = django_js_utils.urls.resolve;
 })
+.config(function($resourceProvider) {
+  $resourceProvider.defaults.stripTrailingSlashes = false;
+})
+.config(['$httpProvider', function($httpProvider) {
+    $httpProvider.defaults.xsrfCookieName = 'csrftoken';
+    $httpProvider.defaults.xsrfHeaderName = 'X-CSRFToken';
+}])
 .filter('bytes', function() {
 	return function(bytes, precision) {
 		if (bytes==0 ||isNaN(parseFloat(bytes)) || !isFinite(bytes)) return '-';

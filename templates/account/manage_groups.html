@@ -11,9 +11,10 @@
 	    <table ng-table="tableParams" class="table" show-filter="true">
 		    <tr ng-repeat="group in $data">
 		        <td title="'Name'" filter="{ name: 'text'}" sortable="'name'">
-		            {{group.name}}</td>
-		        <td title="'Actions'">
-		            <button ng-click="manageGroup(group)" class="btn btn-primary" ng-if="group.permissions.indexOf('manage_group') != -1">Manage</button></td>
+		            {{group.name}}
+		            <button ng-click="manageGroup(group)" class="btn btn-primary pull-right" ng-if="group.permissions.indexOf('manage_group') != -1">Manage</button>
+		         </td>
+		            
 		    </tr>
 		</table>
 	    {% endverbatim %}
@@ -31,8 +32,8 @@
 		            {{user.username}}
 				</td>
 		        <td title="'Manager'">
-					<input title="Allow user to manage group" type="checkbox"/>
-		            </td>
+					<input title="Allow user to manage group" type="checkbox" checklist-model="user.permissions" checklist-value="'change_group'"/>
+		        </td>
 		    </tr>
 		</table>
         </div>

@@ -26,7 +26,8 @@ angular.module('BioshareResources', ['ngResource'])
     query: { method: 'GET', isArray:true, transformResponse:transformDjangoRestResponse }, //, transformResponse:transformDjangoRestResponse
     save : { method : 'PUT'},
     create : { method : 'POST'},
-    remove : { method : 'DELETE' }
+    remove : { method : 'DELETE' },
+    update_users: {method : 'POST', url: '/bioshare/api/groups/:id/update_users/' }
   });
 }])
 

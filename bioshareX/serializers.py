@@ -19,7 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 class GroupSerializer(serializers.ModelSerializer):
-    users = UserSerializer(source='user_set',many=True)
+    users = UserSerializer(source='user_set',many=True, read_only=True)
     class Meta:
         model = Group
         fields = ('id','name','users')

@@ -33,13 +33,12 @@ angular.module('bioshare').controller('GroupModalInstanceCtrl', function ($scope
   $scope.group_id = group_id;
   $scope.group = Group.get({id:group_id},function(group){
 	  	$scope.groupMembers = new NgTableParams({}, { dataset: group.users});
-	  	$scope.groupAdmins = new NgTableParams({}, { dataset: group.permissions});
 	}
   )
   
   
   $scope.ok = function () {
-    $uibModalInstance.close("Stuff");
+	$scope.group.$update_users(function(data){$uibModalInstance.close(data);})
   };
 
   $scope.cancel = function () {
