@@ -17,10 +17,10 @@ from rest_framework.decorators import api_view, detail_route
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
-from rest_framework import generics, viewsets
+from rest_framework import generics, viewsets, status
 from bioshareX.models import ShareLog, ShareFTPUser
 from bioshareX.serializers import ShareLogSerializer, ShareSerializer,\
-    GroupSerializer
+    GroupSerializer, UserSerializer
 from rest_framework.permissions import DjangoModelPermissions
 from bioshareX.permissions import ManageGroupPermission
 from rest_framework.response import Response
@@ -32,9 +32,9 @@ def get_user(request):
     query = request.GET.get('query')
     try:
         user = User.objects.get(Q(username=query)|Q(email=query))
-        return json_response({'user':{'username':user.username,'email':user.email}})
+        return JsonResponse({'user':UserSerializer(user).data})
     except Exception, e:
-        return json_error([e.message])
+        return JsonResponse({'status':'error','query':query,'errors':[e.message]},status=status.HTTP_404_NOT_FOUND)
 
 @ajax_login_required
 def get_address_book(request):

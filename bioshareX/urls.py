@@ -46,6 +46,7 @@ urlpatterns += [
     url(r'^api/ssh_keys/delete/?$', api_views.delete_ssh_key, name='api_delete_ssh_key'),
     url(r'^api/edit_metadata/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', api_views.edit_metadata, name='api_edit_metadata'),
     url(r'^api/get_addresses/?$', api_views.get_address_book, name='api_get_address_book'),
+    url(r'^api/get_user/?$', api_views.get_user, name='api_get_user'),
     url(r'^api/get_tags/?$', api_views.get_tags, name='api_tags'),
     url(r'^api/share/(?P<share>[\da-zA-Z]{15})/?$', api_views.share_with, name='api_share_with'),
     url(r'^api/shares/create/?$', api_views.create_share, name='api_create_share'),

@@ -25,6 +25,7 @@
             <h3 class="modal-title">Manage "{{group.name}}"</h3>
         </div>
         <div class="modal-body">
+		<label>Email address: <input type="email" ng-model="add_user" ng-change="checkUsername(add_user)"></label> <button class="btn btn-primary btn-sm" ng-click="addUser()" ng-disabled="!new_user">Add user</button>
 		<table ng-table="users" class="table" show-filter="true">
 		    <tr ng-repeat="user in $data">
 		        <td title="'Username'" filter="{ username: 'text'}" sortable="'username'">
