@@ -27,7 +27,8 @@ angular.module('BioshareResources', ['ngResource'])
     save : { method : 'PUT'},
     create : { method : 'POST'},
     remove : { method : 'DELETE' },
-    update_users: {method : 'POST', url: '/bioshare/api/groups/:id/update_users/' }
+    update_users: {method : 'POST', url: '/bioshare/api/groups/:id/update_users/' },
+    remove_user: {method : 'POST', url: '/bioshare/api/groups/:id/remove_user/' }
   });
 }])
 

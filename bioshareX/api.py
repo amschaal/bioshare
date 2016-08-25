@@ -24,6 +24,8 @@ from bioshareX.serializers import ShareLogSerializer, ShareSerializer,\
 from rest_framework.permissions import DjangoModelPermissions
 from bioshareX.permissions import ManageGroupPermission
 from rest_framework.response import Response
+from guardian.models import UserObjectPermission
+from django.contrib.contenttypes.models import ContentType
 
 @ajax_login_required
 def get_user(request):
@@ -306,6 +308,27 @@ class GroupViewSet(viewsets.ModelViewSet):
             return Group.objects.all()
         else:
             return self.request.user.groups.all()
-    @detail_route(['POST','GET'])
+    @detail_route(['POST'])
     def update_users(self, request, *args, **kwargs):
+        users =  request.data.get('users')
+        group = self.get_object()
+#         old_users = GroupSerializer(group).data['users']
+#         old_user_ids = [u['id'] for u in old_users]
+#         remove_users = set(old_user_ids) - set(user_ids)
+#         add_users = set(user_ids) - set(old_user_ids)
+        
+        group.user_set = [u['id'] for u in users]
+        #clear permissions
+        ct = ContentType.objects.get_for_model(Group)
+        UserObjectPermission.objects.filter(content_type=ct,object_pk=group.id).delete()
+        #assign permissions
+        for user in users:
+            if 'change_group' in user['permissions']:
+                user = User.objects.get(id=user['id'])
+                assign_perm('change_group', user, group)
         return Response({'foo':'bar'})
+    @detail_route(['POST'])
+    def remove_user(self,request,*args,**kwargs):
+#         user = request.query_params.get('user')
+#         self.get_object().user_set.remove(user)
+        return Response({'status':'success'})

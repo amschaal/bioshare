@@ -25,14 +25,11 @@
             <h3 class="modal-title">Manage "{{group.name}}"</h3>
         </div>
         <div class="modal-body">
-            {{group}}
-		<table ng-table="groupMembers" class="table" show-filter="true">
+		<table ng-table="users" class="table" show-filter="true">
 		    <tr ng-repeat="user in $data">
 		        <td title="'Username'" filter="{ username: 'text'}" sortable="'username'">
-		            {{user.username}}
-				</td>
-		        <td title="'Manager'">
-					<input title="Allow user to manage group" type="checkbox" checklist-model="user.permissions" checklist-value="'change_group'"/>
+		            <i class="icon-trash" ng-click="removeUser($index)"></i> {{user.username}}
+					<span class="pull-right"><label title="Allow user to manage group"><input  type="checkbox" checklist-model="user.permissions" checklist-value="'change_group'"/> Manager</label></span>
 		        </td>
 		    </tr>
 		</table>

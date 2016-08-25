@@ -29,7 +29,7 @@ class GroupSerializer(serializers.ModelSerializer):
 #         data['permissions'] = [{'user':UserSerializer(user).data,'permissions':permissions} for user, permissions in user_perms.iteritems()]
         perm_map = {user.id:permissions for user, permissions in user_perms.iteritems()}
         for user in data['users']:
-            user['permissions'] = [] if not perm_map.has_key(user['id']) else perm_map['id']
+            user['permissions'] = [] if not perm_map.has_key(user['id']) else perm_map[user['id']]
         return data
 class ShareLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

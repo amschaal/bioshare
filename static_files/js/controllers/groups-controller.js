@@ -32,11 +32,15 @@ angular.module('bioshare').controller('GroupModalInstanceCtrl', function ($scope
 
   $scope.group_id = group_id;
   $scope.group = Group.get({id:group_id},function(group){
-	  	$scope.groupMembers = new NgTableParams({}, { dataset: group.users});
+	  	$scope.users = new NgTableParams({}, { dataset: group.users});
 	}
   )
   
-  
+  $scope.removeUser = function(index){
+	  $scope.group.users.splice(index,1);
+	  $scope.users.reload();
+//	  $scope.group.$remove_user({user:user.id},function(data){console.log(data)});
+  }
   $scope.ok = function () {
 	$scope.group.$update_users(function(data){$uibModalInstance.close(data);})
   };
