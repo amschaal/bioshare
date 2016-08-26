@@ -1,9 +1,10 @@
 from django.http.response import Http404
-from rest_framework.permissions import DjangoModelPermissions, SAFE_METHODS
+from rest_framework.permissions import DjangoModelPermissions, SAFE_METHODS,\
+    DjangoObjectPermissions
 from django.contrib.auth.models import Group
 
 
-class ViewObjectPermissions(DjangoModelPermissions):
+class ViewObjectPermissions(DjangoObjectPermissions):
     def has_object_permission(self, request, view, obj):
         if hasattr(view, 'get_queryset'):
             queryset = view.get_queryset()
@@ -28,7 +29,7 @@ class ViewObjectPermissions(DjangoModelPermissions):
                 # to make another lookup.
                 raise Http404
 
-            read_perms = self.get_required_object_permissions('GET', model_cls,view)
+            read_perms = self.get_required_object_permissions('GET', model_cls)
             if not user.has_perms(read_perms, obj):
                 raise Http404
 

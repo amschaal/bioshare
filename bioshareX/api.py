@@ -13,7 +13,7 @@ from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
 from django.contrib.auth.decorators import login_required
-from rest_framework.decorators import api_view, detail_route
+from rest_framework.decorators import api_view, detail_route, permission_classes
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
@@ -301,14 +301,14 @@ class ShareList(generics.ListAPIView):
 
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
-    permission_classes = (ManageGroupPermission,)
+    permission_classes = (DjangoModelPermissions,)
     model = Group
     def get_queryset(self):
-        if self.request.user.is_superuser:
+        if self.request.user.is_superuser or self.request.user.is_staff:
             return Group.objects.all()
         else:
             return self.request.user.groups.all()
-    @detail_route(['POST'])
+    @detail_route(['POST'],permission_classes=[ManageGroupPermission])
     def update_users(self, request, *args, **kwargs):
         users =  request.data.get('users')
         group = self.get_object()
@@ -323,9 +323,9 @@ class GroupViewSet(viewsets.ModelViewSet):
         UserObjectPermission.objects.filter(content_type=ct,object_pk=group.id).delete()
         #assign permissions
         for user in users:
-            if 'change_group' in user['permissions']:
+            if 'manage_group' in user['permissions']:
                 user = User.objects.get(id=user['id'])
-                assign_perm('change_group', user, group)
+                assign_perm('manage_group', user, group)
         return Response({'foo':'bar'})
     @detail_route(['POST'])
     def remove_user(self,request,*args,**kwargs):
