@@ -301,7 +301,7 @@ class ShareList(generics.ListAPIView):
 
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
-    permission_classes = (ManageGroupPermission,)
+    permission_classes = (DjangoModelPermissions,)
     model = Group
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.is_staff:
