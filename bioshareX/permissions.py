@@ -5,7 +5,16 @@ from django.contrib.auth.models import Group
 
 
 class ViewObjectPermissions(DjangoObjectPermissions):
+    perms = []
+    def has_permission(self, request, view):
+        return True #Don't require this.  We want object permissions OR global permissions.
+    def get_required_permissions(self, method, model_cls):
+        print "GET REQUIRED PERMISSIONS"
+        print self.perms
+        return self.perms
     def has_object_permission(self, request, view, obj):
+        if DjangoObjectPermissions.has_permission(self, request, view):
+            return True
         if hasattr(view, 'get_queryset'):
             queryset = view.get_queryset()
         else:
