@@ -7,6 +7,7 @@ from functools import wraps
 from django.http.response import JsonResponse
 from django.conf import settings
 from django.template import Context, Template
+from rest_framework import status
 
 
 class JSONDecorator(object):
@@ -33,7 +34,7 @@ def ajax_login_required(view_func):
     def wrapper(request, *args, **kwargs):
         if request.user.is_authenticated():
             return view_func(request, *args, **kwargs)
-        return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']})
+        return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']},status=status.HTTP_401_UNAUTHORIZED)
     return wrapper
 
 class share_access_decorator(object):
@@ -63,7 +64,8 @@ class share_access_decorator(object):
                 if not perm in user_permissions:
                     if request.is_ajax():
                         if not request.user.is_authenticated():
-                            return json_response({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']})
+                            return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']},status=status.HTTP_401_UNAUTHORIZED)
+                            return json_error({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']})
                         else:
                             return json_error(['You do not have access to this resource.'])
                     else:
@@ -156,8 +158,10 @@ def json_response(dict):
     from django.http.response import HttpResponse
     import json
     return HttpResponse(json.dumps(dict), content_type='application/json')
-def json_error(messages):
-    return json_response({'status':'error','errors':messages})
+def json_error(messages,http_status=None):
+    http_status = http_status or status.HTTP_400_BAD_REQUEST
+    return JsonResponse({'status':'error','errors':messages},status=http_status)
+#     return json_response({'status':'error','errors':messages})
 
 def dictfetchall(sql,args=[]):
     from django.db import connection

@@ -299,5 +299,4 @@ def search_shares(request):
         
     shares = shares.distinct().order_by('-created')  
 #         query = reduce(operator.or_, (Q(pk=x) for x in values))
-        
     return render(request,'share/search.html', {"shares": shares,"query":request.GET})

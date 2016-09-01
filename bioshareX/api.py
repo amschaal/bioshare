@@ -21,7 +21,7 @@ from rest_framework import generics, viewsets, status
 from bioshareX.models import ShareLog, ShareFTPUser
 from bioshareX.serializers import ShareLogSerializer, ShareSerializer,\
     GroupSerializer, UserSerializer
-from rest_framework.permissions import DjangoModelPermissions
+from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from bioshareX.permissions import ManageGroupPermission
 from rest_framework.response import Response
 from guardian.models import UserObjectPermission
@@ -220,6 +220,7 @@ def edit_metadata(request, share, subpath):
         return json_response({'name':name,'notes':metadata.notes,'tags':[tag.name for tag in tags]})
     except Exception, e:
         return json_error([str(e)])
+@ajax_login_required
 def delete_ssh_key(request):
     try:
         id = request.POST.get('id')
@@ -284,16 +285,18 @@ def email_participants(request,share,subdir=None):
         return json_response(response)
     except Exception, e:
         return JsonResponse({'errors':[str(e)]},status=400)
-    
+
 class ShareLogList(generics.ListAPIView):
     serializer_class = ShareLogSerializer
+    permission_classes = (IsAuthenticated,)
     filter_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains'],'share':['exact']}
     def get_queryset(self):
         shares = Share.user_queryset(self.request.user,include_stats=False)
         return ShareLog.objects.filter(share__in=shares)
-    
+
 class ShareList(generics.ListAPIView):
     serializer_class = ShareSerializer
+    permission_classes = (IsAuthenticated,)
     filter_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains']}
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
@@ -301,7 +304,7 @@ class ShareList(generics.ListAPIView):
 
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
-    permission_classes = (DjangoModelPermissions,)
+    permission_classes = (IsAuthenticated,DjangoModelPermissions,)
     model = Group
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.is_staff:

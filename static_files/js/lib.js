@@ -14,7 +14,6 @@ BC.handle_ajax_errors = function(data,message_target){
 		for(var i in data.messages)
 			$.bootstrapGrowl(data.messages[i].content,{type:data.messages[i].type,delay: 10000});//type:(null, 'info', 'error', 'success')
 	}
-		
 }
 BC.ajax_form_submit=function(form,options){
 	var defaults={
@@ -82,3 +81,44 @@ BC.run_template = function(id,context){
 	else
 		return BC.templates[id](context);
 }
+$( document ).ajaxError(function(event, xhr, settings) {
+	console.log('error',xhr.responseJSON,event,xhr,settings);
+	if(xhr.responseJSON.unauthenticated || xhr.status == 403 || xhr.status == 401)
+		BC.login();
+});
+
+angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap","checklist-model"])
+.run(function($rootScope) {
+    $rootScope.getURL = django_js_utils.urls.resolve;
+})
+.config(function($resourceProvider) {
+  $resourceProvider.defaults.stripTrailingSlashes = false;
+})
+.config(['$httpProvider', function($httpProvider) {
+    $httpProvider.defaults.xsrfCookieName = 'csrftoken';
+    $httpProvider.defaults.xsrfHeaderName = 'X-CSRFToken';
+    $httpProvider.interceptors.push(function($q) {
+    	  return {
+    	   'response': function(response) {
+    	      // do something on success
+    	      return response || $q.when(response);
+    	    },
+
+    	   'responseError': function(rejection) {
+    		   console.log('rejection',rejection);
+    		  if (rejection.status == 403 || rejection.status == 401)
+    			  BC.login();
+    	      return $q.reject(rejection);
+    	    }
+    	  };
+    	});
+}])
+.filter('bytes', function() {
+	return function(bytes, precision) {
+		if (bytes==0 ||isNaN(parseFloat(bytes)) || !isFinite(bytes)) return '-';
+		if (typeof precision === 'undefined') precision = 1;
+		var units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'],
+			number = Math.floor(Math.log(bytes) / Math.log(1024));
+		return (bytes / Math.pow(1024, Math.floor(number))).toFixed(precision) +  ' ' + units[number];
+	}
+});
