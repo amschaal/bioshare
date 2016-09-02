@@ -57,7 +57,9 @@
  <ul class="nav nav-tabs" id="page-tabs">
   <li class="active"><a href="#file-tab" data-toggle="tab">Files</a></li>
   <li><a href="#search-tab" data-toggle="tab">Search</a></li>
-  <li><a href="#log-tab" data-toggle="tab">Logs</a></li>
+  {% if user.is_authenticated %}
+	<li><a href="#log-tab" data-toggle="tab">Logs</a></li>
+  {% endif %}
 </ul>
 <div class="tab-content">
   <div class="tab-pane active" id="file-tab">
@@ -179,6 +181,7 @@
   		<div id="searchResults">
   		</div>
   </div>
+  {% if user.is_authenticated %}
   <div class="tab-pane" id="log-tab">
 	    <div ng-controller="LogController" ng-init="init('{{share.id}}')">
 	    {% verbatim %}
@@ -194,7 +197,7 @@
 	    {% endverbatim %}
 	    </div>
   </div>
-  
+  {% endif %}
   
 
   

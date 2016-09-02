@@ -269,6 +269,8 @@ function modify_name(){
 }
 
 function open_move_modal(){
+	if (!BC.move_modal_initialized && share_perms.indexOf("write_to_share") > -1 && share_perms.indexOf("delete_share_files") > -1 )
+    	init_dynatree();
 	$("#tree").dynatree("getTree").reload();
 	$('#move-to-modal').modal('show');
 }
@@ -350,6 +352,7 @@ function init_dynatree(){
 //	        });
 	      }
 	    });
+	 BC.move_modal_initialized = true;
 
 }
 
@@ -446,7 +449,7 @@ $(function () {
     $('#file-table').on('click','span.tag',function(){hide_other_tags($(this).text())});
     filtered_tags = [];
     $('#reset-tag-button').click(reset_tags);
-    init_dynatree();
+    
 });
 function hide_other_tags(tag){
 	if(filtered_tags.indexOf(tag) >= 0)
