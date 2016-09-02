@@ -83,8 +83,8 @@ BC.run_template = function(id,context){
 }
 $( document ).ajaxError(function(event, xhr, settings) {
 	console.log('error',xhr.responseJSON,event,xhr,settings);
-	if(xhr.responseJSON.unauthenticated || xhr.status == 403 || xhr.status == 401)
-		BC.login();
+//	if(xhr.responseJSON.unauthenticated || xhr.status == 403 || xhr.status == 401)
+//		BC.login();
 });
 
 angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap","checklist-model"])
@@ -106,8 +106,8 @@ angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap","checklist-mod
 
     	   'responseError': function(rejection) {
     		   console.log('rejection',rejection);
-    		  if (rejection.status == 403 || rejection.status == 401)
-    			  BC.login();
+//    		  if (rejection.status == 403 || rejection.status == 401)
+//    			  BC.login();
     	      return $q.reject(rejection);
     	    }
     	  };
