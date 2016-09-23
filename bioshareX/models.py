@@ -439,4 +439,18 @@ class ShareLog(models.Model):
             share.save()
         return log
 
+# class MessageManager(models.Manager):
+#     def get_queryset(self):
+#         return super(MessageManager, self).get_queryset().filter(author='Roald Dahl')
+
+class Message(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=50)
+    description = models.TextField(null=True,blank=True)
+    active = models.BooleanField(default=True)
+    expires = models.DateField(null=True,blank=True)
+#     active_objects = MessageManager()
+    def __unicode__(self):
+        return self.title
+
 Group._meta.permissions += (('manage_group', 'Manage group'),)

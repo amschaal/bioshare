@@ -1,5 +1,5 @@
 from django.contrib import admin
-from bioshareX.models import Share, Filesystem
+from bioshareX.models import Share, Filesystem, Message
 from guardian.admin import GuardedModelAdmin
 from django.contrib.auth.admin import UserAdmin as OriginalUserAdmin
 from django.contrib.auth.models import User
@@ -33,4 +33,4 @@ finally:
 
 admin.site.register(Share, ShareAdmin)
 admin.site.register(Filesystem, FilesystemAdmin)
-
+admin.site.register(Message)
