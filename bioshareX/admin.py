@@ -3,6 +3,7 @@ from bioshareX.models import Share, Filesystem, Message
 from guardian.admin import GuardedModelAdmin
 from django.contrib.auth.admin import UserAdmin as OriginalUserAdmin
 from django.contrib.auth.models import User
+
 class ShareAdmin(GuardedModelAdmin):
     pass
 #     excl = ('name', 'notes')
@@ -24,13 +25,15 @@ class UserAdmin(OriginalUserAdmin):
 #         if db_field.name == "cars":
 #             kwargs["queryset"] = Car.objects.filter(owner=request.user)
 #         return super(MyModelAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
- 
+
 try:
     admin.site.unregister(User)
 finally:
     admin.site.register(User, UserAdmin)
 
+class MessageAdmin(admin.ModelAdmin):
+    exclude = ('viewed_by',)
 
 admin.site.register(Share, ShareAdmin)
 admin.site.register(Filesystem, FilesystemAdmin)
-admin.site.register(Message)
+admin.site.register(Message,MessageAdmin)

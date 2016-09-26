@@ -449,6 +449,7 @@ class Message(models.Model):
     description = models.TextField(null=True,blank=True)
     active = models.BooleanField(default=True)
     expires = models.DateField(null=True,blank=True)
+    viewed_by = models.ManyToManyField(User)
 #     active_objects = MessageManager()
     def __unicode__(self):
         return self.title
