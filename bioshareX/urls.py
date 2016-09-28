@@ -3,9 +3,10 @@ from bioshareX import views as bioshare_views, jsutils
 from bioshareX import api as api_views
 from bioshareX import file_views
 from rest_framework import routers
-from bioshareX.api import GroupViewSet
+from bioshareX.api import GroupViewSet, MessageViewSet
 router = routers.DefaultRouter()
 router.register(r'groups', GroupViewSet,'Group')
+router.register(r'messages', MessageViewSet,'Message')
 
 
 urlpatterns = [

@@ -1,4 +1,4 @@
-from bioshareX.models import ShareLog, Share, Tag, ShareStats
+from bioshareX.models import ShareLog, Share, Tag, ShareStats, Message
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group
 from django.core.urlresolvers import reverse
@@ -56,3 +56,7 @@ class ShareSerializer(serializers.ModelSerializer):
     class Meta:
         model = Share
 
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ('id','title','description')

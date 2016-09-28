@@ -18,14 +18,15 @@ from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
 from rest_framework import generics, viewsets, status
-from bioshareX.models import ShareLog, ShareFTPUser
+from bioshareX.models import ShareLog, ShareFTPUser, Message
 from bioshareX.serializers import ShareLogSerializer, ShareSerializer,\
-    GroupSerializer, UserSerializer
+    GroupSerializer, UserSerializer, MessageSerializer
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from bioshareX.permissions import ManageGroupPermission
 from rest_framework.response import Response
 from guardian.models import UserObjectPermission
 from django.contrib.contenttypes.models import ContentType
+import datetime
 
 @ajax_login_required
 def get_user(request):
@@ -335,3 +336,17 @@ class GroupViewSet(viewsets.ModelViewSet):
 #         user = request.query_params.get('user')
 #         self.get_object().user_set.remove(user)
         return Response({'status':'success'})
+
+class MessageViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = MessageSerializer
+    permission_classes = (IsAuthenticated,)
+    model = Message
+    def get_queryset(self):
+        #todo: remove messages seen by self.request.user
+        return Message.objects.filter(active=True).filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=self.request.user.id)
+    @detail_route(['POST','GET'],permission_classes=[IsAuthenticated])
+    def dismiss(self, request, pk=None):
+        message = self.get_object()
+        message.viewed_by.add(request.user)
+        message.save()
+        return Response({'status':'Message dismissed'})
