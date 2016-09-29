@@ -115,6 +115,7 @@
           {% endif %}
         </div><!--/span-->
         <div class="{% if request.user.is_authenticated %}span9{% else %}span12{%endif%}">
+        	<message-list></message-list>
 			{% block content %}
      	 	{% endblock %}
         </div><!--/span-->
@@ -130,6 +131,8 @@
     	var preview_file_url = "{% url 'preview_file' share='000000000000000' subpath='' %}";
     </script>
     {% compress js %}
+    <script src="{% static "js/resources/models.js" %}"></script>
+    <script src="{% static "js/directives/message-directives.js" %}"></script>
     <script src="{% static "lib/json2.min.js" %}"></script>
     <script src="{% static "lib/handlebars.js" %}"></script>
     <script src="{% static "js/csrf.js" %}"></script>

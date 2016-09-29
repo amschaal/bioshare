@@ -31,4 +31,9 @@ angular.module('BioshareResources', ['ngResource'])
     remove_user: {method : 'POST', url: '/bioshare/api/groups/:id/remove_user/' }
   });
 }])
-
+.factory('Message', ['$resource', function ($resource) {
+  return $resource('/bioshare/api/messages/:id/', {id:'@id'}, {
+    query: { method: 'GET', isArray:true, transformResponse:transformDjangoRestResponse }, //, transformResponse:transformDjangoRestResponse
+    dismiss: {method : 'POST', url: '/bioshare/api/messages/:id/dismiss/' }
+  });
+}]);
