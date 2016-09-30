@@ -11,22 +11,6 @@ angular.module('messages.directives', ['BioshareResources'])
 	    controller: function($scope, $http, $element){
 	    	this.$scope = $scope;
 	    	$scope.messages = Message.query();
-//	    	{},
-//	    			function(subscriptions){
-//	    				console.log('subscriptions',subscriptions);
-//	    				if (subscriptions.length > 1)
-//	    					throw 'A singular subscription object was not found';
-//	    				else if (subscriptions.length == 1)
-//	    					$scope.subscription = subscriptions[0];
-//	    				else
-//	    					$scope.subscription = new Subscription({object_id:$scope.objectId,content_type:$scope.contentType})
-////	    				$scope.$watch('subscription.email',function(){
-////	    					$scope.save();
-////	    				});
-//	    			},
-//	    			function(subscriptions){console.log('error',subscriptions);}
-//	    	);
-//	    	$scope.notifications = Notification.query({object_id:$scope.objectId,content_type:$scope.contentType});
 	    	$scope.open = function (message,index) {
 
 	    	    var modalInstance = $uibModal.open({
@@ -56,7 +40,6 @@ angular.module('messages.directives', ['BioshareResources'])
 	}).controller('MessageCtrl', function ($scope, $uibModalInstance, message) {
 		  $scope.message = message;
 		  $scope.dismiss = function () {
-//		    $uibModalInstance.close($scope.message);
 		    $scope.message.$dismiss(function(){$uibModalInstance.close($scope.message);});
 		  };
 		
