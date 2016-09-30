@@ -51,7 +51,7 @@ angular.module('messages.directives', ['BioshareResources'])
 angular.module('template/messages/messages.html', []).run(['$templateCache', function($templateCache) {
 	  $templateCache.put('template/messages/messages.html',
 	'<div ng-repeat="message in messages">\
-			  <div class="alert alert-danger" role="alert"> <i class="icon-warning-sign"></i> System message: <a ng-click="open(message,$index)" href="#">"{{message.title}}"</a></div>\
+			  <div class="alert alert-danger" role="alert"> <i class="icon-warning-sign"></i> <b>{{message.created | date : "short"}}</b>: <a ng-click="open(message,$index)" href="#">"{{message.title}}"</a></div>\
 	</div>'
 	  );
 	}]);

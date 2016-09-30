@@ -59,4 +59,4 @@ class ShareSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
-        fields = ('id','title','description')
+        fields = ('id','created','title','description')
