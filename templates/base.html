@@ -115,7 +115,9 @@
           {% endif %}
         </div><!--/span-->
         <div class="{% if request.user.is_authenticated %}span9{% else %}span12{%endif%}">
+        	{% if request.user.is_authenticated %}
         	<message-list></message-list>
+			{% endif %}
 			{% block content %}
      	 	{% endblock %}
         </div><!--/span-->
