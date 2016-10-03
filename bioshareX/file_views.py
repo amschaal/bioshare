@@ -50,8 +50,11 @@ def create_folder(request, share, subdir=None):
         folder_path = share.create_folder(form.cleaned_data['name'],subdir)
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
         data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}]
-    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FOLDER_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
-    return json_response(data)
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FOLDER_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
+        return json_response(data)
+    else:
+        return json_error([error for name, error in form.errors.items()])
+    
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])

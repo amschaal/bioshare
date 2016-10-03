@@ -102,7 +102,7 @@ class UploadFileForm(forms.Form):
     file  = forms.FileField()
     
 class FolderForm(forms.Form):
-    name = forms.RegexField(regex=r'^[\w\d\ ]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'})
+    name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
 
 class RenameForm(forms.Form):
     from_name = forms.RegexField(regex=r'^[^/]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'},widget=forms.HiddenInput())
