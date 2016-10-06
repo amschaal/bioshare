@@ -26,7 +26,7 @@
 	{% if "admin" in share_perms %}
 		<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary pull-right margin-3"><i class="icon-lock icon-white"></i> Permissions</a>
 	{% endif %}
-	{% if "write_to_share" in share_perms and user.is_authenticated %}<button class="btn btn-primary pull-right margin-3" id="email-users"><i class="icon-envelope icon-white"></i> Email</a>{%endif%}
+	{% if "write_to_share" in share_perms or "admin" in share_perms %}<button class="btn btn-primary pull-right margin-3" id="email-users"><i class="icon-envelope icon-white"></i> Email</a>{%endif%}
 </h1>
 
 
