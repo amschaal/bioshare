@@ -8,6 +8,7 @@ from django.http.response import JsonResponse
 from django.conf import settings
 from django.template import Context, Template
 from rest_framework import status
+from django.db.models.query_utils import Q
 
 
 class JSONDecorator(object):
@@ -54,7 +55,7 @@ class share_access_decorator(object):
         """
         def wrapped_f(*args,**kwargs):
             from bioshareX.models import Share
-            share = Share.objects.get(id=kwargs[self.share_param])
+            share = Share.objects.get(Q(id=kwargs[self.share_param])|Q(slug=kwargs[self.share_param]))
             kwargs[self.share_param]=share
             request = args[0]
             user_permissions = share.get_user_permissions(request.user)

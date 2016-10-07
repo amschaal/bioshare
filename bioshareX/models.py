@@ -47,6 +47,7 @@ class Filesystem(models.Model):
         return '%s: %s' %(self.name, self.path)
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
+    slug = models.SlugField(max_length=50,blank=True,null=True)
     parent = models.ForeignKey('self',null=True,blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now_add=True,null=True,blank=True)
@@ -69,6 +70,9 @@ class Share(models.Model):
     PERMISSION_ADMIN = 'admin'
     def __unicode__(self):
         return self.name
+    @property
+    def slug_or_id(self):
+        return self.slug if self.slug else self.id
     def get_stats(self):
         stats = ShareStats.objects.get_or_create(share=self)[0]
         stats.update_stats()
