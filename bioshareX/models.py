@@ -73,6 +73,9 @@ class Share(models.Model):
     @property
     def slug_or_id(self):
         return self.slug if self.slug else self.id
+    @staticmethod
+    def get_by_slug_or_id(slug_or_id):
+        return Share.objects.get(Q(id=slug_or_id)|Q(slug=slug_or_id))
     def get_stats(self):
         stats = ShareStats.objects.get_or_create(share=self)[0]
         stats.update_stats()

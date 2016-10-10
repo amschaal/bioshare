@@ -44,7 +44,11 @@ class ShareForm(forms.ModelForm):
             if not self.the_instance.link_to_path and path:
                 raise forms.ValidationError('It is not possible to change a regular share to a linked share.')
         return path
-    
+    def clean_slug(self):
+        slug = self.cleaned_data.get('slug',None)
+        if slug and Share.objects.filter(slug=slug).first():
+            self.add_error('slug', forms.ValidationError('This URL already exists.  Please try another.'))
+        return slug
     def clean(self):
         cleaned_data = super(ShareForm, self).clean()
         if self.the_instance:
@@ -57,7 +61,9 @@ class ShareForm(forms.ModelForm):
         return cleaned_data         
     class Meta:
         model = Share
-        fields = ('name', 'notes','filesystem','link_to_path','read_only')
+        fields = ('name','slug', 'notes','filesystem','link_to_path','read_only')
+        labels = {'slug':'Friendly URL'}
+        help_texts = {'slug':'Optionally enter a string to be used in the URL instead of the randomly generated ID.'}
 
 class SubShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})

@@ -55,7 +55,7 @@ class share_access_decorator(object):
         """
         def wrapped_f(*args,**kwargs):
             from bioshareX.models import Share
-            share = Share.objects.get(Q(id=kwargs[self.share_param])|Q(slug=kwargs[self.share_param]))
+            share = Share.get_by_slug_or_id(kwargs[self.share_param])
             kwargs[self.share_param]=share
             request = args[0]
             user_permissions = share.get_user_permissions(request.user)
@@ -97,7 +97,7 @@ class safe_path_decorator(object):
             share = kwargs.get(self.share_param,None)
             if share:
                 if not isinstance(kwargs[self.share_param], Share):
-                    share = Share.objects.get(id=share)
+                    share = Share.get_by_slug_or_id(share)
                 if not paths_contain(settings.DIRECTORY_WHITELIST,share.get_realpath()):
                     raise Exception('Share has an invalid root path: %s'%share.get_realpath())
             path = kwargs.get(self.path_param,None)
