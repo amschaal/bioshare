@@ -9,7 +9,7 @@
 	  <legend>Create a new Share</legend>
 	  {% if share %}
 	  	<p>
-		  	This will create a new share from the '{{subdir}}' directory from the <a href="{% url 'list_directory' share.id %}">{{share.name}}</a> share.
+		  	This will create a new share from the '{{subdir}}' directory from the <a href="{% url 'list_directory' share.slug_or_id %}">{{share.name}}</a> share.
 		  	Please note that any file changes in this share will be reflected in the original share, and vice-versa.  
 		  	Permissions assigned for each share will only effect access to the files accessible from that share. 
 	  	</p>

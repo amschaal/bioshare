@@ -18,7 +18,7 @@
 {% block content %}
 
 <h1>
-	<a href="{% url 'list_directory' share.id %}" data-toggle="tooltip" title="{{share.notes}}">{{share.name}}</a>
+	<a href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip" title="{{share.notes}}">{{share.name}}</a>
 	{% if owner or user.is_superuser %}
 		<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete Share</a>
 		<a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3"><i class="icon-edit icon-white"></i> Edit</a>
@@ -44,10 +44,10 @@
 		<b title="{% for u in shared_users%}{{u}} {% endfor%}">{{shared_users|length}} user(s)</b> and <b title="{% for g in shared_groups%}{{g}} {% endfor%}">{{shared_groups|length}} group(s)</b>
 	</span>
 {% if share.parent %} 
-<br>Shared from <a href="{% url 'list_directory' share.parent.id share.sub_directory %}" data-toggle="tooltip" title="{{subshare.notes}}">{{share.parent.name}}</a>
+<br>Shared from <a href="{% url 'list_directory' share.parent.slug_or_id share.sub_directory %}" data-toggle="tooltip" title="{{subshare.notes}}">{{share.parent.name}}</a>
 {% endif %}
 {% if subshare %} 
-<br><b>Reshared as:</b> <a href="{% url 'list_directory' subshare.id %}" data-toggle="tooltip" title="{{subshare.notes}}">{{subshare.name}}</a>
+<br><b>Reshared as:</b> <a href="{% url 'list_directory' subshare.slug_or_id %}" data-toggle="tooltip" title="{{subshare.notes}}">{{subshare.name}}</a>
 {% endif %}
 {% endif %}
 </div>
@@ -126,7 +126,7 @@
 			</td>
 			<td class="name" {% if dir.metadata.notes %}data-toggle="tooltip" title="{{dir.metadata.notes}}"{% endif %}>
 				<i class="fam-folder"></i>
-				{% if dir.share %}<a href="{% url 'list_directory' dir.share.id %}"><i class="fam-group pull-right" data-toggle="tooltip" title="Shared as '{{dir.share.name}}'" data-action="preview"></i></a>{% endif %}
+				{% if dir.share %}<a href="{% url 'list_directory' dir.share.slug_or_id %}"><i class="fam-group pull-right" data-toggle="tooltip" title="Shared as '{{dir.share.name}}'" data-action="preview"></i></a>{% endif %}
 				<a href="{{dir.name}}">{{ dir.name }}</a>
 			</td>
 			<td class="tags">

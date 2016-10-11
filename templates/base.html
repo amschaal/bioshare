@@ -101,13 +101,13 @@
               {% if my_recent_shares|length != 0 %}
               <li class="nav-header">My Latest Shares</li>
               {% for share in my_recent_shares %}
-              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{{share.name}}</a></li>	
+              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{{share.name}}</a></li>	
               {% endfor %}
               {% endif %}
               {% if shared_with_me|length != 0 %}
               <li class="nav-header">Recently shared with me</li>
               {% for share in shared_with_me %}
-              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{{share.name}}</a></li>
+              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{{share.name}}</a></li>
               {% endfor %}
               {% endif %}
             </ul>

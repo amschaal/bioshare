@@ -64,7 +64,7 @@ def edit_share(request,share):
         if form.is_valid():
             share = form.save(commit=False)
             share.set_tags(form.cleaned_data['tags'].split(','))
-            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id}))
+            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
     else:
         tags = ','.join([tag.name for tag in share.tags.all()])
         form = ShareForm(request.user,instance=share)
@@ -160,7 +160,7 @@ def create_share(request):
             except Exception, e:
                 share.delete()
                 return render(request, 'share/new_share.html', {'form': form, 'error':e.message})
-            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id}))
+            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
     else:
         form = ShareForm(request.user)
     return render(request, 'share/new_share.html', {'form': form})
@@ -188,7 +188,7 @@ def create_subshare(request,share,subdir):
             except Exception, e:
                 subshare.delete()
                 return render(request, 'share/new_share.html', {'form': form, 'error':e.message,'share':share,'subdir':subdir})
-            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':subshare.id}))
+            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':subshare.slug_or_id}))
     else:
         name = os.path.basename(os.path.normpath(subdir))
         notes = "Shared from '%s': %s" % (share.name, subdir)
@@ -244,7 +244,7 @@ def go_to_file_or_folder(request, share, subpath=None):
     import os
     path = share.get_path() if subpath is None else join(share.get_path(),subpath)
     if isdir(path):
-        return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.id,'subdir':os.path.normpath(subpath) + os.sep}))
+        return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id,'subdir':os.path.normpath(subpath) + os.sep}))
     else:# isfile(path)
         return HttpResponseRedirect(reverse('download_file',kwargs={'share':share.id,'subpath':subpath}))
     

@@ -13,7 +13,7 @@
     <textarea name="body" class="input-block-level" rows="15">Greetings,
 
 "{{share.name}}" has been updated on Bioshare.  Please visit the following URL to see changes:
-{{SITE_URL}}{% url 'list_directory' share.id %}
+{{SITE_URL}}{% url 'list_directory' share.slug_or_id %}
 </textarea>
     </fieldset>
     </form>

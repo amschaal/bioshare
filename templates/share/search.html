@@ -62,7 +62,7 @@
 	<tbody>
 		{% for share in shares%}
 		<tr>
-			<td data-toggle="tooltip" title="{{share.notes}}"><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% endif %} href="{% url 'list_directory' share.id %}">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{{share.name}}</a></td>
+			<td data-toggle="tooltip" title="{{share.notes}}"><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% endif %} href="{% url 'list_directory' share.slug_or_id %}">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{{share.name}}</a></td>
 			<td>{{share.owner.email}}</td>
 			<td>{{share.created|date:"m/d/Y"}}</td>
 			<td data-toggle="tooltip" title="Last updated: {{share.stats.updated|date:'r'}}">{{share.stats.num_files}}</td>

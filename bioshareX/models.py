@@ -11,6 +11,7 @@ from bioshareX.utils import test_path, paths_contain, path_contains
 from jsonfield import JSONField
 import datetime
 from guardian.shortcuts import get_users_with_perms, get_objects_for_group
+from django.core.urlresolvers import reverse
 
 # Create your models here.
 def pkgen():
@@ -76,6 +77,10 @@ class Share(models.Model):
     @staticmethod
     def get_by_slug_or_id(slug_or_id):
         return Share.objects.get(Q(id=slug_or_id)|Q(slug=slug_or_id))
+    def get_url(self,subpath=None):
+        if subpath:
+            return reverse('list_directory',kwargs={'share':self.slug_or_id,'subpath':subpath})
+        return reverse('list_directory',kwargs={'share':self.slug_or_id})
     def get_stats(self):
         stats = ShareStats.objects.get_or_create(share=self)[0]
         stats.update_stats()

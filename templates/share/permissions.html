@@ -38,7 +38,7 @@ background-color:yellow;
 }
 </style>
 
-<h1>Permissions: <a href="{% url 'list_directory' share.id %}">{{share.name}}</a></h1>
+<h1>Permissions: <a href="{% url 'list_directory' share.slug_or_id %}">{{share.name}}</a></h1>
 <div class="row">
   <div class="span5">
     <legend>General Settings</legend>

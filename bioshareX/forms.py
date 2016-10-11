@@ -46,8 +46,10 @@ class ShareForm(forms.ModelForm):
         return path
     def clean_slug(self):
         slug = self.cleaned_data.get('slug',None)
-        if slug and Share.objects.filter(slug=slug).first():
-            self.add_error('slug', forms.ValidationError('This URL already exists.  Please try another.'))
+        if slug:
+            share = Share.objects.filter(slug=slug).first()
+            if share and self.instance and share.id != self.instance.id:
+                self.add_error('slug', forms.ValidationError('This URL already exists.  Please try another.'))
         return slug
     def clean(self):
         cleaned_data = super(ShareForm, self).clean()

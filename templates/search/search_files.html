@@ -21,7 +21,7 @@
 {%if sr.results|length != 0 %}
 {%for r in sr.results %}
 <tr>
-	<td><a href="{% url 'list_directory' sr.share.id %}" data-toggle="tooltip" title="{{sr.share.notes}}">{{sr.share.name}}</a></td>
+	<td><a href="{% url 'list_directory' sr.share.slug_or_id %}" data-toggle="tooltip" title="{{sr.share.notes}}">{{sr.share.name}}</a></td>
 	<td>{% link_full_path share=sr.share subpath=r %}</td>
 </tr>
 {% endfor %}
