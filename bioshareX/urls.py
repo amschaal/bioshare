@@ -1,12 +1,12 @@
 from django.conf.urls import  url, include
 from bioshareX import views as bioshare_views, jsutils
-from bioshareX import api as api_views
+from bioshareX.api import views as api_views
 from bioshareX import file_views
 from rest_framework import routers
-from bioshareX.api import GroupViewSet, MessageViewSet
+# from bioshareX.api.views import GroupViewSet, MessageViewSet
 router = routers.DefaultRouter()
-router.register(r'groups', GroupViewSet,'Group')
-router.register(r'messages', MessageViewSet,'Message')
+router.register(r'groups', api_views.GroupViewSet,'Group')
+router.register(r'messages', api_views.MessageViewSet,'Message')
 
 
 urlpatterns = [
@@ -23,7 +23,6 @@ urlpatterns = [
     url(r'^view/(?P<share>\w+)/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory'),
     url(r'^wget/(?P<share>\w+)/(?:(?P<subdir>.*/))?wget_index.html$', bioshare_views.wget_listing, name='wget_listing'),
     url(r'^shares/$', bioshare_views.list_shares, name='list_shares'),
-    url(r'^search/$', bioshare_views.search_shares, name='search_shares'),
     url(r'^permissions/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.share_permissions, name='share_permissions'),
 #     url(r'^goto/(?P<share>[\da-zA-Z]{15})/(?:(?P<subpath>.*/?))?$', bioshare_views.go_to_file_or_folder, name='go_to_file_or_folder'),
     url(r'^goto/(?P<share>\w+)/(?:(?P<subpath>.*/?))?$', bioshare_views.go_to_file_or_folder, name='go_to_file_or_folder'),

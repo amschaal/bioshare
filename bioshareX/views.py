@@ -17,7 +17,7 @@ from bioshareX.forms import SubShareForm
 from django.contrib.auth.models import User
 import operator
 from django.db.models.query_utils import Q
-from bioshareX.serializers import UserSerializer
+from bioshareX.api.serializers import UserSerializer
 from rest_framework.renderers import JSONRenderer
 from bioshareX.models import ShareFTPUser
 
@@ -270,33 +270,3 @@ def search_files(request):
             results.append({'share':s,'results':r})
     return render(request, 'search/search_files.html', {'query':query,'results':results})
 
-@login_required
-def search_shares(request):
-    # View code here...
-    tags = request.GET.get('TAGS',None)
-    tags_operator = request.GET.get('TAGS_OPERATOR','OR')
-    emails = request.GET.get('USERS',None)
-    shares = Share.user_queryset(request.user,include_stats=False)
-    
-    from guardian.shortcuts import get_objects_for_user
-    if emails:
-        emails = [email.strip() for email in emails.split(',')]
-        users = User.objects.filter(email__in=emails)
-        
-        share_ids = []
-        for u in users:
-            u_share_ids = [s.id for s in get_objects_for_user(u, 'bioshareX.view_share_files')]
-            #OR
-            share_ids += u_share_ids
-        shares = shares.filter(id__in=share_ids)
-    if tags:
-        tags = [tag.strip() for tag in tags.split(',')]
-        if tags_operator == 'AND':
-            for tag in tags:
-                shares = shares.filter(tags__name=tag)
-        else: #OR
-            shares = shares.filter(tags__name__in=tags)
-        
-    shares = shares.distinct().order_by('-created')  
-#         query = reduce(operator.or_, (Q(pk=x) for x in values))
-    return render(request,'share/search.html', {"shares": shares,"query":request.GET})

@@ -74,3 +74,11 @@ span.tag{
   white-space: nowrap;
   max-width:400px;
 }
+.checkbox-inline{
+	display: inline-block;
+	padding: 5px;
+}
+.checkbox-inline input{
+	padding: 0px;
+	margin: 0px;
+}

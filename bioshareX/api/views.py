@@ -4,11 +4,11 @@ from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect, HttpResponse,\
     JsonResponse
 from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
-from models import Share, SSHKey, MetaData, Tag
-from forms import MetaDataForm, json_form_validate
+from bioshareX.models import Share, SSHKey, MetaData, Tag
+from bioshareX.forms import MetaDataForm, json_form_validate
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
 import json
-from utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email, fetchall
+from bioshareX.utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email, fetchall
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
@@ -19,7 +19,7 @@ from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
 from rest_framework import generics, viewsets, status
 from bioshareX.models import ShareLog, ShareFTPUser, Message
-from bioshareX.serializers import ShareLogSerializer, ShareSerializer,\
+from bioshareX.api.serializers import ShareLogSerializer, ShareSerializer,\
     GroupSerializer, UserSerializer, MessageSerializer
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from bioshareX.permissions import ManageGroupPermission
@@ -27,6 +27,8 @@ from rest_framework.response import Response
 from guardian.models import UserObjectPermission
 from django.contrib.contenttypes.models import ContentType
 import datetime
+from bioshareX.api.filters import UserShareFilter, ShareTagFilter,\
+    GroupShareFilter
 
 @ajax_login_required
 def get_user(request):
@@ -189,7 +191,7 @@ def set_permissions(request,share,json=None):
 
 @share_access_decorator(['view_share_files'])
 def search_share(request,share,subdir=None):
-    from utils import find
+    from bioshareX.utils import find
     query = request.GET.get('query',False)
     response={}
     if query:
@@ -298,6 +300,7 @@ class ShareLogList(generics.ListAPIView):
 class ShareList(generics.ListAPIView):
     serializer_class = ShareSerializer
     permission_classes = (IsAuthenticated,)
+    filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter]
     filter_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains']}
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
