@@ -44,11 +44,17 @@
 		<b title="{% for u in shared_users%}{{u}} {% endfor%}">{{shared_users|length}} user(s)</b> and <b title="{% for g in shared_groups%}{{g}} {% endfor%}">{{shared_groups|length}} group(s)</b>
 	</span>
 {% if share.parent %} 
-<br>Shared from <a href="{% url 'list_directory' share.parent.slug_or_id share.sub_directory %}" data-toggle="tooltip" title="{{subshare.notes}}">{{share.parent.name}}</a>
+	<br>Shared from <a href="{% url 'list_directory' share.parent.slug_or_id share.sub_directory %}" data-toggle="tooltip" title="{{subshare.notes}}">{{share.parent.name}}</a>
 {% endif %}
 {% if subshare %} 
-<br><b>Reshared as:</b> <a href="{% url 'list_directory' subshare.slug_or_id %}" data-toggle="tooltip" title="{{subshare.notes}}">{{subshare.name}}</a>
+	<br><b>Reshared as:</b> <a href="{% url 'list_directory' subshare.slug_or_id %}" data-toggle="tooltip" title="{{subshare.notes}}">{{subshare.name}}</a>
 {% endif %}
+{% endif %}
+{% if share.notes %}
+	<br><b>Description:</b> {{share.notes}}
+{% endif %}
+{% if share.tags.count > 0 %}
+	<br><b>Tags:</b> {% for tag in share.tags.all %}{{tag.name}}{% if not forloop.last %}, {% endif %}{% endfor %}
 {% endif %}
 </div>
 

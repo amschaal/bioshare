@@ -56,7 +56,7 @@ class Share(models.Model):
     name = models.CharField(max_length=125)
     secure = models.BooleanField(default=True)
     read_only = models.BooleanField(default=False)
-    notes = models.TextField()
+    notes = models.TextField(null=True,blank=True)
     tags = models.ManyToManyField('Tag')
     link_to_path = models.CharField(max_length=200,blank=True,null=True)
     sub_directory = models.CharField(max_length=200,blank=True,null=True)

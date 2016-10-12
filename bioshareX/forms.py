@@ -10,7 +10,7 @@ import os
 
 class ShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
-    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:\(\),;\\\/]+$',error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}))
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:\(\),;\\\/]+$',label='Description',error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}),required=False)
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
@@ -64,16 +64,16 @@ class ShareForm(forms.ModelForm):
     class Meta:
         model = Share
         fields = ('name','slug', 'notes','filesystem','link_to_path','read_only')
-        labels = {'slug':'Friendly URL'}
+        labels = {'slug':'Friendly URL','notes':'Description'}
         help_texts = {'slug':'Optionally enter a string to be used in the URL instead of the randomly generated ID.'}
 
 class SubShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
-    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:,\/]+$',error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}))
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:,\/]+$',error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}),required=False)
     class Meta:
         model = Share
         fields = ('name', 'notes')
-        
+        labels = {'notes':'Description'}
 class MetaDataForm(forms.Form):
     notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@]+$',required=False,error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}))
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
