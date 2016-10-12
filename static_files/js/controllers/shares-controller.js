@@ -7,5 +7,7 @@ angular.module("bioshare")
 	$scope.init = function(){
 		$scope.tableParams = DRFNgTableParams('/bioshare/api/shares/',{sorting: { updated: "desc" },filter:{}});
 	}
-	
+	$scope.setFilter = function (field,value){
+		$scope.tableParams.filter()[field] = value;
+	}
  }]);
