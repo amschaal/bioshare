@@ -301,10 +301,10 @@ class ShareList(generics.ListAPIView):
     serializer_class = ShareSerializer
     permission_classes = (IsAuthenticated,)
     filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter]
-    filter_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains']}
+    filter_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains'],'path_exists':['exact']}
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
-        return Share.user_queryset(self.request.user,include_stats=False)
+        return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags')
 
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer

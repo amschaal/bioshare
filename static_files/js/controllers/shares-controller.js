@@ -4,8 +4,9 @@ angular.module("bioshare")
 //		$scope.show_filters = !$scope.show_filters;
 //	};
 	$scope.cols = {'Share':true,'Description':true,'Tags':true,'Owner':true,'Users':false,'Groups':false,'Created':false,'Modified':true,'Files':false,'Size':true}
-	$scope.init = function(){
-		$scope.tableParams = DRFNgTableParams('/bioshare/api/shares/',{sorting: { updated: "desc" },filter:{}});
+	$scope.init = function(filters){
+		console.log('filters',filters);
+		$scope.tableParams = DRFNgTableParams('/bioshare/api/shares/',{sorting: { updated: "desc" },filter:filters});
 	}
 	$scope.setFilter = function (field,value){
 		$scope.tableParams.filter()[field] = value;

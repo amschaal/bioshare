@@ -38,13 +38,8 @@ def list_shares(request):
     # View code here...
 #     shares = Share.objects.filter(owner=request.user)
 #     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
-    if request.GET.has_key('bad_paths'):
-        shares = Share.user_queryset(request.user).filter(path_exists=False).order_by('-created')
-    else:
-        shares = Share.user_queryset(request.user).order_by('-created')
     total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
-    stats = ShareStats.objects.filter(share__owner=request.user)
-    return render(request,'share/shares.html', {"shares": shares,"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths')})
+    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths')})
 
 def forbidden(request):
     # View code here...
