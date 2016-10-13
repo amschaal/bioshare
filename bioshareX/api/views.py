@@ -167,10 +167,15 @@ def set_permissions(request,share,json=None):
                         u.delete()
             current_perms = share.get_user_permissions(u,user_specific=True)
             print 'CURRENT'
-            print share.get_user_permissions(u,user_specific=True)
             print current_perms
+            print 'PERMISSIONS'
+            print permissions
             removed_perms = list(set(current_perms) - set(permissions))
             added_perms = list(set(permissions) - set(current_perms))
+            print 'ADDING: '
+            print added_perms
+            print 'REMOVING: '
+            print removed_perms
             for perm in removed_perms:
                 if u.username not in failed:
                     remove_perm(perm,u,share)
@@ -304,7 +309,7 @@ class ShareList(generics.ListAPIView):
     filter_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains'],'path_exists':['exact']}
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
-        return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags')
+        return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags','user_permissions__user','group_permissions__group')
 
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer

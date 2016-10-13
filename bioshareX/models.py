@@ -12,6 +12,7 @@ from jsonfield import JSONField
 import datetime
 from guardian.shortcuts import get_users_with_perms, get_objects_for_group
 from django.core.urlresolvers import reverse
+from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 
 # Create your models here.
 def pkgen():
@@ -89,7 +90,8 @@ class Share(models.Model):
     def user_queryset(user,include_stats=True):
         from guardian.shortcuts import get_objects_for_user
         shares = get_objects_for_user(user, 'bioshareX.view_share_files')
-        query = Q(id__in=[s.id for s in shares])|Q(owner=user) if user.is_authenticated() else Q(id__in=[s.id for s in shares])
+#         query = Q(id__in=[s.id for s in shares])|Q(owner=user) if user.is_authenticated() else Q(id__in=[s.id for s in shares])
+        query = Q(id__in=shares)|Q(owner=user) if user.is_authenticated() else Q(id__in=shares)
         if include_stats:
             return Share.objects.select_related('stats').filter(query)
         else:
@@ -103,8 +105,9 @@ class Share(models.Model):
     def get_user_permissions(self,user,user_specific=False):
         if user_specific:
             from utils import fetchall
-            perms = fetchall("SELECT p.codename as permission FROM guardian_userobjectpermission uop join auth_user u on uop.user_id = u.id join auth_permission p on uop.permission_id=p.id where uop.object_pk = %s and u.username = %s",[self.id, user.username])
-            perms =  [perm[0] for perm in perms]
+#             perms = fetchall("SELECT p.codename as permission FROM guardian_userobjectpermission uop join auth_user u on uop.user_id = u.id join auth_permission p on uop.permission_id=p.id where uop.object_pk = %s and u.username = %s",[self.id, user.username])
+#             perms =  [perm[0] for perm in perms]
+            perms = [uop.permission.codename for uop in ShareUserObjectPermission.objects.filter(user=user,content_object=self).select_related('permission')]
         else:
             from guardian.shortcuts import get_perms
             if user.username == self.owner.username:
@@ -117,21 +120,30 @@ class Share(models.Model):
             if 'write_to_share' in perms:
                 perms.remove('write_to_share')
             if 'delete_share_files' in perms:
-                perms.remove('delete_share_files')    
+                perms.remove('delete_share_files')
         return perms
     def get_all_user_permissions(self,user_specific=False):
         if not user_specific:
             from guardian.shortcuts import get_users_with_perms
             users = get_users_with_perms(self,attach_perms=True, with_group_users=False)
+            print 'users'
+            print users
             user_perms = [{'user':{'username':user.username, 'email':user.email, 'first_name':user.first_name, 'last_name':user.last_name},'permissions':permissions} for user, permissions in users.iteritems()]
         else:
-            from utils import dictfetchall
-            dict = dictfetchall("SELECT u.username, p.codename as permission FROM guardian_userobjectpermission uop join auth_user u on uop.user_id = u.id join auth_permission p on uop.permission_id=p.id where uop.object_pk = %s",[self.id])
+            perms = ShareUserObjectPermission.objects.filter(content_object=self).select_related('permission','user')
             user_perms={}
-            for row in dict:
-                if not user_perms.has_key(row['username']):
-                    user_perms[row['username']]={'user':{'username':row['username']},'permissions':[]}
-                user_perms[row['username']]['permissions'].append(row['permission'])
+            for perm in perms:
+                if not user_perms.has_key(perm.user.username):
+                    user_perms[perm.user.username]={'user':{'username':perm.user.username},'permissions':[]}
+                user_perms[perm.user.username]['permissions'].append(perm.permission.codename)
+            
+#             from utils import dictfetchall
+#             dict = dictfetchall("SELECT u.username, p.codename as permission FROM guardian_userobjectpermission uop join auth_user u on uop.user_id = u.id join auth_permission p on uop.permission_id=p.id where uop.object_pk = %s",[self.id])
+#             user_perms={}
+#             for row in dict:
+#                 if not user_perms.has_key(row['username']):
+#                     user_perms[row['username']]={'user':{'username':row['username']},'permissions':[]}
+#                 user_perms[row['username']]['permissions'].append(row['permission'])
         return user_perms
     def get_path(self):
         return os.path.join(self.filesystem.path,self.id)
@@ -465,5 +477,17 @@ class Message(models.Model):
 #     active_objects = MessageManager()
     def __unicode__(self):
         return self.title
+
+
+"""
+    Make permissions more efficient to check by having a direct foreign key:
+    http://django-guardian.readthedocs.io/en/stable/userguide/performance.html#direct-foreign-keys
+"""
+
+class ShareUserObjectPermission(UserObjectPermissionBase):
+    content_object = models.ForeignKey(Share,related_name='user_permissions')
+
+class ShareGroupObjectPermission(GroupObjectPermissionBase):
+    content_object = models.ForeignKey(Share,related_name='group_permissions')
 
 Group._meta.permissions += (('manage_group', 'Manage group'),)

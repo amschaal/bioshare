@@ -56,9 +56,11 @@ class ShareSerializer(serializers.ModelSerializer):
     def get_url(self,obj):
         return obj.get_url()
     def get_users(self,obj):
-        return [u.email for u in get_users_with_perms(obj,attach_perms=False,with_group_users=False)]
+        return list(set([p.user.username for p in obj.user_permissions.all()]))
+#         return [u.email for u in get_users_with_perms(obj,attach_perms=False,with_group_users=False)]
     def get_groups(self,obj):
-        return [g.name for g in get_groups_with_perms(obj,attach_perms=False)]
+        return list(set([p.group.name for p in obj.group_permissions.all()]))
+#         return [g.name for g in get_groups_with_perms(obj,attach_perms=False)]
     class Meta:
         model = Share
         fields = ('id','url','users','groups','stats','tags','owner','slug','created','updated','name','secure','read_only','notes','path_exists')
