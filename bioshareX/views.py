@@ -160,10 +160,9 @@ def create_share(request):
         form = ShareForm(request.user)
     return render(request, 'share/new_share.html', {'form': form})
 
+@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['admin'])
 def create_subshare(request,share,subdir):
-    if not request.user.has_perm('bioshareX.add_share'):
-        return render(request,'index.html', {"message": "You must have permissions to create a Share.  You may request access from the <a href=\"mailto:webmaster@genomecenter.ucdavis.edu\">webmaster</a>."})
     path = os.path.join(share.get_path(),subdir)
     if not os.path.exists(path):
         return render(request,'index.html', {"message": "Unable to create share.  The specified path does not exist."})
