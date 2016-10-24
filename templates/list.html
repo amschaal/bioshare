@@ -232,7 +232,7 @@
     <h3>Rename "<span id="rename-from-label"></span>"</h3>
   </div>
   <div class="modal-body">
-    <form class="form-horizontal" method="POST" id="modify-name-form" action="{% if subdir %}{% url 'modify_name' share=share.id subdir=subdir %}{% else %}{% url 'modify_name' share=share.id %}{% endif %}">
+    <form class="form-horizontal" method="POST" onSubmit="modify_name();return false;" id="modify-name-form" action="{% if subdir %}{% url 'modify_name' share=share.id subdir=subdir %}{% else %}{% url 'modify_name' share=share.id %}{% endif %}">
 	    {{ rename_form|crispy }}
   {% csrf_token %}
   </form>
