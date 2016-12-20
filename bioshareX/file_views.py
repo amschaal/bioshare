@@ -120,9 +120,10 @@ def download_archive_stream(request, share, subdir=None):
     selection = request.GET.get('selection').split(',')
     for item in selection:
         test_path(item)
-    return share.create_archive_stream(items=selection,subdir=subdir)
-#     except Exception, e:
-#         return json_error([e.message])
+    try:
+        return share.create_archive_stream(items=selection,subdir=subdir)
+    except Exception, e:
+        return json_error([e.message])
 
 @safe_path_decorator()    
 @share_access_decorator(['download_share_files'])
