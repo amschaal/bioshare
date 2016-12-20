@@ -34,7 +34,7 @@ function generate_rsync_strings(share,subpath){
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
 	var files = selection.length > 1 ? '{'+selection.join(',')+'}' : selection.join('');
-	var download_string = "rsync -vrzt adam@phymaptest:"+path+files+" /to/my/local/directory";
+	var download_string = "rsync -vrztL adam@phymaptest:"+path+files+" /to/my/local/directory";
 	var upload_string = "rsync -vrzt --no-p --no-g --chmod=ugo=rwX /path/to/my/files  adam@phymaptest:"+path;
 	
 	$('#rsync-download-command').text(download_string);
@@ -53,8 +53,8 @@ function generate_rsync_download(share,subpath){
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
 	var files = selection.length > 1 ? '{'+selection.join(',')+'}' : selection.join('');
-	var download_all_string = "rsync -vrzt "+rsync_url+":"+path+" /to/my/local/directory";
-	var download_string = "rsync -vrzt "+rsync_url+":"+path+files+" /to/my/local/directory";
+	var download_all_string = "rsync -vrztL "+rsync_url+":"+path+" /to/my/local/directory";
+	var download_string = "rsync -vrztL "+rsync_url+":"+path+files+" /to/my/local/directory";
 	
 	$('#rsync-download-selected').text(download_string);
 	$('#rsync-download-all').text(download_all_string);
@@ -106,7 +106,7 @@ function generate_wget_download(share,subpath){
 		var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
 		if (path.indexOf(' ') > -1)
 			path = path.replace(re,'\\ ');
-		var command = '-r -nH -nc --cut-dirs=3 --no-parent --reject "wget_index.html" --no-check-certificate --header "Cookie: sessionid='+session_cookie+';" https://'+ base_url + '/bioshare/wget'+path+'wget_index.html';
+		var command = '-r --level=10 -nH -nc --cut-dirs=3 --no-parent --reject "wget_index.html" --no-check-certificate --header "Cookie: sessionid='+session_cookie+';" https://'+ base_url + '/bioshare/wget'+path+'wget_index.html';
 		$('#wget-linux').text('wget '+command);
 		$('#wget-windows').text('"C:\\Program Files\\GnuWin32\\bin\\wget.exe" '+command);
 		$('#wget-download').modal('show');
