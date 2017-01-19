@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 
 
-SSH_PORT = settings.SFTP_PORT
+SSH_PORT = settings.SFTP_SSH_PORT
 # Note, you can generate a new host key like this:
 # ssh-keygen -t rsa -N '' -f host_key
 HOST_KEY = settings.SFTP_HOST_KEY
