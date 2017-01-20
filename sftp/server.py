@@ -235,7 +235,7 @@ class SFTPInterface (paramiko.SFTPServerInterface):
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
     @sftp_response
-    @permissions_required([Share.PERMISSION_ADMIN])
+    @permissions_required([Share.PERMISSION_VIEW])
     def list_folder(self, path):
         if path == '/':
             return self.list_shares()
