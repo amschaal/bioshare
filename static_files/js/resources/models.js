@@ -36,4 +36,11 @@ angular.module('BioshareResources', ['ngResource'])
     query: { method: 'GET', isArray:true, transformResponse:transformDjangoRestResponse }, //, transformResponse:transformDjangoRestResponse
     dismiss: {method : 'POST', url: '/bioshare/api/messages/:id/dismiss/' }
   });
+}])
+.factory('Share', ['$resource', function ($resource) {
+  return $resource('/bioshare/api/shares/:id/', {id:'@id'}, {
+    query: { method: 'GET', isArray:true, transformResponse:transformDjangoRestResponse }, //, transformResponse:transformDjangoRestResponse
+    directory_size: {method : 'GET', url: '/bioshare/api/shares/:id/directory_size/' }
+  });
 }]);
+

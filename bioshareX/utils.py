@@ -9,6 +9,7 @@ from django.conf import settings
 from django.template import Context, Template
 from rest_framework import status
 from django.db.models.query_utils import Q
+import subprocess
 
 
 class JSONDecorator(object):
@@ -135,13 +136,17 @@ class safe_path_decorator_old(object):
 def get_setting(key, default=None):
     return getattr(settings, key, default)
 
-def test_path(path,allow_absolute=False):
+def test_path(path,allow_absolute=False,share=None):
     illegals = ['..','~','*']
     for illegal in illegals:
         if illegal in path:
             raise Exception('Illegal path encountered')
     if path.startswith('/') and not allow_absolute:
         raise Exception('Subpath may not start with slash')
+    if share:
+        full_path = os.path.join(share.get_path(),path)
+        if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
+            raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
 
 def path_contains(parent_path,child_path,real_path=True):
     if real_path:
@@ -292,3 +297,7 @@ def get_total_size(paths=[]):
     for path in paths:
         total_size += get_size(path)
     return total_size
+
+def du(path):
+    """disk usage in human readable format (e.g. '2,1GB')"""
+    return subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')

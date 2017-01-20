@@ -4,3 +4,13 @@ angular.module("bioshare")
 		$scope.tableParams = DRFNgTableParams('/bioshare/api/logs/',{sorting: { timestamp: "desc" },filter:{share:share}});
 	}
  }]);
+angular.module("bioshare")
+.controller("SizeController", ['$scope', 'Share',function($scope,Share) {
+	$scope.size = null;
+	$scope.calculate = function(share,subdir){
+		console.log(share,subdir);
+		Share.directory_size({id:share,subdir:subdir},function(data){
+			$scope.size = data.size;
+		});
+	}
+ }]);

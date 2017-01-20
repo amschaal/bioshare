@@ -8,7 +8,8 @@ from bioshareX.models import Share, SSHKey, MetaData, Tag
 from bioshareX.forms import MetaDataForm, json_form_validate
 from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
 import json
-from bioshareX.utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email, fetchall
+from bioshareX.utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email, fetchall,\
+    test_path, du
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
@@ -302,7 +303,7 @@ class ShareLogList(generics.ListAPIView):
         shares = Share.user_queryset(self.request.user,include_stats=False)
         return ShareLog.objects.filter(share__in=shares)
 
-class ShareList(generics.ListAPIView):
+class ShareViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareSerializer
     permission_classes = (IsAuthenticated,)
     filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter]
@@ -310,7 +311,13 @@ class ShareList(generics.ListAPIView):
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
         return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags','user_permissions__user','group_permissions__group')
-
+    @detail_route(['GET'])
+    def directory_size(self, request, *args, **kwargs):
+        share = self.get_object()
+        subdir = request.query_params.get('subdir','')
+        test_path(subdir,share=share)
+        size = du(os.path.join(share.get_path(),subdir))
+        return Response({'share':share.id,'subdir':subdir,'size':size})
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,DjangoModelPermissions,)
