@@ -14,7 +14,8 @@ from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
 from django.contrib.auth.decorators import login_required
-from rest_framework.decorators import api_view, detail_route, permission_classes
+from rest_framework.decorators import api_view, detail_route, permission_classes,\
+    throttle_classes
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
@@ -30,6 +31,7 @@ from django.contrib.contenttypes.models import ContentType
 import datetime
 from bioshareX.api.filters import UserShareFilter, ShareTagFilter,\
     GroupShareFilter
+from rest_framework.throttling import UserRateThrottle
 
 @ajax_login_required
 def get_user(request):
@@ -312,6 +314,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags','user_permissions__user','group_permissions__group')
     @detail_route(['GET'])
+    @throttle_classes([UserRateThrottle])
     def directory_size(self, request, *args, **kwargs):
         share = self.get_object()
         subdir = request.query_params.get('subdir','')
