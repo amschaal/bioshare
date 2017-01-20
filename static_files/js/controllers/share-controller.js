@@ -8,7 +8,7 @@ angular.module("bioshare")
 .controller("SizeController", ['$scope', 'Share',function($scope,Share) {
 	$scope.size = null;
 	$scope.calculate = function(share,subdir){
-		console.log(share,subdir);
+		$scope.size = 'Loading...';
 		Share.directory_size({id:share,subdir:subdir},function(data){
 			$scope.size = data.size;
 		});

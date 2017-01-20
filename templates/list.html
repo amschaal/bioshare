@@ -56,7 +56,7 @@
 {% if share.tags.count > 0 %}
 	<br><b>Tags:</b> {% for tag in share.tags.all %}{{tag.name}}{% if not forloop.last %}, {% endif %}{% endfor %}
 {% endif %}
-<br><b>Directory size:</b> <span ng-cloak ng-controller="SizeController" >{% verbatim %}<span ng-if="size">{{size}}</span>{% endverbatim %}<a ng-if="!size" ng-click="calculate('{{share.id}}','{{subdir}}')">Calculate...</a></span>
+<br><b>Directory size:</b> <span ng-cloak ng-controller="SizeController" >{% verbatim %}<span ng-if="size">{{size}}</span>{% endverbatim %}<a class="pointer" ng-if="!size" ng-click="calculate('{{share.id}}'{% if subdir %},'{{subdir}}'{% endif %})">Calculate...</a></span>
 
 </div>
 
