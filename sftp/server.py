@@ -6,11 +6,13 @@ import socket
 import threading
 from django.contrib.auth import authenticate
 import paramiko
+from paramiko import SFTPServer, SFTPServerInterface
 from paramiko.sftp import SFTP_OK, SFTP_OP_UNSUPPORTED
 from paramiko.common import o666
 from bioshareX.models import Share
+from paramiko.sftp_handle import SFTPHandle
 
-class SFTPServer(object):
+class BioshareSFTPServer(object):
     """
     Create an SFTP server which serves the files in `root` and authenticates
     itself with the supplied `host key` file.
@@ -48,7 +50,7 @@ class SFTPServer(object):
         transport = paramiko.Transport(conn)
         transport.add_server_key(self.host_key)
         transport.set_subsystem_handler(
-            'sftp', paramiko.SFTPServer, SFTPInterface)
+            'sftp', SFTPServer, SFTPInterface)
         # The SFTP session runs in a separate thread. We pass in `event`
         # so `start_server` doesn't block; we're not actually interested
         # in waiting for the event though.
@@ -57,8 +59,6 @@ class SFTPServer(object):
                 event=threading.Event())
 
     def get_user(self, username, password):
-        print 'get_user'
-        print username
         return authenticate(username=username, password=password)
 #         raise NotImplementedError()
 
@@ -89,7 +89,7 @@ class PermissionDenied(Exception):
 
 def sftp_response(fn):
     """
-    Dectorator which converts exceptions into appropriate SFTP error codes,
+    Decorator which converts exceptions into appropriate SFTP error codes,
     returns OK for functions which don't have a return value
     """
     @functools.wraps(fn)
@@ -97,7 +97,7 @@ def sftp_response(fn):
         try:
             value = fn(*args, **kwargs)
         except (OSError, IOError) as e:
-            return paramiko.SFTPServer.convert_errno(e.errno)
+            return SFTPServer.convert_errno(e.errno)
         except PermissionDenied:
             return paramiko.SFTP_PERMISSION_DENIED
         if value is None:
@@ -145,7 +145,11 @@ def log_event(method):
     return wrapper
 
 
-class BioshareSFTPHandle (paramiko.SFTPHandle):
+class BioshareSFTPHandle (SFTPHandle):
+    def __init__(self, *args,**kwargs):
+        self.permissions = kwargs.pop('permissions',[])
+        super(BioshareSFTPHandle, self).__init__(*args,**kwargs)
+        print 'sftp handle'
     def stat(self):
         try:
             return paramiko.SFTPAttributes.from_stat(os.fstat(self.readfile.fileno()))
@@ -160,8 +164,60 @@ class BioshareSFTPHandle (paramiko.SFTPHandle):
             return SFTP_OK
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
+    def write(self, offset, data):
+        if Share.PERMISSION_WRITE not in self.permissions:
+            print 'permission denied'
+            raise PermissionDenied()
+        super(BioshareSFTPHandle, self).write(offset,data)
+        print 'write finished'
+#         """
+#         Write ``data`` into this file at position ``offset``.  Extending the
+#         file past its original end is expected.  Unlike Python's normal
+#         ``write()`` methods, this method cannot do a partial write: it must
+#         write all of ``data`` or else return an error.
+# 
+#         The default implementation checks for an attribute on ``self`` named
+#         ``writefile``, and if present, performs the write operation on the
+#         Python file-like object found there.  The attribute is named
+#         differently from ``readfile`` to make it easy to implement read-only
+#         (or write-only) files, but if both attributes are present, they should
+#         refer to the same file.
+#         
+#         :param offset: position in the file to start reading from.
+#         :type offset: int or long
+#         :param str data: data to write into the file.
+#         :return: an SFTP error code like `.SFTP_OK`.
+#         """
+#         print 'writing...'
+#         writefile = getattr(self, 'writefile', None)
+#         if writefile is None:
+#             return SFTP_OP_UNSUPPORTED
+#         print 'write 2'
+#         try:
+#             # in append mode, don't care about seeking
+#             if (self.__flags & os.O_APPEND) == 0:
+#                 if self.__tell is None:
+#                     self.__tell = writefile.tell()
+#                 if offset != self.__tell:
+#                     writefile.seek(offset)
+#                     self.__tell = offset
+#             writefile.write(data)
+#             writefile.flush()
+#         except IOError as e:
+#             print 'write error'
+#             print e
+#             self.__tell = None
+#             return SFTPServer.convert_errno(e.errno)
+#         except Exception as e:
+#             print 'generic exception'
+#             print e
+#         print 'write 3'
+#         if self.__tell is not None:
+#             self.__tell += len(data)
+#         print 'all good'
+#         return SFTP_OK
 
-class SFTPInterface (paramiko.SFTPServerInterface):
+class SFTPInterface (SFTPServerInterface):
     # assume current folder is a fine root
     # (the tests always create and eventualy delete a subfolder, so there shouldn't be any mess)
 #     ROOT = os.getcwd()
@@ -180,24 +236,23 @@ class SFTPInterface (paramiko.SFTPServerInterface):
         self.shares = {}
         for share in Share.user_queryset(self.user,include_stats=False):
             self.shares[share.id] = share#{'path':share.get_realpath()}
-        print self.shares.keys()
-        print 'user'
-        print self.user
+#         print 'user'
+#         print self.user
 #         self.ROOT = root
     def _get_share(self,path):
         parts = path.split(os.path.sep)
-        print parts
         if len(parts) < 2:
             print 'bad length'
             raise PermissionDenied("Received an invalid path: %s"%path) 
         if not self.shares.has_key(parts[1]):
             print 'no share exists'
+            print path
             raise PermissionDenied("Share does not exist: %s"%path[1])
         return self.shares[parts[1]]
     def _get_bioshare_path_permissions(self,path):
         share = self._get_share(path)
         permissions = share.get_user_permissions(self.user)
-        print permissions
+#         print permissions
         return permissions
     def _get_path_permissions(self,path):
         permissions = self._get_bioshare_path_permissions(path)
@@ -210,8 +265,8 @@ class SFTPInterface (paramiko.SFTPServerInterface):
 #         PERMISSION_ADMIN
         return permissions
     def _realpath(self, path):
-        print 'realpath'
-        print path
+#         print 'realpath'
+#         print path
         parts = path.split(os.path.sep)
         share = self._get_share(path)
         realpath = os.path.join(share.get_realpath(),os.path.sep.join(parts[2:]))
@@ -220,12 +275,12 @@ class SFTPInterface (paramiko.SFTPServerInterface):
 #         return self.ROOT + self.canonicalize(path)
     @sftp_response
     def list_shares(self):
-        print "LIST SHARES"
+#         print "LIST SHARES"
         try:
             out = []
             for id,share in self.shares.iteritems():
                 try:
-                    print id
+#                     print id
                     attr = paramiko.SFTPAttributes.from_stat(os.stat(share.get_realpath()))
                     attr.filename = id
                     out.append(attr)
@@ -244,7 +299,7 @@ class SFTPInterface (paramiko.SFTPServerInterface):
         try:
             out = []
             flist = os.listdir(path)
-            print flist
+#             print flist
             for fname in flist:
                 attr = paramiko.SFTPAttributes.from_stat(os.stat(os.path.join(path, fname)))
                 attr.filename = fname
@@ -271,6 +326,13 @@ class SFTPInterface (paramiko.SFTPServerInterface):
             return SFTPServer.convert_errno(e.errno)
     @sftp_response
     def open(self, path, flags, attr):
+#         print 'open: ' + path
+#         print flags
+#         print attr
+        permissions = self._get_bioshare_path_permissions(path)
+        if (flags & os.O_CREAT or flags & os.O_WRONLY or flags & os.O_RDWR or flags & os.O_APPEND) and Share.PERMISSION_WRITE not in permissions:
+#         if Share.PERMISSION_WRITE not in permissions:
+            raise PermissionDenied()
         path = self._realpath(path)
         try:
             binary_flag = getattr(os, 'O_BINARY', 0)
@@ -284,27 +346,30 @@ class SFTPInterface (paramiko.SFTPServerInterface):
                 fd = os.open(path, flags, o666)
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
-        if (flags & os.O_CREAT) and (attr is not None):
-            attr._flags &= ~attr.FLAG_PERMISSIONS
-            SFTPServer.set_file_attr(path, attr)
-        if flags & os.O_WRONLY:
-            if flags & os.O_APPEND:
-                fstr = 'ab'
+        try:
+            if (flags & os.O_CREAT) and (attr is not None):
+                attr._flags &= ~attr.FLAG_PERMISSIONS
+                SFTPServer.set_file_attr(path, attr)
+            if flags & os.O_WRONLY:
+                if flags & os.O_APPEND:
+                    fstr = 'ab'
+                else:
+                    fstr = 'wb'
+            elif flags & os.O_RDWR:
+                if flags & os.O_APPEND:
+                    fstr = 'a+b'
+                else:
+                    fstr = 'r+b'
             else:
-                fstr = 'wb'
-        elif flags & os.O_RDWR:
-            if flags & os.O_APPEND:
-                fstr = 'a+b'
-            else:
-                fstr = 'r+b'
-        else:
-            # O_RDONLY (== 0)
-            fstr = 'rb'
+                # O_RDONLY (== 0)
+                fstr = 'rb'
+        except Exception as e:
+            print e.message
         try:
             f = os.fdopen(fd, fstr)
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
-        fobj = BioshareSFTPHandle(flags)
+        fobj = BioshareSFTPHandle(flags,permissions=permissions)
         fobj.filename = path
         fobj.readfile = f
         fobj.writefile = f
