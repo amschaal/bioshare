@@ -184,6 +184,44 @@ def _SFTPHandle_write(self, offset, data):
     if self.__tell is not None:
         self.__tell += len(data)
     return SFTP_OK
+def _SFTPHandle_read(self, offset, length):
+    """
+    Read up to ``length`` bytes from this file, starting at position
+    ``offset``.  The offset may be a Python long, since SFTP allows it
+    to be 64 bits.
+
+    If the end of the file has been reached, this method may return an
+    empty string to signify EOF, or it may also return `.SFTP_EOF`.
+
+    The default implementation checks for an attribute on ``self`` named
+    ``readfile``, and if present, performs the read operation on the Python
+    file-like object found there.  (This is meant as a time saver for the
+    common case where you are wrapping a Python file object.)
+
+    :param offset: position in the file to start reading from.
+    :type offset: int or long
+    :param int length: number of bytes to attempt to read.
+    :return: data read from the file, or an SFTP error code, as a `str`.
+    """
+    if Share.PERMISSION_VIEW not in self.permissions:
+        print 'permission denied'
+        raise PermissionDenied()
+    readfile = getattr(self, 'readfile', None)
+    if readfile is None:
+        return SFTP_OP_UNSUPPORTED
+    try:
+        if self.__tell is None:
+            self.__tell = readfile.tell()
+        if offset != self.__tell:
+            readfile.seek(offset)
+            self.__tell = offset
+        data = readfile.read(length)
+    except IOError as e:
+        self.__tell = None
+        return SFTPServer.convert_errno(e.errno)
+    self.__tell += len(data)
+    return data
+
 def _SFTPHandle___init__(self, flags=0,permissions=[]):
     self.permissions = permissions
     #Below this is implementation from SFTPHandle
@@ -192,10 +230,12 @@ def _SFTPHandle___init__(self, flags=0,permissions=[]):
     # only for handles to folders:
     self.__files = {}
     self.__tell = None
+    
 SFTPHandle.__init__ = _SFTPHandle___init__
 SFTPHandle.stat = _SFTPHandle_stat
 SFTPHandle.chattr = _SFTPHandle_chattr
 SFTPHandle.write = _SFTPHandle_write
+SFTPHandle.read = _SFTPHandle_read
 
 class SFTPInterface (SFTPServerInterface):
     def __init__(self, server):
