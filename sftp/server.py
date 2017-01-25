@@ -144,7 +144,58 @@ def log_event(method):
         return response
     return wrapper
 
+def _SFTPHandle_stat(self):
+    try:
+        return paramiko.SFTPAttributes.from_stat(os.fstat(self.readfile.fileno()))
+    except OSError as e:
+        return SFTPServer.convert_errno(e.errno)
 
+def _SFTPHandle_chattr(self, attr):
+    # python doesn't have equivalents to fchown or fchmod, so we have to
+    # use the stored filename
+    try:
+        SFTPServer.set_file_attr(self.filename, attr)
+        return SFTP_OK
+    except OSError as e:
+        return SFTPServer.convert_errno(e.errno)
+
+def _SFTPHandle_write(self, offset, data):
+    #Custom Auth
+    if Share.PERMISSION_WRITE not in self.permissions:
+        print 'permission denied'
+        raise PermissionDenied()
+    #Below this is implementation from SFTPHandle
+    writefile = getattr(self, 'writefile', None)
+    if writefile is None:
+        return SFTP_OP_UNSUPPORTED
+    try:
+        # in append mode, don't care about seeking
+        if (self.__flags & os.O_APPEND) == 0:
+            if self.__tell is None:
+                self.__tell = writefile.tell()
+            if offset != self.__tell:
+                writefile.seek(offset)
+                self.__tell = offset
+        writefile.write(data)
+        writefile.flush()
+    except IOError as e:
+        self.__tell = None
+        return SFTPServer.convert_errno(e.errno)
+    if self.__tell is not None:
+        self.__tell += len(data)
+    return SFTP_OK
+def _SFTPHandle___init__(self, flags=0,permissions=[]):
+    self.permissions = permissions
+    #Below this is implementation from SFTPHandle
+    self.__flags = flags
+    self.__name = None
+    # only for handles to folders:
+    self.__files = {}
+    self.__tell = None
+SFTPHandle.__init__ = _SFTPHandle___init__
+SFTPHandle.stat = _SFTPHandle_stat
+SFTPHandle.chattr = _SFTPHandle_chattr
+SFTPHandle.write = _SFTPHandle_write
 
 class SFTPInterface (SFTPServerInterface):
     def __init__(self, server):
