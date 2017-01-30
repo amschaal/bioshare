@@ -15,6 +15,8 @@ class ShareForm(forms.ModelForm):
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
         self.fields['filesystem'].queryset = user.filesystems
+        if not user.is_superuser:
+            self.fields.pop('owner',None)
         if not user.has_perm('bioshareX.link_to_path'):
             self.fields.pop('link_to_path',None)
         self.the_instance = kwargs.get('instance',None)
@@ -63,7 +65,7 @@ class ShareForm(forms.ModelForm):
         return cleaned_data         
     class Meta:
         model = Share
-        fields = ('name','slug', 'notes','filesystem','link_to_path','read_only')
+        fields = ('name','owner','slug', 'notes','filesystem','link_to_path','read_only')
         labels = {'slug':'Friendly URL','notes':'Description'}
         help_texts = {'slug':'Optionally enter a string to be used in the URL instead of the randomly generated ID.'}
 

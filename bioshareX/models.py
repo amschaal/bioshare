@@ -493,3 +493,4 @@ class ShareGroupObjectPermission(GroupObjectPermissionBase):
     content_object = models.ForeignKey(Share,related_name='group_permissions')
 
 Group._meta.permissions += (('manage_group', 'Manage group'),)
+User._meta.ordering = ['username']
