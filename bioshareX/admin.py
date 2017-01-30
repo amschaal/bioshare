@@ -5,8 +5,8 @@ from django.contrib.auth.admin import UserAdmin as OriginalUserAdmin
 from django.contrib.auth.models import User
 
 class ShareAdmin(GuardedModelAdmin):
-    pass
-#     excl = ('name', 'notes')
+    exclude = ('real_path','path_exists','id','tags')
+    search_fields = ('id', 'slug', 'owner__username', 'name','notes','tags__name')
 #     def save_model(self, request, obj, form, change):
 #         obj.owner = request.user
 #         obj.save()
