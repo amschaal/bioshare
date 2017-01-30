@@ -148,7 +148,8 @@ def create_share(request):
         form = ShareForm(request.user,request.POST)
         if form.is_valid():
             share = form.save(commit=False)
-            share.owner=request.user
+            if not getattr(share, 'owner',None):
+                share.owner=request.user
             try:
                 share.save()
                 share.set_tags(form.cleaned_data['tags'].split(','))

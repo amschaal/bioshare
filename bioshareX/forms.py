@@ -15,6 +15,7 @@ class ShareForm(forms.ModelForm):
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
         self.fields['filesystem'].queryset = user.filesystems
+        self.fields['owner'].required = False
         if not user.is_superuser:
             self.fields.pop('owner',None)
         if not user.has_perm('bioshareX.link_to_path'):
@@ -67,7 +68,7 @@ class ShareForm(forms.ModelForm):
         model = Share
         fields = ('name','owner','slug', 'notes','filesystem','link_to_path','read_only')
         labels = {'slug':'Friendly URL','notes':'Description'}
-        help_texts = {'slug':'Optionally enter a string to be used in the URL instead of the randomly generated ID.'}
+        help_texts = {'slug':'Optionally enter a string to be used in the URL instead of the randomly generated ID.','owner':'Optionally specify a different owner.'}
 
 class SubShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
