@@ -141,7 +141,11 @@ def preview_file(request, share, subpath):
     from_line = int(request.GET.get('from',1))
     num_lines = int(request.GET.get('for',100))
     file_path = os.path.join(share.get_path(),subpath)
-    response = {'share_id':share.id,'subpath':subpath,'content':get_lines(file_path,from_line,from_line+num_lines-1),'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
+    try:
+        content = get_lines(file_path,from_line,from_line+num_lines-1)
+    except Exception, e:
+        content = "Error previewing file.  The file may corrupted or contain unsupported characters"
+    response = {'share_id':share.id,'subpath':subpath,'content':content,'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
     if 'get_total' in request.GET:
         response['total'] = get_num_lines(file_path)
     return json_response(response)
