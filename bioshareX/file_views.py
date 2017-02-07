@@ -148,7 +148,7 @@ def preview_file(request, share, subpath):
             response['total'] = get_num_lines(file_path)
         return json_response(response)
     except Exception, e:
-        content = "Error previewing file.  The file may corrupted or contain unsupported characters"
+        content = "Error previewing file.  The file may be corrupted or contain unsupported characters."
         response = {'share_id':share.id,'subpath':subpath,'content':content,'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
         return json_response(response)
 
