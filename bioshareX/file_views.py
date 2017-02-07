@@ -143,12 +143,14 @@ def preview_file(request, share, subpath):
     file_path = os.path.join(share.get_path(),subpath)
     try:
         content = get_lines(file_path,from_line,from_line+num_lines-1)
+        response = {'share_id':share.id,'subpath':subpath,'content':content,'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
+        if 'get_total' in request.GET:
+            response['total'] = get_num_lines(file_path)
+        return json_response(response)
     except Exception, e:
         content = "Error previewing file.  The file may corrupted or contain unsupported characters"
-    response = {'share_id':share.id,'subpath':subpath,'content':content,'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
-    if 'get_total' in request.GET:
-        response['total'] = get_num_lines(file_path)
-    return json_response(response)
+        response = {'share_id':share.id,'subpath':subpath,'content':content,'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
+        return json_response(response)
 
 @share_access_decorator(['download_share_files'])
 def get_directories(request, share):
