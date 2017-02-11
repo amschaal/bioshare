@@ -7,6 +7,7 @@ from django.core.validators import RegexValidator
 from bioshareX.utils import test_path, paths_contain
 from django.conf import settings
 import os   
+from django.contrib.auth.forms import PasswordResetForm
 
 class ShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
@@ -239,3 +240,16 @@ class SetPasswordForm(auth.forms.SetPasswordForm):
         # ... any other validation you want ...
 
         return password1
+
+class BiosharePasswordResetForm(PasswordResetForm):
+        def save(self, *args,**kwargs):
+            """
+            Generates a one-use only link for resetting password and sends to the
+            user.
+            """
+            email = self.cleaned_data["email"]
+            if User.objects.filter(email=email).count() == 0:
+                self.send_mail(subject_template_name='registration/bad_password_reset_email_subject.txt', email_template_name='registration/bad_password_reset_email_body.txt',
+                               context={'email':email}, from_email=settings.DEFAULT_FROM_EMAIL, to_email=email)
+            else:
+                super(BiosharePasswordResetForm, self).save(*args,**kwargs)

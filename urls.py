@@ -3,6 +3,7 @@ from django.conf.urls import patterns, include, url
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 from django.conf import settings
+from bioshareX.forms import BiosharePasswordResetForm
 admin.autodiscover()
 # from registration.forms import RegistrationFormUniqueEmail
 # from bioshareX.forms import RegistrationForm, SetPasswordForm
@@ -22,7 +23,7 @@ urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
     url(r'^bioshare/', include('bioshareX.urls')),
     url(r'^accounts/logout/$', logout_then_login, name='logout'),
-    url(r'^accounts/password_reset/$', password_reset, name='password_reset', kwargs={'extra_email_context':{'SITE_URL':settings.SITE_URL}}),
+    url(r'^accounts/password_reset/$', password_reset, name='password_reset', kwargs={'password_reset_form':BiosharePasswordResetForm,'extra_email_context':{'SITE_URL':settings.SITE_URL}}),
     url(r'^accounts/', include('django.contrib.auth.urls')),
     url(r'^$', bioshare_views.list_shares, name='home'),
     url(r'^Data/(?P<id>[\da-zA-Z]{10})/(?:(?P<subpath>.*/?))?$', bioshare_views.redirect_old_path, name='redirect_old_path'),
