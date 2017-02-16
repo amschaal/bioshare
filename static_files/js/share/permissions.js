@@ -1,3 +1,4 @@
+var ALL_PERMISSIONS = ['view_share_files', 'download_share_files', 'write_to_share', 'delete_share_files','admin'];
 function get_selected_names(){
 	var selection = [];
 	$('.action-check:checked').each(function(){
@@ -138,23 +139,35 @@ function show_hide_permissions(){
 }
 
 function add_permission_row(obj){
+	if (!obj.permissions)
+		obj.permissions = [];
 	var write_permissions = read_only ? '' : '<td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td>';
+	var check_uncheck_controls = '<td><i class="fam-accept check_all" title="Check all permissions"></i> <i class="fam-delete uncheck_all" title="Uncheck all permissions"></i></td>';
 	if (obj.user){
 		if ($('.permissions tr[data-username="'+obj.user.username+'"]').length == 0){
 			var classes = obj.new_user ? 'new-user ' : '';
 			var warning = obj.new_user ? ' <i class="fam-error-add" data-toggle="tooltip" title="An account will automatically be made for this email address"></i>' : '';
-			 
-			var row = $('<tr data-username="'+obj.user.username+'" class="'+classes+'"><td><i class="fam-user"></i>'+obj.user.username + warning+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td>'+write_permissions+'<td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
+			var row = $('<tr data-username="'+obj.user.username+'" class="'+classes+'"><td><i class="fam-user"></i>'+obj.user.username + warning+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td>'+write_permissions+'<td><input data-perm="admin" type="checkbox"></td>'+check_uncheck_controls+'</tr>').data('permissions',obj.permissions);
 		}
 	}else if(obj.group){
 		if ($('.permissions tr[data-group-id="'+obj.group.id+'"]').length == 0)
-			var row = $('<tr data-group-id="'+obj.group.id+'" class="'+classes+'"><td><i class="fam-group"></i>'+obj.group.name+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td>'+write_permissions+'<td><input data-perm="admin" type="checkbox"></td></tr>').data('permissions',obj.permissions);
+			var row = $('<tr data-group-id="'+obj.group.id+'" class="'+classes+'"><td><i class="fam-group"></i>'+obj.group.name+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td>'+write_permissions+'<td><input data-perm="admin" type="checkbox"></td>'+check_uncheck_controls+'</tr>').data('permissions',obj.permissions);
 	}
 	
-	$.each(obj.permissions,function(i,perm){
-		$('input[data-perm="'+perm+'"]',row).attr('checked',true);
+	$.each(obj.permissions.length ? obj.permissions : ['view_share_files','download_share_files'],function(i,perm){
+		$('input[data-perm="'+perm+'"]',row).prop('checked',true);
 	});
 	$('#user_permissions tbody').append(row);
+	if (row)
+		check_row_permissions_modified(row);
+}
+
+function update_row_permissions(row,permissions){
+	$('input[data-perm]',row).prop('checked',false);
+	$.each(permissions ,function(i,perm){
+		$('input[data-perm="'+perm+'"]',row).prop('checked',true);
+	});
+	check_row_permissions_modified(row);
 }
 
 function share_with(query){
@@ -163,15 +176,15 @@ function share_with(query){
 			BC.handle_ajax_errors(data,'#messages');
 		else{
 			$.each(data.exists,function(index,obj){
-				obj.permissions=[];
+//				obj.permissions=[];
 				add_permission_row(obj,'user');
 			});
 			$.each(data.groups,function(index,obj){
-				obj.permissions=[];
+//				obj.permissions=[];
 				add_permission_row(obj,'group');
 			});
 			$.each(data.new_users,function(index,obj){
-				obj.permissions=[];
+//				obj.permissions=[];
 				obj.new_user = true;
 				add_permission_row(obj,'user');
 			});
@@ -183,12 +196,18 @@ function share_with(query){
 				var emails = $.map(data.new_users,function(obj,ind){return obj.user.username;}).join(', ');
 				$.bootstrapGrowl('Accounts will automatically be made for the following new users: '+emails,{type:'info',delay: 10000});
 			}
-			
+			$('#addUser').val('');
 		}
 		show_hide_permissions();
 	});
 }
-
+function check_all(){
+	update_row_permissions($(this).closest('tr'),ALL_PERMISSIONS)
+}
+function uncheck_all(){
+	console.log('uncheck',this)
+	update_row_permissions($(this).closest('tr'),[])
+}
 $(function () {
 	get_permissions();
 	$(document.body).on('change','input[data-perm]',check_permissions_modified);
@@ -236,6 +255,7 @@ $(function () {
 	                            	  replace: function (value) { return '$1' + value + ', '; }
 	                            }
     ]);
-	
+	$('#user_permissions').on('click','.check_all',check_all);
+	$('#user_permissions').on('click','.uncheck_all',uncheck_all);
 });
 
