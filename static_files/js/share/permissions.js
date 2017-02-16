@@ -30,12 +30,19 @@ function delete_paths(url,selection){
 	);
 }
 function set_permissions(data){
+	$('#updateUserPermissions').prop('disabled',true).text('Updating...');
 	BC.ajax(
 		{
 			'url':set_permissions_url,
 			'data':{'json':JSON.stringify(data)},
 			'success':function(data){
 					update_permissions(data);
+					$('#updateUserPermissions').prop('disabled',false).text('Update');
+					$.bootstrapGrowl("Permissions have been updated",{type:'success',delay:2000});
+			},
+			'error':function(){
+				$('#updateUserPermissions').prop('disabled',false).text('Update');
+				$.bootstrapGrowl("There was an error updating permissions",{type:'error',delay:2000});
 			}
 		}
 	);
