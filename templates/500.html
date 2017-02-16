@@ -1,6 +1,9 @@
-{% load static %}
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-<h1>Oops.  Something went wrong.  Please contact the webmaster if the problem persists.</h1>
+<h1 class="text-center">
+Oops.  Something went wrong.  Please contact the webmaster if the problem persists.<br>
 <img src="{% static 'images/fail.jpg' %}"/>
+</h1>
+
 {% endblock %}
