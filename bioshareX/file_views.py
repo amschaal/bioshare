@@ -10,6 +10,7 @@ from forms import UploadFileForm, FolderForm, json_form_validate, RenameForm
 from utils import JSONDecorator, test_path, sizeof_fmt, json_error
 from file_utils import istext
 import os
+import re
 from utils import share_access_decorator, safe_path_decorator, json_response
 import datetime
 from django.conf import settings
@@ -20,6 +21,10 @@ def handle_uploaded_file(path,file):
         for chunk in file.chunks():
             destination.write(chunk)
 
+def clean_filename(filename):
+    filename = re.sub(settings.UNDERSCORE_REGEX,'_', filename)
+    filename = re.sub(settings.STRIP_REGEX,'', filename)
+    return filename
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])
 def upload_file(request, share, subdir=None):
@@ -30,15 +35,16 @@ def upload_file(request, share, subdir=None):
         PATH = join(PATH,subdir)
     data = {'share':share.id,'subdir':subdir,'files':[]}#{key:val for key,val in request.POST.iteritems()}
     for name,file in request.FILES.iteritems():
-        FILE_PATH = join(PATH,file.name)
+        filename = clean_filename(file.name)
+        FILE_PATH = join(PATH,filename)
         handle_uploaded_file(FILE_PATH,file)
-        subpath = file.name if subdir is None else subdir + file.name
+        subpath = filename if subdir is None else subdir + filename
         url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
-        data['files'].append({'name':file.name,'extension':file.name.split('.').pop() if '.' in file.name else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"), 'isText':istext(FILE_PATH)}) 
+        data['files'].append({'name':filename,'extension':filename.split('.').pop() if '.' in filename else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"), 'isText':istext(FILE_PATH)}) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
-    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FILE_ADDED,paths=[file.name for file in request.FILES.values()],subdir=subdir)
+    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FILE_ADDED,paths=[clean_filename(file.name) for file in request.FILES.values()],subdir=subdir)
     return json_response(data)
 
 @safe_path_decorator(path_param='subdir')

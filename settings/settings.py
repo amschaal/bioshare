@@ -212,5 +212,7 @@ UMASK = 0002
 
 INCLUDE_REGISTER_URL = False
 
+STRIP_REGEX = r'[^\w\.\- \*^]+'
+UNDERSCORE_REGEX = r'[ ]+'
 
 from config import *
