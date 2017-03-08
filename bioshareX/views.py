@@ -103,7 +103,7 @@ def list_directory(request,share,subdir=None):
                 dir={'name':name,'size':getsize(path),'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
                 directories[os.path.realpath(path)]=dir
     except OSError:
-        return render(request,'errors/bad_path.html', {},status=500)
+        return render(request,'errors/message.html', {'message':'The system encountered an error.  The path may not exist or is currently not available.'},status=500)
     if request.is_ajax():
         return json_response({'files':file_list,'directories':directories.values()})
     #Find any shares that point at this directory
