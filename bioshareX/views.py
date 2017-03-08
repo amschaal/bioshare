@@ -88,19 +88,22 @@ def list_directory(request,share,subdir=None):
     metadatas = {}
     for md in MetaData.objects.filter(share=share,subpath__regex=regex):
         metadatas[md.subpath]= md if not request.is_ajax() else md.json()    
-    for name in listdir(PATH):
-        path = join(PATH,name)
-        subpath= name if subdir is None else join(subdir,name)
-#         metadata = MetaData.get_or_none(share=share,subpath=subpath)
-        metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
-        if isfile(path):
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-            file={'name':name,'extension':name.split('.').pop() if '.' in name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata,'isText':istext(path)}
-            file_list.append(file)
-        else:
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-            dir={'name':name,'size':getsize(path),'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
-            directories[os.path.realpath(path)]=dir
+    try:
+        for name in listdir(PATH):
+            path = join(PATH,name)
+            subpath= name if subdir is None else join(subdir,name)
+    #         metadata = MetaData.get_or_none(share=share,subpath=subpath)
+            metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
+            if isfile(path):
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
+                file={'name':name,'extension':name.split('.').pop() if '.' in name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata,'isText':istext(path)}
+                file_list.append(file)
+            else:
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
+                dir={'name':name,'size':getsize(path),'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
+                directories[os.path.realpath(path)]=dir
+    except OSError:
+        return render(request,'errors/bad_path.html', {},status=500)
     if request.is_ajax():
         return json_response({'files':file_list,'directories':directories.values()})
     #Find any shares that point at this directory
