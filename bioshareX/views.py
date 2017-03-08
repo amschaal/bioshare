@@ -205,10 +205,12 @@ def update_password(request):
         form = PasswordChangeForm()
     return render(request, 'registration/update_password.html', {'form': form})
 
+@login_required
 def manage_groups(request):
     context ={'user':JSONRenderer().render(UserSerializer(request.user,include_perms=True).data)}
     return render(request,'account/manage_groups.html',context)
 
+@login_required
 def list_ssh_keys(request):
     context ={'keys':SSHKey.objects.filter(user=request.user)}
     return render(request,'ssh/list_keys.html',context)
