@@ -20,6 +20,7 @@ from django.db.models.query_utils import Q
 from bioshareX.api.serializers import UserSerializer
 from rest_framework.renderers import JSONRenderer
 from bioshareX.models import ShareFTPUser
+import re
 
 def index(request):
     # View code here...
@@ -84,7 +85,7 @@ def list_directory(request,share,subdir=None):
         share_perms = list(set(share_perms+['view_share_files','download_share_files']))
     file_list=[]
     directories={}
-    regex = r'^%s[^/]+/?' % '' if subdir is None else normpath(subdir)+'/'
+    regex = r'^%s[^/]+/?' % '' if subdir is None else re.escape(normpath(subdir))+'/'
     metadatas = {}
     for md in MetaData.objects.filter(share=share,subpath__regex=regex):
         metadatas[md.subpath]= md if not request.is_ajax() else md.json()    
