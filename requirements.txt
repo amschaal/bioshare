@@ -6,5 +6,8 @@ django-filter==0.13.0
 django-guardian==1.4.2
 django-sendfile==0.3.10
 djangorestframework==3.3.3
+djangorestframework-filters==0.8.0
 longerusername==0.4
 zipstream==1.1.0
+django-compressor
+jsonfield==1.0.3

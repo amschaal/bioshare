@@ -13,14 +13,11 @@ import datetime
 from guardian.shortcuts import get_users_with_perms, get_objects_for_group
 from django.core.urlresolvers import reverse
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
+import subprocess
 
-# Create your models here.
 def pkgen():
     import string, random
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(15))
-
-# class BioshareUser(AbstractUser):
-#   filesystems = models.ManyToManyField()
 
 class ShareStats(models.Model):
     share = models.OneToOneField('Share',unique=True,related_name='stats')
@@ -105,8 +102,6 @@ class Share(models.Model):
     def get_user_permissions(self,user,user_specific=False):
         if user_specific:
             from utils import fetchall
-#             perms = fetchall("SELECT p.codename as permission FROM guardian_userobjectpermission uop join auth_user u on uop.user_id = u.id join auth_permission p on uop.permission_id=p.id where uop.object_pk = %s and u.username = %s",[self.id, user.username])
-#             perms =  [perm[0] for perm in perms]
             perms = [uop.permission.codename for uop in ShareUserObjectPermission.objects.filter(user=user,content_object=self).select_related('permission')]
         else:
             from guardian.shortcuts import get_perms
@@ -136,17 +131,13 @@ class Share(models.Model):
                 if not user_perms.has_key(perm.user.username):
                     user_perms[perm.user.username]={'user':{'username':perm.user.username},'permissions':[]}
                 user_perms[perm.user.username]['permissions'].append(perm.permission.codename)
-            
-#             from utils import dictfetchall
-#             dict = dictfetchall("SELECT u.username, p.codename as permission FROM guardian_userobjectpermission uop join auth_user u on uop.user_id = u.id join auth_permission p on uop.permission_id=p.id where uop.object_pk = %s",[self.id])
-#             user_perms={}
-#             for row in dict:
-#                 if not user_perms.has_key(row['username']):
-#                     user_perms[row['username']]={'user':{'username':row['username']},'permissions':[]}
-#                 user_perms[row['username']]['permissions'].append(row['permission'])
         return user_perms
     def get_path(self):
         return os.path.join(self.filesystem.path,self.id)
+    def get_zfs_path(self):
+        if not getattr(settings,'ZFS_POOL') or not getattr(settings,'ZFS_FS'):
+            return None
+        return os.path.join(settings.ZFS_POOL,settings.ZFS_FS,self.id)
     def get_realpath(self):
         return os.path.realpath(self.get_path())
     def check_path(self):
@@ -276,7 +267,7 @@ Share._meta.permissions = (
         )    
 
 def share_post_save(sender, **kwargs):
-    if kwargs['created']:
+    if kwargs['created'] and not kwargs.get('raw',False):
         os.umask(settings.UMASK)
         instance = kwargs['instance']
         path = instance.get_path()
@@ -286,7 +277,10 @@ def share_post_save(sender, **kwargs):
                 instance.create_link()
             else:
                 from settings.settings import FILES_GROUP, FILES_OWNER
-                os.makedirs(path)
+                if instance.get_zfs_path():
+                    subprocess.check_call(['zfs','create',instance.get_zfs_path()])
+                else:
+                    os.makedirs(path)
                 uid = pwd.getpwnam(FILES_OWNER).pw_uid
                 gid = grp.getgrnam(FILES_GROUP).gr_gid
         ShareFTPUser.update_share_ftp_users(kwargs['instance'])
@@ -320,40 +314,18 @@ def update_group_ftp_users(sender, instance,pk_set,action, **kwargs):
             for share in get_objects_for_group(group, [Share.PERMISSION_DOWNLOAD,Share.PERMISSION_VIEW],klass=Share):
                 ShareFTPUser.update_share_ftp_users(share)
 m2m_changed.connect(update_group_ftp_users, sender=Group.user_set.through)
-#  
     
-# def delete_share(sender, **kwargs):
-#     if kwargs['created']:
-#         path = kwargs['instance'].get_path()
-#         parent_path = os.path.abspath(os.path.join(path,os.pardir))
-#         delete_subpath = os.path.join('.deleted',parent_path)
-#         import pwd, grp, os, shutil
-#         
-#         if os.path.exists(path):
-#             delete_path = os.path.join(parent_path,'.removed')
-#             if not os.path.exists(delete_path):
-#                 os.makedirs(delete_path)
-#             move_path = os.path.join(delete_path,item)
-#             if os.path.exists(move_path):
-#                 if os.path.isfile(move_path):
-#                     os.remove(move_path)
-#                 else:
-#                     shutil.rmtree(move_path)
-#             shutil.move(path, delete_path)
 def share_post_delete(sender, instance, **kwargs):
     path = instance.get_path()
     import shutil
     if os.path.islink(path):
         instance.unlink()
+    elif instance.get_zfs_path():
+        subprocess.check_call(['zfs','destroy',instance.get_zfs_path()])
     else:
         if os.path.isdir(path):
             shutil.rmtree(path)
 post_delete.connect(share_post_delete, sender=Share)
-# class ShareUser(models.Model):
-#     share = models.ForeignKey(Share)
-#     user = models.ForeignKey(User)
-#     date_shared = models.DateTimeField(auto_now_add=True)
-#     shared_by = models.ForeignKey(User)
 
 class Tag(models.Model):
     name = models.CharField(blank=False,null=False,max_length=30,primary_key=True)
@@ -376,11 +348,6 @@ class MetaData(models.Model):
             return MetaData.objects.get(share=share,subpath=subpath)
         except MetaData.DoesNotExist:
             return None
-#     def get_metadata_json(self,share,subpath):
-#         try:
-#             return MetaData.objects.get(share=share,subpath=subpath).json()
-#         except MetaData.DoesNotExist:
-#             return None
     def to_dict(self):
         return {'tags':self.tags.all(),'notes':self.notes}
     def json(self):
@@ -465,9 +432,6 @@ class ShareLog(models.Model):
             share.save()
         return log
 
-# class MessageManager(models.Manager):
-#     def get_queryset(self):
-#         return super(MessageManager, self).get_queryset().filter(author='Roald Dahl')
 
 class Message(models.Model):
     created = models.DateTimeField(auto_now_add=True)
@@ -476,7 +440,6 @@ class Message(models.Model):
     active = models.BooleanField(default=True)
     expires = models.DateField(null=True,blank=True)
     viewed_by = models.ManyToManyField(User)
-#     active_objects = MessageManager()
     def __unicode__(self):
         return self.title
 
