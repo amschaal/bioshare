@@ -306,4 +306,4 @@ def get_total_size(paths=[]):
 
 def du(path):
     """disk usage in human readable format (e.g. '2,1GB')"""
-    return subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')
+    return subprocess.check_output(['du','-shL', path]).split()[0].decode('utf-8')
