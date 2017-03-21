@@ -156,9 +156,9 @@ def test_path(path,allow_absolute=False,share=None):
 
 def path_contains(parent_path,child_path,real_path=True):
     if real_path:
-        return os.path.realpath(child_path).startswith(os.path.join(os.path.realpath(parent_path),''))
+        return os.path.join(os.path.realpath(child_path),'').startswith(os.path.join(os.path.realpath(parent_path),''))
     else:
-        return child_path.startswith(os.path.join(parent_path,''))
+        return os.path.join(child_path,'').startswith(os.path.join(parent_path,''))
 
 def paths_contain(paths,child_path):
     for path in paths:

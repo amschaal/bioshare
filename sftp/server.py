@@ -11,6 +11,8 @@ from paramiko.sftp import SFTP_OK, SFTP_OP_UNSUPPORTED
 from paramiko.common import o666
 from bioshareX.models import Share
 from paramiko.sftp_handle import SFTPHandle
+from bioshareX.utils import paths_contain
+from django.conf import settings
 
 class BioshareSFTPServer(object):
     """
@@ -277,7 +279,9 @@ class SFTPInterface (SFTPServerInterface):
 #         print path
         parts = path.split(os.path.sep)
         share = self._get_share(path)
-        realpath = os.path.join(share.get_realpath(),os.path.sep.join(parts[2:]))
+        realpath = os.path.realpath(os.path.join(share.get_realpath(),os.path.sep.join(parts[2:])))
+        if not paths_contain(settings.DIRECTORY_WHITELIST,realpath):
+            raise PermissionDenied("Encountered a path outside the whitelist")
         return realpath
 #         print self.ROOT + self.canonicalize(path)
 #         return self.ROOT + self.canonicalize(path)
