@@ -135,7 +135,7 @@ class Share(models.Model):
     def get_path(self):
         return os.path.join(self.filesystem.path,self.id)
     def get_zfs_path(self):
-        if not getattr(settings,'ZFS_POOL') or not getattr(settings,'ZFS_FS'):
+        if not getattr(settings,'ZFS_POOL',False) or not getattr(settings,'ZFS_FS',False):
             return None
         return os.path.join(settings.ZFS_POOL,settings.ZFS_FS,self.id)
     def get_realpath(self):
