@@ -60,9 +60,6 @@ function generate_rsync_download(share,subpath){
 	$('#rsync-download-all').text(download_all_string);
 	$('#rsync-download').modal('show');
 }
-function open_ftp_download(){
-	$('#ftp-download').modal('show');
-}
 
 function generate_rsync_upload(share,subpath){
 	var re = new RegExp(' ', 'g');
@@ -419,9 +416,10 @@ $(function () {
     $('#download-wget').click(function(){
     	generate_wget_download(share,subpath);
     });
-    $('#download-ftp').click(function(){
-    	open_ftp_download();
+    $('.open-sftp').click(function(){
+    	$('#sftp-dialog').modal('show');
     });
+    
     $('#upload-rsync').click(function(){
     	generate_rsync_upload(share,subpath);
     });

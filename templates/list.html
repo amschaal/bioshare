@@ -79,8 +79,8 @@
 		  </a>
 		  <ul class="dropdown-menu">
 		    <li><a href="#" id="download-zip">Zipfile (up to 2GB)</a></li>
-		    {% if HOST and SFTP_PORT and ftp_user%}
-		    <li><a href="#" id="download-ftp">SFTP</a></li>
+		    {% if HOST and SFTP_PORT%}
+		    <li><a href="#" class="open-sftp">SFTP</a></li>
 		    {% endif %}
 		    <li><a href="#" id="download-rsync">Rsync</a></li>
 		    <li><a href="#" id="download-wget">Wget</a></li>
@@ -97,6 +97,9 @@
 		  </a>
 		  <ul class="dropdown-menu">
 		    <li class="fileinput-button"><a href="#"  >Browser</a><input id="fileupload" type="file" name="files[]" multiple></li>
+   		    {% if HOST and SFTP_PORT%}
+		    <li><a href="#" class="open-sftp">SFTP</a></li>
+		    {% endif %}
 		    <li><a href="#" id="upload-rsync">Rsync</a></li>
 		  </ul>
 	  </div>
@@ -280,7 +283,7 @@
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
   </div>
 </div>
-<div class="modal hide fade" id="ftp-download">
+<div class="modal hide fade" id="sftp-dialog">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
     <h3>SFTP connection information</h3>
