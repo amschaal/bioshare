@@ -4,6 +4,7 @@ import logging
 import os
 import socket
 import threading
+import datetime
 from django.contrib.auth import authenticate
 import paramiko
 from paramiko import SFTPServer, SFTPServerInterface
@@ -13,6 +14,8 @@ from bioshareX.models import Share
 from paramiko.sftp_handle import SFTPHandle
 from bioshareX.utils import paths_contain
 from django.conf import settings
+
+SFTP_UPDATE_MODIFIED_DATE_FREQUENCY_SECONDS = getattr(settings, 'SFTP_UPDATE_MODIFIED_DATE_FREQUENCY_SECONDS',60)
 
 class BioshareSFTPServer(object):
     """
@@ -244,6 +247,7 @@ class SFTPInterface (SFTPServerInterface):
         self.server = server
         self.user = server.user
         self.shares = {}
+        self.modified_date = {}
         for share in Share.user_queryset(self.user,include_stats=False):
             self.shares[share.slug_or_id] = share#{'path':share.get_realpath()}
 #         print 'user'
@@ -259,6 +263,20 @@ class SFTPInterface (SFTPServerInterface):
             print path
             raise PermissionDenied("Share does not exist: %s"%path[1])
         return self.shares[parts[1]]
+    def _path_modified(self,path):
+#         SFTP_UPDATE_MODIFIED_DATE_FREQUENCY_MINUTES
+#         pass
+#     Probably too inefficient when writing hundreds/thousands of files.  We don't want to save the model every time.  
+#     It would be better to update a dictionary with the latest time stamp, and every so often set the modified date.
+        print '_path_modified: '+path
+        share = self._get_share(path)
+        previous_date = self.modified_date.get(share.id,None)
+        self.modified_date[share.id] = datetime.datetime.now()
+        if not previous_date or (self.modified_date[share.id]-previous_date).seconds > SFTP_UPDATE_MODIFIED_DATE_FREQUENCY_SECONDS:
+            print 'update modified time'
+            Share.objects.filter(id=share.id,updated__lt=self.modified_date[share.id]).update(updated=self.modified_date[share.id]) 
+#         share.updated = datetime.datetime.now()
+#         share.save()
     def _get_bioshare_path_permissions(self,path):
         share = self._get_share(path)
         permissions = share.get_user_permissions(self.user)
@@ -391,9 +409,10 @@ class SFTPInterface (SFTPServerInterface):
     def remove(self, path):
 #         if not Share.PERMISSION_DELETE in self._get_bioshare_path_permissions(path):
 #             return PermissionDenied()
-        path = self._realpath(path)
+        real_path = self._realpath(path)
         try:
-            os.remove(path)
+            os.remove(real_path)
+            self._path_modified(path)
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
@@ -404,26 +423,29 @@ class SFTPInterface (SFTPServerInterface):
         newpath = self._realpath(newpath)
         try:
             os.rename(oldpath, newpath)
+            self._path_modified(oldpath)
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
     @sftp_response
     @permissions_required([Share.PERMISSION_WRITE])
     def mkdir(self, path, attr):
-        path = self._realpath(path)
+        real_path = self._realpath(path)
         try:
-            os.mkdir(path)
+            os.mkdir(real_path)
+            self._path_modified(path)
             if attr is not None:
-                SFTPServer.set_file_attr(path, attr)
+                SFTPServer.set_file_attr(real_path, attr)
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
     @sftp_response
     @permissions_required([Share.PERMISSION_DELETE])
     def rmdir(self, path):
-        path = self._realpath(path)
+        real_path = self._realpath(path)
         try:
-            os.rmdir(path)
+            os.rmdir(real_path)
+            self._path_modified(path)
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
