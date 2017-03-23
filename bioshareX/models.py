@@ -50,7 +50,7 @@ class Share(models.Model):
     parent = models.ForeignKey('self',null=True,blank=True)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now_add=True,null=True,blank=True)
-    owner = models.ForeignKey(User)
+    owner = models.ForeignKey(User, on_delete=models.PROTECT)
     name = models.CharField(max_length=125)
     secure = models.BooleanField(default=True)
     read_only = models.BooleanField(default=False)
