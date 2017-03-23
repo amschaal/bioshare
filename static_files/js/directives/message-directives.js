@@ -60,7 +60,7 @@ angular.module('template/messages/message.html', []).run(['$templateCache', func
 			  '<div class="modal-header">\
 				  <h3 class="modal-title" id="modal-title">{{message.title}}</h3>\
 				  </div>\
-				  <div class="modal-body" id="modal-body">{{message.description}}</div>\
+				  <div class="modal-body" id="modal-body"><div style="white-space: pre-line;">{{message.description}}</div></div>\
 				  <div class="modal-footer">\
 				  <button class="btn btn-primary" type="button" ng-click="dismiss()">Dismiss</button><button class="btn btn-warning" type="button" ng-click="close()">Close</button>\
 			  </div>'
