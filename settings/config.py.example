@@ -63,3 +63,5 @@ SFTP_SSH_PORT = 2222
 # Note, you can generate a new host key like this:
 # ssh-keygen -t rsa -N '' -f host_key
 SFTP_HOST_KEY = '/tmp/host_key'
+#The share modified date can be updated whenever modifications are made over SFTP.  Set the minimum number of seconds between updates.
+SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS = 60

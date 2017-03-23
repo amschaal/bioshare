@@ -4,7 +4,7 @@ import logging
 import os
 import socket
 import threading
-import datetime
+from django.utils import timezone
 from django.contrib.auth import authenticate
 import paramiko
 from paramiko import SFTPServer, SFTPServerInterface
@@ -15,7 +15,7 @@ from paramiko.sftp_handle import SFTPHandle
 from bioshareX.utils import paths_contain
 from django.conf import settings
 
-SFTP_UPDATE_MODIFIED_DATE_FREQUENCY_SECONDS = getattr(settings, 'SFTP_UPDATE_MODIFIED_DATE_FREQUENCY_SECONDS',60)
+SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS = getattr(settings, 'SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS',60)
 
 class BioshareSFTPServer(object):
     """
@@ -264,19 +264,12 @@ class SFTPInterface (SFTPServerInterface):
             raise PermissionDenied("Share does not exist: %s"%path[1])
         return self.shares[parts[1]]
     def _path_modified(self,path):
-#         SFTP_UPDATE_MODIFIED_DATE_FREQUENCY_MINUTES
-#         pass
-#     Probably too inefficient when writing hundreds/thousands of files.  We don't want to save the model every time.  
-#     It would be better to update a dictionary with the latest time stamp, and every so often set the modified date.
-        print '_path_modified: '+path
         share = self._get_share(path)
         previous_date = self.modified_date.get(share.id,None)
-        self.modified_date[share.id] = datetime.datetime.now()
-        if not previous_date or (self.modified_date[share.id]-previous_date).seconds > SFTP_UPDATE_MODIFIED_DATE_FREQUENCY_SECONDS:
-            print 'update modified time'
-            Share.objects.filter(id=share.id,updated__lt=self.modified_date[share.id]).update(updated=self.modified_date[share.id]) 
-#         share.updated = datetime.datetime.now()
-#         share.save()
+        current_date = timezone.now()
+        if not previous_date or (current_date-previous_date).seconds > SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS:
+            self.modified_date[share.id] = current_date
+            Share.objects.filter(id=share.id,updated__lt=current_date).update(updated=current_date) 
     def _get_bioshare_path_permissions(self,path):
         share = self._get_share(path)
         permissions = share.get_user_permissions(self.user)
@@ -356,13 +349,12 @@ class SFTPInterface (SFTPServerInterface):
             return SFTPServer.convert_errno(e.errno)
     @sftp_response
     def open(self, path, flags, attr):
-#         print 'open: ' + path
-#         print flags
-#         print attr
         permissions = self._get_bioshare_path_permissions(path)
         if Share.PERMISSION_VIEW not in permissions or (flags & os.O_CREAT or flags & os.O_WRONLY or flags & os.O_RDWR or flags & os.O_APPEND) and Share.PERMISSION_WRITE not in permissions:
 #         if Share.PERMISSION_WRITE not in permissions:
             raise PermissionDenied()
+        if flags & os.O_CREAT or flags & os.O_WRONLY or flags & os.O_RDWR or flags & os.O_APPEND:
+            self._path_modified(path)
         path = self._realpath(path)
         try:
             binary_flag = getattr(os, 'O_BINARY', 0)
