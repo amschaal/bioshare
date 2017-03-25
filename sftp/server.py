@@ -322,11 +322,14 @@ class SFTPInterface (SFTPServerInterface):
         try:
             out = []
             flist = os.listdir(path)
-#             print flist
             for fname in flist:
-                attr = paramiko.SFTPAttributes.from_stat(os.stat(os.path.join(path, fname)))
-                attr.filename = fname
-                out.append(attr)
+                try:
+                    attr = paramiko.SFTPAttributes.from_stat(os.stat(os.path.join(path, fname)))
+                    attr.filename = fname
+                    out.append(attr)
+                except OSError as e:
+                    #@todo: Add the file to the list anyway.  It will fail on download.
+                    print 'OSError with file: '+os.stat(os.path.join(path, fname))
             return out
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
