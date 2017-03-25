@@ -327,9 +327,10 @@ class SFTPInterface (SFTPServerInterface):
                     attr = paramiko.SFTPAttributes.from_stat(os.stat(os.path.join(path, fname)))
                     attr.filename = fname
                     out.append(attr)
-                except OSError as e:
-                    #@todo: Add the file to the list anyway.  It will fail on download.
+                except Exception as e:
+#                     @todo: Add the file to the list anyway.  It will fail on download.
                     print 'OSError with file: '+os.stat(os.path.join(path, fname))
+                    print e
             return out
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
