@@ -329,7 +329,7 @@ class SFTPInterface (SFTPServerInterface):
                     out.append(attr)
                 except Exception as e:
 #                     @todo: Add the file to the list anyway.  It will fail on download.
-                    print 'OSError with file: '+os.stat(os.path.join(path, fname))
+                    print 'OSError with file: '+os.path.join(path, fname)
                     print e
             return out
         except OSError as e:
