@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(["INSERT INTO \"bioshareX_shareuserobjectpermission\"(permission_id,content_object_id,user_id) SELECT permission_id, object_pk, user_id FROM biosharex.guardian_userobjectpermission;"]),
-        migrations.RunSQL(["INSERT INTO \"bioshareX_sharegroupobjectpermission\"(permission_id,content_object_id,group_id) SELECT permission_id, object_pk, group_id FROM biosharex.guardian_groupobjectpermission;"]),
+        migrations.RunSQL(["INSERT INTO \"bioshareX_shareuserobjectpermission\"(permission_id,content_object_id,user_id) SELECT permission_id, object_pk, user_id FROM guardian_userobjectpermission;"]),
+        migrations.RunSQL(["INSERT INTO \"bioshareX_sharegroupobjectpermission\"(permission_id,content_object_id,group_id) SELECT permission_id, object_pk, group_id FROM guardian_groupobjectpermission;"]),
     ]
