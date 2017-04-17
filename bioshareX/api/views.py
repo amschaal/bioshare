@@ -45,8 +45,8 @@ def get_user(request):
 @ajax_login_required
 def get_address_book(request):
     try:
-        emails = fetchall("SELECT u.email FROM biosharex.guardian_userobjectpermission p join auth_user u on p.user_id = u.id where object_pk in (select id from bioshareX_share where owner_id = %d) group by email;" % int(request.user.id))
-        groups = Group.objects.all()
+        emails = User.objects.filter(shareuserobjectpermission__content_object__in=Share.objects.filter(owner=request.user).values_list('id')).values_list('email').distinct().order_by('email')
+        groups = Group.objects.all().order_by('name')
         return json_response({'emails':[email[0] for email in emails], 'groups':[g.name for g in groups]})
     except Exception, e:
         return json_error([e.message])
