@@ -45,7 +45,7 @@ class Filesystem(models.Model):
     description = models.TextField()
     path = models.CharField(max_length=200)
     users = models.ManyToManyField(User, related_name='filesystems')
-    type = models.CharField(max_length=20,default=TYPE_STANDARD)
+    type = models.CharField(max_length=20,choices=TYPES,default=TYPE_STANDARD)
     def __unicode__(self):
         return '%s: %s' %(self.name, self.path)
 class Share(models.Model):
