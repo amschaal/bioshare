@@ -10,7 +10,7 @@ from django.template import Context, Template
 from rest_framework import status
 from django.db.models.query_utils import Q
 import subprocess
-from bioshareX.models import Filesystem
+
 
 
 class JSONDecorator(object):
