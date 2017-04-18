@@ -32,16 +32,20 @@ class ShareStats(models.Model):
         from django.utils import timezone
         #         if self.updated is None:
         stats = get_share_stats(self.share)
-        self.num_files = stats['files']
+#         self.num_files = stats['files']
         self.bytes = stats['size']
         self.updated = timezone.now()
         self.save()
-        
+
 class Filesystem(models.Model):
+    TYPE_STANDARD = 'STANDARD'
+    TYPE_ZFS = 'ZFS'
+    TYPES = ((TYPE_STANDARD,'Standard'),(TYPE_ZFS,'ZFS'))
     name = models.CharField(max_length=50)
     description = models.TextField()
     path = models.CharField(max_length=200)
     users = models.ManyToManyField(User, related_name='filesystems')
+    type = models.CharField(max_length=20,default=TYPE_STANDARD)
     def __unicode__(self):
         return '%s: %s' %(self.name, self.path)
 class Share(models.Model):
@@ -135,7 +139,7 @@ class Share(models.Model):
     def get_path(self):
         return os.path.join(self.filesystem.path,self.id)
     def get_zfs_path(self):
-        if not getattr(settings,'ZFS_BASE',False):
+        if not getattr(settings,'ZFS_BASE',False) or not self.filesystem.type == Filesystem.TYPE_ZFS:
             return None
         return os.path.join(settings.ZFS_BASE,self.id)
     def get_realpath(self):

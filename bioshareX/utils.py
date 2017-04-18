@@ -10,6 +10,7 @@ from django.template import Context, Template
 from rest_framework import status
 from django.db.models.query_utils import Q
 import subprocess
+from bioshareX.models import Filesystem
 
 
 class JSONDecorator(object):
@@ -290,13 +291,17 @@ def get_size(path):
 def get_share_stats(share):
     path = os.path.abspath(share.get_path())
     total_size = 0
-    total_files = 0
-    for dirpath, dirnames, filenames in os.walk(path):
-        for f in filenames:
-            fp = os.path.join(dirpath, f)
-            total_size += os.path.getsize(fp)
-            total_files += 1
-    return {'size':total_size,'files':total_files}
+#     total_files = 0
+    ZFS_PATH = share.get_zfs_path()
+    if ZFS_PATH:
+        total_size = subprocess.check_output(['zfs', 'get', '-H', '-o', 'value', '-p', 'used', ZFS_PATH])
+    else:
+        for dirpath, dirnames, filenames in os.walk(path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+    #             total_files += 1
+    return {'size':int(total_size)}
 
 def get_total_size(paths=[]):
     total_size = 0
