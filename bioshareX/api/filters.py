@@ -8,7 +8,7 @@ class UserShareFilter(filters.BaseFilterBackend):
         user = view.request.query_params.get('user',None)
         if not user:
             return queryset
-        shares = Share.objects.filter(user_permissions__user__username__icontains=user)
+        shares = Share.objects.filter(user_permissions__user__username__icontains=user)#.distinct('id').values_list('id',flat=True)
         return queryset.filter(id__in=shares)
 
 class GroupShareFilter(filters.BaseFilterBackend):
@@ -16,7 +16,7 @@ class GroupShareFilter(filters.BaseFilterBackend):
         group = view.request.query_params.get('group',None)
         if not group:
             return queryset
-        shares = Share.objects.filter(group_permissions__group__name__icontains=group)
+        shares = Share.objects.filter(group_permissions__group__name__icontains=group)#.distinct('id').values_list('id',flat=True)
         return queryset.filter(id__in=shares)
 
 class ShareTagFilter(filters.BaseFilterBackend):

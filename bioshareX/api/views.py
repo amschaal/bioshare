@@ -1,26 +1,21 @@
 # Create your views here.
-from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
-from django.http.response import HttpResponseRedirect, HttpResponse,\
-    JsonResponse
+from django.http.response import JsonResponse
 from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
 from bioshareX.models import Share, SSHKey, MetaData, Tag
 from bioshareX.forms import MetaDataForm, json_form_validate
-from guardian.shortcuts import get_perms, get_users_with_perms, get_groups_with_perms, remove_perm, assign_perm
-import json
+from guardian.shortcuts import get_perms, get_users_with_perms, remove_perm, assign_perm
 from bioshareX.utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email, fetchall,\
     test_path, du
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
-from django.contrib.auth.decorators import login_required
-from rest_framework.decorators import api_view, detail_route, permission_classes,\
-    throttle_classes
+from rest_framework.decorators import api_view, detail_route, throttle_classes
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
 from rest_framework import generics, viewsets, status
-from bioshareX.models import ShareLog, ShareFTPUser, Message
+from bioshareX.models import ShareLog, Message
 from bioshareX.api.serializers import ShareLogSerializer, ShareSerializer,\
     GroupSerializer, UserSerializer, MessageSerializer
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
@@ -120,7 +115,6 @@ def get_permissions(request,share):
 def update_share(request,share,json=None):
     share.secure = json['secure']
     share.save()
-    ShareFTPUser.update_share_ftp_users(share)
     return json_response({'status':'okay'})
 
 @share_access_decorator(['admin'])
@@ -194,7 +188,6 @@ def set_permissions(request,share,json=None):
     if len(failed) > 0:
         data['messages'].append({'type':'info','content':'Delivery has failed to the following addresses: %s'%', '.join(failed)})
     data['json']=json
-    ShareFTPUser.update_share_ftp_users(share)
     return json_response(data)
 
 @share_access_decorator(['view_share_files'])
@@ -236,7 +229,6 @@ def delete_ssh_key(request):
     try:
         id = request.POST.get('id')
         key = SSHKey.objects.get(user=request.user,id=id)
-        import subprocess, re
 #        subprocess.call(['/bin/chmod','600',AUTHORIZED_KEYS_FILE])
         keystring = key.get_key()
 #         remove_me = keystring.replace('/','\\/')#re.escape(key.extract_key())

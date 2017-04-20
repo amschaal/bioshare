@@ -77,7 +77,7 @@ def modify_name(request, share, subdir=None):
             to_path = os.path.join(share.get_path(),subdir,form.cleaned_data['to_name'])
         os.rename(from_path, to_path)
         data['objects']=[{'from_name':form.cleaned_data['from_name'],'to_name':form.cleaned_data['to_name']}]
-    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_RENAMED,text='"%s" renamed to "%s"'%(form.cleaned_data['from_name'],form.cleaned_data['to_name']),paths=[form.cleaned_data['to_name']],subdir=subdir)
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_RENAMED,text='"%s" renamed to "%s"'%(form.cleaned_data['from_name'],form.cleaned_data['to_name']),paths=[from_path],subdir=subdir)
     return json_response(data)
 
 

@@ -19,7 +19,6 @@ import operator
 from django.db.models.query_utils import Q
 from bioshareX.api.serializers import UserSerializer
 from rest_framework.renderers import JSONRenderer
-from bioshareX.models import ShareFTPUser
 import re
 
 def index(request):
@@ -116,8 +115,7 @@ def list_directory(request,share,subdir=None):
     all_perms = share.get_permissions(user_specific=True)
     shared_users = all_perms['user_perms'].keys()
     shared_groups = [g['group']['name'] for g in all_perms['group_perms']]
-    ftp_user = ShareFTPUser.objects.filter(share=share,user__isnull=True).first() or ShareFTPUser.objects.filter(share=share,user=request.user).first()
-    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,'ftp_user':ftp_user})
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])

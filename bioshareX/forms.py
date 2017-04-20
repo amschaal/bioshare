@@ -118,7 +118,7 @@ class FolderForm(forms.Form):
 
 class RenameForm(forms.Form):
     from_name = forms.RegexField(regex=r'^[^/]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'},widget=forms.HiddenInput())
-    to_name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'})
+    to_name = forms.RegexField(regex=r'^[\w\d\ \-_\.]+$',error_messages={'invalid':'Only letters, numbers, periods, and spaces are allowed'})
 
 class RegistrationForm(forms.Form):
     """
