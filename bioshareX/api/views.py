@@ -62,14 +62,14 @@ def share_with(request,share):
     groups = []
     invalid = []
     try:
-        emails = [email.strip() for email in query.split(',')]
+        emails = [email.strip().lower() for email in query.split(',')]
         for email in emails:
             if email == '':
                 continue
             if email.startswith('Group:'):
-                name = email.split('Group:')[1]
+                name = email.split('Group:')[1].lower()
                 try:
-                    group = Group.objects.get(name=name)
+                    group = Group.objects.get(name__iexact=name)
                     groups.append({'group':{'id':group.id,'name':group.name}})
                 except:
                     invalid.append(name)
@@ -128,7 +128,7 @@ def set_permissions(request,share,json=None):
 #         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
     if json.has_key('groups'):
         for group, permissions in json['groups'].iteritems():
-            g = Group.objects.get(id=group)
+            g = Group.objects.get(id__iexact=group)
             current_perms = get_perms(g,share)
             removed_perms = list(set(current_perms) - set(permissions))
             added_perms = list(set(permissions) - set(current_perms))
@@ -142,8 +142,9 @@ def set_permissions(request,share,json=None):
                 assign_perm(perm,g,share)
     if json.has_key('users'):
         for username, permissions in json['users'].iteritems():
+            username = username.lower()
             try:
-                u = User.objects.get(username=username)
+                u = User.objects.get(username__iexact=username)
                 if len(share.get_user_permissions(u,user_specific=True)) == 0 and json['email']:
                     try:
                         email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site_url':SITE_URL})
