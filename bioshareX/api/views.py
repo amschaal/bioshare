@@ -66,8 +66,8 @@ def share_with(request,share):
         for email in emails:
             if email == '':
                 continue
-            if email.startswith('Group:'):
-                name = email.split('Group:')[1].lower()
+            if email.startswith('group:'):
+                name = email.split('group:')[1].lower()
                 try:
                     group = Group.objects.get(name__iexact=name)
                     groups.append({'group':{'id':group.id,'name':group.name}})
