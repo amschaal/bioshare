@@ -14,6 +14,7 @@ from guardian.shortcuts import get_users_with_perms, get_objects_for_group
 from django.core.urlresolvers import reverse
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 import subprocess
+from django.utils import timezone
 
 def pkgen():
     import string, random
@@ -79,6 +80,10 @@ class Share(models.Model):
     @staticmethod
     def get_by_slug_or_id(slug_or_id):
         return Share.objects.get(Q(id=slug_or_id)|Q(slug=slug_or_id))
+    def update_last_modified(self,commit=True):
+        self.updated = timezone.now()
+        if commit:
+            self.save()
     def get_url(self,subpath=None):
         if subpath:
             return reverse('list_directory',kwargs={'share':self.slug_or_id,'subpath':subpath})
@@ -379,8 +384,7 @@ class ShareLog(models.Model):
             paths = [os.path.join(subdir,path) for path in paths]
         log = ShareLog.objects.create(share=share,user=user,action=action,text=text,paths=paths)
         if share_updated:
-            share.updated = datetime.datetime.now()
-            share.save()
+            share.update_last_modified()
         return log
 
 
