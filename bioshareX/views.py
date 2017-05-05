@@ -86,7 +86,7 @@ def list_directory(request,share,subdir=None):
     directories={}
     regex = r'^%s[^/]+/?' % '' if subdir is None else re.escape(normpath(subdir))+'/'
     metadatas = {}
-    for md in MetaData.objects.filter(share=share,subpath__regex=regex):
+    for md in MetaData.objects.prefetch_related('tags').filter(share=share,subpath__regex=regex):
         metadatas[md.subpath]= md if not request.is_ajax() else md.json()    
     try:
         for name in listdir(PATH):
