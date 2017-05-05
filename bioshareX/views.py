@@ -8,7 +8,7 @@ from guardian.shortcuts import get_perms, get_users_with_perms
 #from django.utils import simplejson
 import json
 from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response,\
-    get_setting
+    get_setting, list_share_dir
 from bioshareX.file_utils import istext
 from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
@@ -71,75 +71,40 @@ def edit_share(request,share):
 def list_directory(request,share,subdir=None):
     if not share.check_path():
         return render(request,'index.html', {"message": "Unable to locate the files for this share.  Please contact the site administrator."})
-    from os import listdir, stat
-    from os.path import isfile, join, getsize, normpath
-    import time, datetime
+    files,directories = list_share_dir(share,subdir=subdir,ajax=request.is_ajax())
+    if request.is_ajax():
+        return json_response({'files':files,'directories':directories.values()})
+    #Find any shares that point at this directory
+    for s in Share.user_queryset(request.user).filter(real_path__in=directories.keys()).exclude(id=share.id):
+        directories[s.real_path]['share']=s
+    share_perms = share.get_user_permissions(request.user)
     PATH = share.get_path()
     subshare = None
     if subdir is not None:
-        PATH = join(PATH,subdir)
+        PATH = os.path.join(PATH,subdir)
         subshare = Share.objects.filter(parent=share,sub_directory=subdir).first()
-    share_perms = share.get_user_permissions(request.user)
-    if not share.secure:
-        share_perms = list(set(share_perms+['view_share_files','download_share_files']))
-    file_list=[]
-    directories={}
-    regex = r'^%s[^/]+/?' % '' if subdir is None else re.escape(normpath(subdir))+'/'
-    metadatas = {}
-    for md in MetaData.objects.prefetch_related('tags').filter(share=share,subpath__regex=regex):
-        metadatas[md.subpath]= md if not request.is_ajax() else md.json()    
-    try:
-        for name in listdir(PATH):
-            path = join(PATH,name)
-            subpath= name if subdir is None else join(subdir,name)
-    #         metadata = MetaData.get_or_none(share=share,subpath=subpath)
-            metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
-            if isfile(path):
-                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-                file={'name':name,'extension':name.split('.').pop() if '.' in name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata,'isText':istext(path)}
-                file_list.append(file)
-            else:
-                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-                dir={'name':name,'size':getsize(path),'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
-                directories[os.path.realpath(path)]=dir
-    except OSError:
-        return render(request,'errors/message.html', {'message':'The system encountered an error.  The path may not exist or is currently not available.'},status=500)
-    if request.is_ajax():
-        return json_response({'files':file_list,'directories':directories.values()})
-    #Find any shares that point at this directory
-    print directories.keys()
-    for s in Share.user_queryset(request.user).filter(real_path__in=directories.keys()).exclude(id=share.id):
-        directories[s.real_path]['share']=s
-    
     owner = request.user == share.owner
     all_perms = share.get_permissions(user_specific=True)
     shared_users = all_perms['user_perms'].keys()
     shared_groups = [g['group']['name'] for g in all_perms['group_perms']]
-    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":file_list,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups})
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
 def wget_listing(request,share,subdir=None):
-    from os import listdir, stat
-    from os.path import isfile, join, getsize, normpath
-    import time, datetime
+    from os import listdir
+    from os.path import isfile, join
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
     file_list=[]
     dir_list=[]
-    regex = r'^%s[^/]+/?' % '' if subdir is None else normpath(subdir)+'/'
     for name in listdir(PATH):
         path = join(PATH,name)
-        subpath= name if subdir is None else join(subdir,name)
         if isfile(path):
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-            file={'name':name,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
-            file_list.append(file)
+            file_list.append(name)
         elif name not in []:#['.removed','.archives']:
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = stat(path)
-            dir={'name':name,'size':getsize(path),'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
-            dir_list.append(dir)
+            dir_list.append(name)
     return render(request,'wget_listing.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir})
 
 @login_required

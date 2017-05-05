@@ -1,15 +1,15 @@
 {% block title %}Share: {{share.name}} {{subdir}}{% endblock %}
 	  <table>
-	  <thead><tr><th>Name</th><th style="width:100px;">Size</th><th style="width:150px;">Modified</th></tr></thead>
+	  <thead><tr><th>Name</th></tr></thead>
 	  <tbody>
 	  {% if subdir %}
 	 	<!-- <tr class="directory"><td><i class="fam-folder"></i><a href="../">../</a></td><td></td><td></td></tr> -->
 	  {% endif %}
 	  {% for dir in directories %}
-		<tr class="directory real-directory"><td class="name"><i class="fam-folder"></i><a href="{{dir.name}}/wget_index.html">{{ dir.name }}</a></td><td></td><td>{{ dir.modified }}</td></tr>    
+		<tr class="directory real-directory"><td class="name"><i class="fam-folder"></i><a href="{{dir}}/wget_index.html">{{ dir }}</a></td></tr>    
 	  {% endfor %}
 	  {% for file in files %}
-		<tr class="file"><td class="name"><i class="fam-page-white"></i><a href="{% url 'wget_download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a></td><td>{{ file.size }}</td><td>{{ file.modified }}</td></tr>    
+		<tr class="file"><td class="name"><i class="fam-page-white"></i><a href="{% url 'wget_download_file' share=share.id subpath=subdir|default_if_none:""|add:file %}">{{ file }}</a></td></tr>    
 	  {% endfor %}
 	  </tbody>
 	  </table>

@@ -10,6 +10,10 @@ from django.template import Context, Template
 from rest_framework import status
 from django.db.models.query_utils import Q
 import subprocess
+from scandir import scandir
+import re
+import datetime
+from bioshareX.file_utils import istext
 
 
 
@@ -312,3 +316,27 @@ def get_total_size(paths=[]):
 def du(path):
     """disk usage in human readable format (e.g. '2,1GB')"""
     return subprocess.check_output(['du','-shL', path]).split()[0].decode('utf-8')
+
+def list_share_dir(share,subdir=None,ajax=False):
+    from bioshareX.models import MetaData
+    PATH = share.get_path()
+    if subdir is not None:
+        PATH = os.path.join(PATH,subdir)
+    file_list=[]
+    directories={}
+    regex = r'^%s[^/]+/?' % '' if subdir is None else re.escape(os.path.normpath(subdir))+'/'
+    metadatas = {}
+    for md in MetaData.objects.prefetch_related('tags').filter(share=share,subpath__regex=regex):
+        metadatas[md.subpath]= md if not ajax else md.json()    
+    for entry in scandir(PATH):
+        subpath= entry.name if subdir is None else os.path.join(subdir,entry.name)
+        metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
+        if entry.is_file():
+            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+            file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata,'isText':istext(entry.path)}
+            file_list.append(file)
+        else:
+            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+            dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
+            directories[os.path.realpath(entry.path)]=dir
+    return (file_list,directories)
