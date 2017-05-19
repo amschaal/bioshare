@@ -53,7 +53,7 @@ class Command(BaseCommand):
                     user_permissions = share.get_user_permissions(self.user)
                     if Share.PERMISSION_DOWNLOAD not in user_permissions:
                         raise WrapperException('User %s cannot read from share %s' % (self.user.username,share.id))
-                command = ['rsync', '--server', '--sender', '-vrzte.iLsf', '.'] + paths
+                command = ['rsync', '--server', '--sender', '-vrte.iLsf', '.'] + paths
             else:#client->server
                 # --no-p --no-g --chmod=ugo=rwX  //destination default permissions
                 for share in shares:
@@ -63,7 +63,7 @@ class Command(BaseCommand):
                             raise WrapperException('User %s cannot write to share %s' % (self.user.username,share.id))
                     share.updated = timezone.now()
                     share.save()
-                command = ['rsync', '--server', '-vrtze.iLsf', '.'] + paths
+                command = ['rsync', '--server', '-vrte.iLsf', '.'] + paths
     #             command = parts[:4]+paths
 #             if TEST:
 #                 logger.info('running rsync command: %s' % ', '.join(command))
