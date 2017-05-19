@@ -53,8 +53,8 @@ function generate_rsync_download(share,subpath){
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
 	var files = selection.length > 1 ? '{'+selection.join(',')+'}' : selection.join('');
-	var download_all_string = "rsync -vrztL "+rsync_url+":"+path+" /to/my/local/directory";
-	var download_string = "rsync -vrztL "+rsync_url+":"+path+files+" /to/my/local/directory";
+	var download_all_string = "rsync -vrt "+rsync_url+":"+path+" /to/my/local/directory";
+	var download_string = "rsync -vrt "+rsync_url+":"+path+files+" /to/my/local/directory";
 	
 	$('#rsync-download-selected').text(download_string);
 	$('#rsync-download-all').text(download_all_string);
