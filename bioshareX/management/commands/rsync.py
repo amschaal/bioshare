@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from bioshareX.models import Share
-import os, re, logging
+import os, re, logging, argparse
 from bioshareX.utils import get_setting, test_path
 from django.contrib.auth.models import User
 import sys
@@ -14,6 +14,16 @@ class Command(BaseCommand):
     help = 'Wrap rsync commands'
     logger = None
     requires_system_checks = False
+    def get_flags(self,args):
+        parser = argparse.ArgumentParser(description='Parse rsync command')
+        parser.add_argument('-z', action="store_true", default=False)
+        parser.add_argument('-t', action="store_true", default=False)
+        parser.add_argument('-v', action="store_true", default=False)
+        parser.add_argument('-r', action="store_true", default=False)
+        parser.add_argument('-e')
+        parsed = parser.parse_known_args(args)
+        flags =  ''.join([flag for flag in 'vrzt' if getattr(parsed[0],flag)])
+        return '-%se.iLsf'%flags
     def add_arguments(self, parser):
         parser.add_argument('user')
     def log(self,message,level='info'):
@@ -44,6 +54,10 @@ class Command(BaseCommand):
         except Exception, e:
             raise Exception('analyze_path: Bad path: %s, %s' % (path,str(e)))
     def handle_rsync(self, parts):
+        self.log('handle rsync')
+        flags = self.get_flags(parts)
+        if 'z' in flags:
+            print >> sys.stderr, '\n*** Use of -z is deprecated, and can actually hurt performance! ***\n'
         try:
             paths_data = [self.analyze_path(path) for path in parts[parts.index('.')+1:]]
             paths = [path_data['path'] for path_data in paths_data]
@@ -53,7 +67,7 @@ class Command(BaseCommand):
                     user_permissions = share.get_user_permissions(self.user)
                     if Share.PERMISSION_DOWNLOAD not in user_permissions:
                         raise WrapperException('User %s cannot read from share %s' % (self.user.username,share.id))
-                command = ['rsync', '--server', '--sender', '-vrte.iLsf', '.'] + paths
+                command = ['rsync', '--server', '--sender', flags, '.'] + paths
             else:#client->server
                 # --no-p --no-g --chmod=ugo=rwX  //destination default permissions
                 for share in shares:
@@ -63,7 +77,7 @@ class Command(BaseCommand):
                             raise WrapperException('User %s cannot write to share %s' % (self.user.username,share.id))
                     share.updated = timezone.now()
                     share.save()
-                command = ['rsync', '--server', '-vrte.iLsf', '.'] + paths
+                command = ['rsync', '--server', flags, '.'] + paths
     #             command = parts[:4]+paths
 #             if TEST:
 #                 logger.info('running rsync command: %s' % ', '.join(command))
