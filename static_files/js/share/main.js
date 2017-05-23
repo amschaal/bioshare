@@ -66,7 +66,7 @@ function generate_rsync_upload(share,subpath){
 	var path = subpath ? '/'+ share + '/' + subpath: '/'+share+'/';
 	if (path.indexOf(' ') > -1)
 		path = "'"+path.replace(re,'\\ ')+"'";
-	var upload_string = "rsync -vrzt --no-p --no-g --chmod=ugo=rwX /path/to/my/files "+rsync_url+":"+path;
+	var upload_string = "rsync -vrt --no-p --no-g --chmod=ugo=rwX /path/to/my/files "+rsync_url+":"+path;
 	$('#rsync-upload-command').text(upload_string);
 	$('#rsync-upload').modal('show');
 }
