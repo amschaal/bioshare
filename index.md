@@ -1,4 +1,4 @@
-Bioshare
-========
+User Guide
+==========
 
-* [About](about.md)
+* [Home page](home)
