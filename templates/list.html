@@ -297,7 +297,7 @@
   	<h3>Connecting</h3>
   	<p>The easiest way to connect is by using an SFTP client.  A popular cross platform option is Filezilla.<p>
   	<p>Alternatively, it may be useful to connect via the command line if transfering directly from a server:<br>
-  	sftp -P {{SFTP_PORT}} '{{request.user.username}}'@{{HOST}}:/{{share.id}}
+  	sftp -P {{SFTP_PORT}} '{{request.user.username}}'@{{HOST}}:/{{share.slug_or_id}}
   	</p>
   </div>
   <div class="modal-footer">
