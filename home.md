@@ -1,5 +1,8 @@
 Home
 ====
+
+![Home page](/images/screenshots/home.png)
+
 Share list
 ----------
 The home page lists all of the shares that you have access to.  This includes both shares that are owned by by you, as well as those that have been shared with you.
