@@ -24,4 +24,14 @@ File/Directory action buttons
 - Move:  Move selected files and directories into another location in the same share.
 - Delete:  Permanently delete selected files and directories.
 
+Share actions
+-------------
+At the top of the interface, there are a few buttons that perform actions for the entire share:
+- Email:  Opens a dialog that permits the user to quickly send an email to all accounts that have access to the share.
+- Permissions:  Redirects to the page for managing share permissions.
+- Edit:  Redirects to a form that allows the user to update share details.
+- Delete Share:  Delete the share and all it's contents.  Confirmation will be required prior to deletion.
 
+Share information
+-----------------
+Below the share actions is a box containing general information about the share, including the owner, who it is being shared with, a description, tags, and a link that can be clicked to calculate the size of the current directory (including sub-directories).  Above the general information are links which indicate the share's name, as well as the full path to the current subdirectory, if applicable.  Clicking on the links will bring you to that particular directory in the share.
