@@ -28,4 +28,6 @@ All users and groups with permissions for the share are listed in this table.  E
 
 Below the list, there is a "Send email" checkbox.  If selected, any user/group who is newly added to the share permissions will be sent an email with a link to the share.
 
-Users who do not yet exist in the system will be sent an email with their new user credentials and a link
+Users who do not yet exist in the system will be sent an email with their new user credentials and a link to the share, regardless of if the box is checked.
+
+If a user or group has had their permissions changed, that row will be highlighted in yellow.  Please note, that no permissions will be updated until the "Update" button is clicked.  Once the update button is clicked, a confirmation message should appear in the upper right corner of the screen, and no more rows should be highlighted in yellow.
