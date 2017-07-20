@@ -13,7 +13,7 @@ Share actions
 -------------
 To the right of the share name, there are a few buttons that perform actions for the entire share:
 - Email:  Opens a dialog that permits the user to quickly send an email to all accounts that have access to the share.
-- Permissions:  Redirects to the page for managing share permissions.
+- Permissions:  Redirects to the page for [managing share permissions](permissions).
 - Edit:  Redirects to a form that allows the user to update share details.
 - Delete Share:  Delete the share and all it's contents.  Confirmation will be required prior to deletion.
 
