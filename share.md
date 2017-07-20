@@ -34,5 +34,4 @@ Individual File/Directory actions
 Under the "Actions" column, there are a few actions that can be taken on individual files or directories:
 - Add/Edit Metadata: Add notes or comma seperated tags
 - Modify file/directory name: Just like it sounds.  Only use alphanumeric characters, periods, underscores, or dashes.
-- Create subshare (share owner only):  For the case of a directory, create a share that links to the directory.  The subshare will mirror exactly what is in the directory that was reshared.  This is useful if you want to assign additional 
-s for that directory only.
+- Create subshare (share owner only):  For the case of a directory, create a share that links to the directory.  The subshare will mirror exactly what is in the directory that was reshared.  This is useful if you want to assign additional permissions for that directory only.
