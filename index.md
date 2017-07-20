@@ -1,5 +1,6 @@
 About Bioshare
 ==============
+![Share interface](/images/screenshots/share.png)
 Bioshare is a file sharing web application designed for sharing the "Big Data" common to bioinformatics.  While it was developed to support the effective sharing of larger datasets, it can and has been used to share all kinds of data, large and small.
 
 The central goals of Bioshare are:
