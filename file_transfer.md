@@ -9,4 +9,9 @@ Another scenario where using the browser is impractical is when trying to transf
 
 SFTP
 ====
-SFTP is something of a cross platform standard for secure file transfer.  It is available on most any operating system either as a GUI, or as a command line application
+SFTP is something of a cross platform standard for secure file transfer.  It is available on most any operating system either as a GUI, or as a command line application.  
+Using FileZilla
+---------------
+As far as graphical applications that support SFTP go, I often suggest [FileZilla](https://filezilla-project.org), as it is free, open source, and available on Windows, Mac, and Linux.  There are plenty of other options as well, such as Cyberduck, but not all support all platforms.
+
+The simplest way to connect to Bioshare using FileZilla is simply by using the "Quickconnect" parameters at the top of the window.  Here, you need to enter the host (ie: sftp://bioshare.bigdata.org), username (same as you log into Bioshare with), password (again, same as you log in with), and port (depends on how Bioshare was configured).  Once entered, click "Quickconnect" and you should see some details below as FileZilla attempt to log in.  After successful authentication, you'll have a list of all of your available shares on the right side of the window.  You can simply drag and drop files or directories between Bioshare and your local machine.
