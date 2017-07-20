@@ -13,7 +13,7 @@ Share actions
 -------------
 To the right of the share name, there are a few buttons that perform actions for the entire share:
 - Email:  Opens a dialog that permits the user to quickly send an email to all accounts that have access to the share.
-- Permissions:  Redirects to the page for [managing share permissions](permissions).
+- Permissions:  Redirects to the page for [managing share permissions](permissions.md).
 - Edit:  Redirects to a form that allows the user to update share details.
 - Delete Share:  Delete the share and all it's contents.  Confirmation will be required prior to deletion.
 
@@ -34,4 +34,5 @@ Individual File/Directory actions
 Under the "Actions" column, there are a few actions that can be taken on individual files or directories:
 - Add/Edit Metadata: Add notes or comma seperated tags
 - Modify file/directory name: Just like it sounds.  Only use alphanumeric characters, periods, underscores, or dashes.
-- Create subshare (share owner only):  For the case of a directory, create a share that links to the directory.  The subshare will mirror exactly what is in the directory that was reshared.  This is useful if you want to assign additional permissions for that directory only.
+- Create subshare (share owner only):  For the case of a directory, create a share that links to the directory.  The subshare will mirror exactly what is in the directory that was reshared.  This is useful if you want to assign additional 
+s for that directory only.
