@@ -14,6 +14,7 @@ User Guide
 ==========
 Below are links to pages which describe the essential functions of Bioshare.
 * [Home page](home.md)
+* [Create Share](create_share.md)
 * [Share](share.md)
 * [Share permissions](permissions.md)
 * [Transfering data](file_transfer.md)
