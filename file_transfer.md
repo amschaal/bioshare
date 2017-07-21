@@ -18,6 +18,8 @@ As far as graphical applications that support SFTP go, I often suggest [FileZill
 
 The simplest way to connect to Bioshare using FileZilla is simply by using the "Quickconnect" parameters at the top of the window.  Here, you need to enter the host (ie: sftp://bioshare.bigdata.org), username (same as you log into Bioshare with), password (again, same as you log in with), and port (depends on how Bioshare was configured).  Once entered, click "Quickconnect" and you should see some details below as FileZilla attempt to log in.  After successful authentication, you'll have a list of all of your available shares on the right side of the window.  You can simply drag and drop files or directories between Bioshare and your local machine.
 
+![Filezilla quick connect](images/screenshots/filezilla_quickconnect.png)
+
 Using the command line (Linux/Mac)
 ----------------------------------
 Again, this is a useful option when trying to transfer files to/from a remote server.  Connecting using sftp is quite simple, and will look something like (depending on port number, username, etc):
@@ -58,6 +60,8 @@ When asked for a passphrase, make sure to enter one.  You'll be asked to enter t
         *  Select a name for the public key.  This serves only to remind you of what key you uploaded.
         *  Select the public key (id_rsa.pub) that you will be using.  It should be in your home directory, in the .ssh directory.  If you can't find the .ssh directory it may be that your browser isn't listing files/directories that start with a ".".  You can always copy the public key somewhere more convenient for upload in this case.
         *  Click create.  You should now see your key listed.
+        ![Upload SSH Public Key](images/screenshots/add_ssh_key.png)
+
 Rsyncing
 --------
 Bioshare will generate the appropriate rsync command for you from any given share or share directory.  A typical command to download files from Bioshare would be:
