@@ -71,6 +71,7 @@ rsync -vrt --no-p --no-g --chmod=ugo=rwX /path/to/my/files bioshare@bioshare.big
 Troubleshooting rsync
 ---------------------
 **It is asking for my password, and failing to authenticate**
+
 If your SSH key is set up properly, Bioshare should not ask for a password.  Here are a couple things you should check for, assuming you already set up your SSH keypair as described in the setup section above:
 1.  Is the private key corresponding to public key you uploaded to Bioshare on the current system under ~/.ssh/id_rsa?  Some people may try to SSH into a server from their desktop, then rsync from there.  In this case, the server you are rsyncing from may not have your SSH private key available. To resolve this, you can either:
     *  Copy your private key to the server in the appropriate place (~/.ssh/).  Then, again assuming your key is named id_rsa, add it to your SSH agent:
@@ -100,3 +101,11 @@ Make sure that in the output a key matches one of the ones on the "Bioshare SSH 
 ```Shell
    ssh-add ~/.ssh/id_rsa
 ```
+
+**When downloading, I'm getting an error similar to "handle_rsync exception: User email@example.com cannot read from share"**
+
+You do not have permission to download from the share.  Ask the owner of the share or a share administrator to give you download permissions.
+
+**When uploading, I'm getting an error similar to "handle_rsync exception: User email@example.com cannot write to share"**
+
+You do not have permission to upload with rsync to the share.  Ask the owner of the share or a share administrator to give you both write and delete permissions.  Both of these are necessary to upload with rsync.
