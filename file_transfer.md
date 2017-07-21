@@ -41,16 +41,18 @@ Here are the basic steps to setting up SSH keys with Bioshare.
 ls -al ~/.ssh
 ```
 Look for a pair of files called "id_rsa" and "id_rsa.pub".  Those would be your private and public keys, respectively.  If you have them, you can skip to step 3.
+
 2.  Create an SSH keypair if you didn't find one you want to use in step 1:
 ```
 cd ~/.ssh
 ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
 ```
 When asked for a passphrase, make sure to enter one.  You'll be asked to enter this each time you use the keypair, which will keep it secure.
+
 3.  Upload your public key, i.e. "id_rsa.pub" to Bioshare.  
-  1.  Once logged into Bioshare, under the menu go to Account->SSH Keys.  If you have any public keys uploaded, they'll be listed here, along with the possibility to delete them.  
-  2.  Click on the button to upload a public key.
-  3.  
-    *  Select a name for the public key.  This serves only to remind you of what key you uploaded.
-    *  Select the public key (id_rsa.pub) that you will be using.  It should be in your home directory, in the .ssh directory.  If you can't find the .ssh directory it may be that your browser isn't listing files/directories that start with a ".".  You can always copy the public key somewhere more convenient for upload in this case.
-    *  Click create.  You should now see your key listed.
+    1.  Once logged into Bioshare, under the menu go to Account->SSH Keys.  If you have any public keys uploaded, they'll be listed here, along with the possibility to delete them.  
+    2.  Click on the button to upload a public key.
+    3.  
+        *  Select a name for the public key.  This serves only to remind you of what key you uploaded.
+        *  Select the public key (id_rsa.pub) that you will be using.  It should be in your home directory, in the .ssh directory.  If you can't find the .ssh directory it may be that your browser isn't listing files/directories that start with a ".".  You can always copy the public key somewhere more convenient for upload in this case.
+        *  Click create.  You should now see your key listed.
