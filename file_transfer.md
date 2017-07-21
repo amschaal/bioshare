@@ -34,6 +34,8 @@ Rsync is, however, the least simple transfer method to setup.  Unlike SFTP, Bios
 
 Bioshare uses SSH keypairs in much the same way as Github.  Github has good documentation on [how to use SSH keypairs for authenticating to Github](https://help.github.com/articles/connecting-to-github-with-ssh/), and is worth a read.
 
+Setup
+-----
 Here are the basic steps to setting up SSH keys with Bioshare.
 
 1.  Make sure you have an SSH keypair:
@@ -56,3 +58,27 @@ When asked for a passphrase, make sure to enter one.  You'll be asked to enter t
         *  Select a name for the public key.  This serves only to remind you of what key you uploaded.
         *  Select the public key (id_rsa.pub) that you will be using.  It should be in your home directory, in the .ssh directory.  If you can't find the .ssh directory it may be that your browser isn't listing files/directories that start with a ".".  You can always copy the public key somewhere more convenient for upload in this case.
         *  Click create.  You should now see your key listed.
+Rsyncing
+--------
+Bioshare will generate the appropriate rsync command for you from any given share or share directory.  A typical command to download files from Bioshare would be:
+```
+rsync -vrt bioshare@bioshare.bigdata.org:/RANDOM_SHARE_ID/ /to/my/local/directory
+```
+The general format for uploading files is:
+```
+rsync -vrt --no-p --no-g --chmod=ugo=rwX /path/to/my/files bioshare@bioshare.bigdata.org:/RANDOM_SHARE_ID/
+```
+Troubleshooting
+---------------
+**It is asking for my password, and failing to authenticate**
+If your SSH key is set up properly, Bioshare should not ask for a password.  Here are a couple things you should check for, assuming you already set up your SSH keypair as described in the setup section above:
+1.  Is the private key corresponding to public key you uploaded to Bioshare on the current system under ~/.ssh/id_rsa?  Some people may try to SSH into a server from their desktop, then rsync from there.  In this case, the server you are rsyncing from may not have your SSH private key available. To resolve this, you can either:
+    *  Copy your private key to the server in the appropriate place (~/.ssh/).  Then, again assuming your key is named id_rsa, add it to your SSH agent:
+    ```Shell
+    ssh-add ~/.ssh/id_rsa
+    ```
+    *If for some reason you get an error message like, "Could not open a connection to your authentication agent.", you'll need to start the SSH agent first:
+    ```Shell
+    eval "$(ssh-agent -s)"
+    ssh-add ~/.ssh/id_rsa
+    ```
