@@ -99,7 +99,7 @@ ssh-add -L
 ```
 Make sure that in the output a key matches one of the ones on the "Bioshare SSH Keys" (see Setup section above) page.  If not, use ssh-add to add the corresponding private key:
 ```Shell
-   ssh-add ~/.ssh/id_rsa
+ssh-add ~/.ssh/id_rsa
 ```
 
 **When downloading, I'm getting an error similar to "handle_rsync exception: User email@example.com cannot read from share"**
