@@ -33,3 +33,24 @@ Rsync (Linux/Mac)
 Rsync is, however, the least simple transfer method to setup.  Unlike SFTP, Bioshare cannot use your username and password to authenticate you.  It instead relies on the use of SSH keypairs.  And while it is possible to configure a Windows system to use rsync, it is not recommended.
 
 Bioshare uses SSH keypairs in much the same way as Github.  Github has good documentation on [how to use SSH keypairs for authenticating to Github](https://help.github.com/articles/connecting-to-github-with-ssh/), and is worth a read.
+
+Here are the basic steps to setting up SSH keys with Bioshare.
+
+1.  Make sure you have an SSH keypair:
+```
+ls -al ~/.ssh
+```
+Look for a pair of files called "id_rsa" and "id_rsa.pub".  Those would be your private and public keys, respectively.  If you have them, you can skip to step 3.
+2.  Create an SSH keypair if you didn't find one you want to use in step 1:
+```
+cd ~/.ssh
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+```
+When asked for a passphrase, make sure to enter one.  You'll be asked to enter this each time you use the keypair, which will keep it secure.
+3.  Upload your public key, i.e. "id_rsa.pub" to Bioshare.  
+  1.  Once logged into Bioshare, under the menu go to Account->SSH Keys.  If you have any public keys uploaded, they'll be listed here, along with the possibility to delete them.  
+  2.  Click on the button to upload a public key.
+  3.  
+    *  Select a name for the public key.  This serves only to remind you of what key you uploaded.
+    *  Select the public key (id_rsa.pub) that you will be using.  It should be in your home directory, in the .ssh directory.  If you can't find the .ssh directory it may be that your browser isn't listing files/directories that start with a ".".  You can always copy the public key somewhere more convenient for upload in this case.
+    *  Click create.  You should now see your key listed.
