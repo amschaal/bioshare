@@ -18,10 +18,18 @@ As far as graphical applications that support SFTP go, I often suggest [FileZill
 
 The simplest way to connect to Bioshare using FileZilla is simply by using the "Quickconnect" parameters at the top of the window.  Here, you need to enter the host (ie: sftp://bioshare.bigdata.org), username (same as you log into Bioshare with), password (again, same as you log in with), and port (depends on how Bioshare was configured).  Once entered, click "Quickconnect" and you should see some details below as FileZilla attempt to log in.  After successful authentication, you'll have a list of all of your available shares on the right side of the window.  You can simply drag and drop files or directories between Bioshare and your local machine.
 
-Using the command line
-----------------------
+Using the command line (Linux/Mac)
+----------------------------------
 Again, this is a useful option when trying to transfer files to/from a remote server.  Connecting using sftp is quite simple, and will look something like (depending on port number, username, etc):
 ```
 sftp -P 2200 'joe@bigdata.org'@bioshare.bigdata.org
 ```
-To view a list of shares, use the "ls" command.  To change into a directory, use "cd DIRECTORY_NAME".  To download files, use "get FILENAME".  If it is a directory, use "get -r DIRECTORY_NAME".  For uploading files, use "put /local/path/to/file" or for a directory "put -r /local/path/to/directory".  These are a few very simple examples.  For more details on how to use sftp on the linux or mac command line, see the [manual](https://man.openbsd.org/sftp).
+To view a list of shares, use the "ls" command.  If the share has a "friendly URL", it will be listed by that instead of the random directory.  To change into a directory, use "cd DIRECTORY_NAME".  To download files, use "get FILENAME".  If it is a directory, use "get -r DIRECTORY_NAME".  For uploading files, use "put /local/path/to/file" or for a directory "put -r /local/path/to/directory".  These are a few very simple examples.  For more details on how to use sftp on the linux or mac command line, see the [manual](https://man.openbsd.org/sftp).
+
+Rsync (Linux/Mac)
+=================
+"Rsync is an open source utility that provides fast incremental file transfer."  In other words, this is probably the most efficient option for transfering data.  Additionally, rsync is able to identify which files have already been transfered, and if the source has been updated since.  In this way, rsync will only transfer the files that have been changed, which is important if regularly updating large datasets.  
+
+Rsync is, however, the least simple transfer method to setup.  Unlike SFTP, Bioshare cannot use your username and password to authenticate you.  It instead relies on the use of SSH keypairs.  And while it is possible to configure a Windows system to use rsync, it is not recommended.
+
+Bioshare uses SSH keypairs in much the same way as Github.  Github has good documentation on [how to use SSH keypairs for authenticating to Github](https://help.github.com/articles/connecting-to-github-with-ssh/), and is worth a read.
