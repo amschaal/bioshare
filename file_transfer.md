@@ -21,7 +21,7 @@ The simplest way to connect to Bioshare using FileZilla is simply by using the "
 Using the command line (Linux/Mac)
 ----------------------------------
 Again, this is a useful option when trying to transfer files to/from a remote server.  Connecting using sftp is quite simple, and will look something like (depending on port number, username, etc):
-```
+```Shell
 sftp -P 2200 'joe@bigdata.org'@bioshare.bigdata.org
 ```
 To view a list of shares, use the "ls" command.  If the share has a "friendly URL", it will be listed by that instead of the random directory.  To change into a directory, use "cd DIRECTORY_NAME".  To download files, use "get FILENAME".  If it is a directory, use "get -r DIRECTORY_NAME".  For uploading files, use "put /local/path/to/file" or for a directory "put -r /local/path/to/directory".  These are a few very simple examples.  For more details on how to use sftp on the linux or mac command line, see the [manual](https://man.openbsd.org/sftp).
@@ -39,13 +39,13 @@ Setup
 Here are the basic steps to setting up SSH keys with Bioshare.
 
 1.  Make sure you have an SSH keypair:
-```
+```Shell
 ls -al ~/.ssh
 ```
 Look for a pair of files called "id_rsa" and "id_rsa.pub".  Those would be your private and public keys, respectively.  If you have them, you can skip to step 3.
 
 2.  Create an SSH keypair if you didn't find one you want to use in step 1:
-```
+```Shell
 cd ~/.ssh
 ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
 ```
@@ -61,15 +61,15 @@ When asked for a passphrase, make sure to enter one.  You'll be asked to enter t
 Rsyncing
 --------
 Bioshare will generate the appropriate rsync command for you from any given share or share directory.  A typical command to download files from Bioshare would be:
-```
+```Shell
 rsync -vrt bioshare@bioshare.bigdata.org:/RANDOM_SHARE_ID/ /to/my/local/directory
 ```
 The general format for uploading files is:
-```
+```Shell
 rsync -vrt --no-p --no-g --chmod=ugo=rwX /path/to/my/files bioshare@bioshare.bigdata.org:/RANDOM_SHARE_ID/
 ```
-Troubleshooting
----------------
+Troubleshooting rsync
+---------------------
 **It is asking for my password, and failing to authenticate**
 If your SSH key is set up properly, Bioshare should not ask for a password.  Here are a couple things you should check for, assuming you already set up your SSH keypair as described in the setup section above:
 1.  Is the private key corresponding to public key you uploaded to Bioshare on the current system under ~/.ssh/id_rsa?  Some people may try to SSH into a server from their desktop, then rsync from there.  In this case, the server you are rsyncing from may not have your SSH private key available. To resolve this, you can either:
@@ -77,8 +77,26 @@ If your SSH key is set up properly, Bioshare should not ask for a password.  Her
     ```Shell
     ssh-add ~/.ssh/id_rsa
     ```
-    *If for some reason you get an error message like, "Could not open a connection to your authentication agent.", you'll need to start the SSH agent first:
+    If for some reason you get an error message like, "Could not open a connection to your authentication agent.", you'll need to start the SSH agent first:
     ```Shell
     eval "$(ssh-agent -s)"
     ssh-add ~/.ssh/id_rsa
     ```
+2.  Your SSH private key is on the machine you are rsyncing from, but the ssh agent isn't started.
+To check if the agent is running, enter:
+```Shell
+ssh-add -L
+```
+If you got an error like "Could not open a connection to your authentication agent.", you need to start it and add your key:
+```Shell
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_rsa
+```
+3.  Okay, your key is on the server, and your SSH agent is running.  Are you using the right key?  Run:
+```Shell
+ssh-add -L
+```
+Make sure that in the output a key matches one of the ones on the "Bioshare SSH Keys" (see Setup section above) page.  If not, use ssh-add to add the corresponding private key:
+```Shell
+   ssh-add ~/.ssh/id_rsa
+```
