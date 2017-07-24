@@ -148,12 +148,14 @@ def get_setting(key, default=None):
     return getattr(settings, key, default)
 
 def test_path(path,allow_absolute=False,share=None):
-    illegals = ['..','~','*']
+    illegals = ['..','*']
     for illegal in illegals:
         if illegal in path:
             raise Exception('Illegal path encountered')
     if path.startswith('/') and not allow_absolute:
         raise Exception('Subpath may not start with slash')
+    if path.startswith('~') and not allow_absolute:
+        raise Exception('Subpath may not start with a "~"')
     if share:
         full_path = os.path.join(share.get_path(),path)
         if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
