@@ -25,7 +25,7 @@ from guardian.models import UserObjectPermission
 from django.contrib.contenttypes.models import ContentType
 import datetime
 from bioshareX.api.filters import UserShareFilter, ShareTagFilter,\
-    GroupShareFilter
+    GroupShareFilter, ActiveMessageFilter
 from rest_framework.throttling import UserRateThrottle
 
 @ajax_login_required
@@ -351,10 +351,11 @@ class GroupViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MessageSerializer
     permission_classes = (IsAuthenticated,)
+    filter_backends = (ActiveMessageFilter,)
     model = Message
     def get_queryset(self):
-        #todo: remove messages seen by self.request.user
-        return Message.objects.filter(active=True).filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=self.request.user.id)
+        return Message.objects.all().order_by('-created')
+#         return Message.objects.filter(active=True).filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=self.request.user.id)
     @detail_route(['POST','GET'],permission_classes=[IsAuthenticated])
     def dismiss(self, request, pk=None):
         message = self.get_object()

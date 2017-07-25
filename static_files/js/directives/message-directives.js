@@ -8,9 +8,13 @@ angular.module('messages.directives', ['BioshareResources'])
 	    templateUrl: 'template/messages/messages.html',
 	    scope: {
 	    },
-	    controller: function($scope, $http, $element){
+	    controller: function($scope, $element, $attrs, $http){
+	    	console.log('attrs',$attrs);
 	    	this.$scope = $scope;
-	    	$scope.messages = Message.query();
+	    	if (angular.isUndefined($attrs.active))
+	    		$scope.messages = Message.query();
+	    	else
+	    		$scope.messages = Message.query({active:true});
 	    	$scope.open = function (message,index) {
 
 	    	    var modalInstance = $uibModal.open({

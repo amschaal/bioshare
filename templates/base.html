@@ -74,6 +74,7 @@
 							<li><a href="{% url 'password_change'%}">Update Password</a></li>
                           <li><a href="{% url 'list_ssh_keys'%}">SSH Keys</a></li>
                           <li><a href="{% url 'manage_groups'%}">Manage Groups</a></li>
+                          <li><a href="{% url 'view_messages'%}">System Messages</a></li>
                         </ul>
                       </li>
               {% endif %}
@@ -89,7 +90,7 @@
           <div class="well sidebar-nav">
             <ul class="nav nav-list">
               <li class="nav-header">Search Shares</li>
-              <li><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off"></li>
+              <li><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off" placeholder="Search by share name"></li>
               <li class="nav-header">Search Files</li>
               <li><form class="input-append" action="{% url 'search_files' %}"><input  type="text" name="query" placeholder="eg: *.fasta"><button style="margin-bottom:10px" class="btn btn-primary">Search</button></form></li>
               {% if bad_share_path.count != 0 %}
@@ -113,7 +114,7 @@
         </div><!--/span-->
         <div class="{% if request.user.is_authenticated %}span9{% else %}span12{%endif%}">
         	{% if request.user.is_authenticated %}
-        	<message-list></message-list>
+        	{% block system_messages %}<message-list active></message-list>{% endblock %}
 			{% endif %}
 			{% block content %}
      	 	{% endblock %}

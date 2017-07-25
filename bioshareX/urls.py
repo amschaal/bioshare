@@ -12,6 +12,7 @@ router.register(r'shares', api_views.ShareViewset,'Share')
 
 urlpatterns = [
     url(r'^$', bioshare_views.index, name='index'),
+    url(r'^messages/?$', bioshare_views.view_messages, name='view_messages'),
     url(r'^forbidden/?$', bioshare_views.forbidden, name='forbidden'),
     url(r'^create/?$', bioshare_views.create_share, name='create_share'),
     url(r'^create_subshare/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', bioshare_views.create_subshare, name='create_subshare'),

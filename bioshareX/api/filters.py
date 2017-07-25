@@ -2,6 +2,8 @@ from rest_framework import filters
 from django.contrib.auth.models import User, Group
 from guardian.shortcuts import get_objects_for_user, get_objects_for_group
 from bioshareX.models import Share
+from django.db.models.query_utils import Q
+import datetime
 
 class UserShareFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
@@ -31,4 +33,10 @@ class ShareTagFilter(filters.BaseFilterBackend):
                 return queryset.filter(tags__name=tag)
         else: #OR
             return queryset.filter(tags__name__in=tags)
-        
+
+class ActiveMessageFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        active = view.request.query_params.get('active',None)
+        if not active:
+            return queryset
+        return queryset.filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=request.user.id)        

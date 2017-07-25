@@ -234,3 +234,7 @@ def search_files(request):
             results.append({'share':s,'results':r})
     return render(request, 'search/search_files.html', {'query':query,'results':results})
 
+@login_required
+def view_messages(request):
+    return render(request, 'account/messages.html', {})
+
