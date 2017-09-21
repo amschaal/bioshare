@@ -77,7 +77,10 @@ class SSHInterface(paramiko.ServerInterface):
         self.get_user = get_user
     
     def check_auth_password(self, username, password):
-        user =  authenticate(username=username, password=password)
+        if username == 'anonymous':
+            user = User.objects.get(id=-1)
+        else:
+            user =  authenticate(username=username, password=password)
         if user:
             logging.info((u'Auth successful for %s' % username).encode('utf-8'))
             self.user = user
