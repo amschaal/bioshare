@@ -292,13 +292,23 @@
 	<b>Protocol:</b> SFTP<br>
 	<b>Host:</b> sftp://{{HOST}}<br>
 	<b>Port:</b> {{SFTP_PORT}}<br>
+{% if user.is_authenticated %}
 	<p>The <b>username</b> and <b>password</b> are the same as what you use to log into Bioshare.</p>
-	<p>Once successfully logged in, you'll see a list of all the shares that you have access to.  You will only be able to write or delete to the share if you have permission.	
+	<p>Once successfully logged in, you'll see a list of all the shares that you have access to.  You will only be able to write or delete to the share if you have permission.</p>	
   	<h3>Connecting</h3>
-  	<p>The easiest way to connect is by using an SFTP client.  A popular cross platform option is Filezilla.<p>
+  	<p>The easiest way to connect is by using an SFTP client.  A popular cross platform option is Filezilla.</p>
   	<p>Alternatively, it may be useful to connect via the command line if transfering directly from a server:<br>
   	sftp -P {{SFTP_PORT}} '{{request.user.username}}'@{{HOST}}:/{{share.slug_or_id}}
   	</p>
+{% else %}
+	<b>Username:</b> anonymous<br>
+	<p>When connecting anonymously you must provide the share identifier (/{{share.slug_or_id}}).</p>
+  	<h3>Connecting</h3>
+  	<p>The easiest way to connect is by using an SFTP client.  A popular cross platform option is Filezilla.</p>
+  	<p>Alternatively, it may be useful to connect via the command line if transfering directly from a server:<br>
+  	sftp -P {{SFTP_PORT}} 'anonymous'@{{HOST}}:/{{share.slug_or_id}}
+  	</p>
+{% endif %}  	
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
