@@ -14,6 +14,7 @@ from bioshareX.models import Share
 from paramiko.sftp_handle import SFTPHandle
 from bioshareX.utils import paths_contain
 from django.conf import settings
+from django.contrib.auth.models import User
 
 SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS = getattr(settings, 'SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS',60)
 
@@ -64,6 +65,8 @@ class BioshareSFTPServer(object):
                 event=threading.Event())
 
     def get_user(self, username, password):
+        if username == 'anonymous':
+            return User.objects.get(id=-1)
         return authenticate(username=username, password=password)
 #         raise NotImplementedError()
 
@@ -299,6 +302,8 @@ class SFTPInterface (SFTPServerInterface):
     @sftp_response
     def list_shares(self):
 #         print "LIST SHARES"
+        if self.user.id == -1:
+            return []
         try:
             out = []
             for id,share in self.shares.iteritems():
