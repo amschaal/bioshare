@@ -125,10 +125,10 @@
 	  {% endif %}
 	  <div id="messages"></div>
 	  <table class="table table-striped table-condensed" id="file-table">
-	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Tags</th><th>Extension</th><th style="width:100px;">Size</th><th style="width:150px;">Modified</th><th>Actions</th></tr></thead>
+	  <thead><tr><th><input type="checkbox" id="toggle-checkbox"/></th><th>Name</th><th>Tags</th><th>Extension</th><th style="width:100px;">Size</th><th>MD5 Sum</th><th style="width:150px;">Modified</th><th>Actions</th></tr></thead>
 	  <tbody>
 	  {% if subdir %}
-	 	<tr class="directory"><td></td><td><i class="fam-folder"></i><a href="../">../</a></td><td></td><td></td><td></td><td></td><td></td></tr>
+	 	<tr class="directory"><td></td><td><i class="fam-folder"></i><a href="../">../</a></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
 	  {% endif %}
 	  {% for dir in directories %}
 		<tr class="directory real-directory" data-id="{{dir.name}}" data-notes="{{dir.metadata.notes}}" data-tags="{{dir.metadata.tags.all|join:','}}">
@@ -170,11 +170,11 @@
 			</td>
 			<td>{% if file.extension %}{{ file.extension }}{% endif %}</td>
 			<td>{{ file.size }}</td>
+			<td><a href="#" data-action="calculate-md5">Calculate</a></td>
 			<td>{{ file.modified }}</td>
 			<td>
 				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i>{% endif %} 
 				{% if "download_share_files" in share_perms and file.isText %}<i class="fam-eye" data-toggle="tooltop" title="Preview contents" data-action="preview"></i>{% endif %}
-				{% if "download_share_files" in share_perms %}<i class="fam-calculator" title="Calculate MD5 Sum" data-action="calculate-md5"></i>{% endif %}
 				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i>{% endif %}
 			</td>
 		</tr>    
@@ -446,6 +446,7 @@ $(document).ready(function() {
 		                null,
 		                null,
 		                { "sType": "file-size" },
+		                {bSortable: false},
 		                { "sType": "datetime-us" },
 		                {bSortable: false},
 		            ],

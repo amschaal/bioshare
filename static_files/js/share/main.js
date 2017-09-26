@@ -175,12 +175,15 @@ function preview_share_action(){
 function calculate_md5(){
 	var row = $(this).closest('tr');
 	var path = subpath ? subpath + row.attr('data-id') : row.attr('data-id');
+	var el = $('<span>Calculating...</span>').replaceAll(this);
+	console.log('el',el);
 	BC.ajax(
 			{
 				'url':'/bioshare/md5sum/'+share+'/'+path,
 				'success':function(data){
 						console.log('md5',data);
-						$.bootstrapGrowl("File: "+data.path+"<br>MD5: "+data.md5sum,{type:'success',delay: 10000});
+//						$.bootstrapGrowl("File: "+data.path+"<br>MD5: "+data.md5sum,{type:'success',delay: 10000});
+						$(el).replaceWith('<span class="md5sum">'+data.md5sum+'</span>');
 				}
 			}
 		);
