@@ -216,5 +216,6 @@ INCLUDE_REGISTER_URL = False
 
 STRIP_REGEX = r'[^\w\.\- \*^]+'
 UNDERSCORE_REGEX = r'[ ]+'
+MD5SUM_COMMAND = 'md5sum'
 
 from config import *
