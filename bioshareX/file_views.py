@@ -129,7 +129,7 @@ def download_archive_stream(request, share, subdir=None):
     try:
         return share.create_archive_stream(items=selection,subdir=subdir)
     except Exception, e:
-        return json_error([e.message])
+        return json_error([str(e)])
 
 @safe_path_decorator()    
 @share_access_decorator(['download_share_files'])
@@ -170,3 +170,13 @@ def get_directories(request, share):
         response.append({"title": dir, "isFolder": True, "isLazy": True, "key": key})
     return json_response(response)
 #     return sendfile(request, os.path.realpath(file_path))
+
+@safe_path_decorator()    
+@share_access_decorator([Share.PERMISSION_VIEW])
+def get_md5sum(request, share, subpath):
+    from utils import md5sum
+    file_path = os.path.join(share.get_path(),subpath)
+    try:
+        return json_response({'md5sum':md5sum(file_path),'path':subpath})
+    except Exception, e:
+        return json_error(str(e))

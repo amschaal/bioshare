@@ -14,6 +14,7 @@ from scandir import scandir
 import re
 import datetime
 from bioshareX.file_utils import istext
+from os import path
 
 
 
@@ -343,7 +344,7 @@ def list_share_dir(share,subdir=None,ajax=False):
             directories[os.path.realpath(entry.path)]=dir
     return (file_list,directories)
 
-#     output = subprocess.check_output(['ls','-l','--time-style=+%s',path])
-#     for l in output.splitlines():
-#         cols = l.split()
-#         print cols
+def md5sum(path):
+    output = subprocess.check_output(['md5sum',path]) #Much more efficient than reading file contents into python and using hashlib
+    #IE: output = 4968966191e485885a0ed8854c591720  /tmp/Project/Undetermined_S0_L002_R2_001.fastq.gz
+    return output.split()[0]

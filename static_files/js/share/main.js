@@ -172,7 +172,19 @@ function preview_share_action(){
 	var path = subpath ? subpath + row.attr('data-id') : row.attr('data-id');
 	preview_file(share,path);	
 }
-
+function calculate_md5(){
+	var row = $(this).closest('tr');
+	var path = subpath ? subpath + row.attr('data-id') : row.attr('data-id');
+	BC.ajax(
+			{
+				'url':'/bioshare/md5sum/'+share+'/'+path,
+				'success':function(data){
+						console.log('md5',data);
+						$.bootstrapGrowl("File: "+data.path+"<br>MD5: "+data.md5sum,{type:'success',delay: 10000});
+				}
+			}
+		);
+}
 function edit_metadata(){
 	var id = $('#metadata-id').val();
 	var url = metadata_url+id;
@@ -356,6 +368,7 @@ function init_dynatree(){
 $(function () {
 	$(document).on('click','[data-action="edit-metadata"]',open_metadata_form);
 	$(document).on('click','[data-action="preview"]',preview_share_action);
+	$(document).on('click','[data-action="calculate-md5"]',calculate_md5);
 	$(document).on('click','[data-action="modify-name"]',open_rename_form);
 	
 	toggle_table_visibility();
