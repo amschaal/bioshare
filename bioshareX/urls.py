@@ -73,4 +73,5 @@ urlpatterns += [
     url(r'^preview/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.preview_file, name='preview_file'),
     url(r'^directories/(?P<share>[\da-zA-Z]{15})/?$', file_views.get_directories, name='get_directories'),
     url(r'^wget/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.download_file, name='wget_download_file'),
+    url(r'^md5sum/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.get_md5sum, name='md5sum'),
 ]
