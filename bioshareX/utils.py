@@ -345,6 +345,6 @@ def list_share_dir(share,subdir=None,ajax=False):
     return (file_list,directories)
 
 def md5sum(path):
-    output = subprocess.check_output(['md5sum',path]) #Much more efficient than reading file contents into python and using hashlib
+    output = subprocess.check_output([settings.MD5SUM_COMMAND,path]) #Much more efficient than reading file contents into python and using hashlib
     #IE: output = 4968966191e485885a0ed8854c591720  /tmp/Project/Undetermined_S0_L002_R2_001.fastq.gz
-    return output.split()[0]
+    return re.match(r'([0-9a-fA-F]{32})',output).group(1)
