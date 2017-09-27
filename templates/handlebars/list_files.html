@@ -21,6 +21,7 @@ Handlebars.registerHelper('list_tags', function(tags) {
 <td class="tags">{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td></td>
 <td></td>
+<td></td>
 <td>{{ modified }}</td>
 <td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i><i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i></td>
 </tr>
@@ -33,6 +34,7 @@ Handlebars.registerHelper('list_tags', function(tags) {
 <td class="tags">{{#if metadata.tags }}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td>{{ extension }}</td>
 <td>{{ size }}</td>
+<td><a href="#" data-action="calculate-md5">Calculate</a></td>
 <td>{{ modified }}</td>
 <td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i>{{#if download }}{{#if isText }}<i class="fam-eye" data-toggle="tooltop" title="Preview contents" data-action="preview"></i>{{/if}}{{/if}}<i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i></td>
 </tr>
