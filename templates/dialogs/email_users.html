@@ -7,9 +7,10 @@
   	<form id="email-users-form" action="{% url 'api_email_participants' share=share.id subdir=subdir|default_if_none:"" %}" method="POST">
   	<fieldset>
   	{% csrf_token %}
-    <label>Subject</label> 
+  	<label>To:</label><label id="email_all"><input type="checkbox" checked/> All</label><span id="select_emails" class="hidden"></label>{% for u in shared_users %}<label><input name="emails" value="{{u}}" type="checkbox"/> {{u}}</label>{% endfor %}</span>
+    <label>Subject:</label> 
     <input type="text" name="subject" value='Bioshare: "{{share.name}}" updated' class="input-block-level"/>
-    <label>Body</label> 
+    <label>Body:</label> 
     <textarea name="body" class="input-block-level" rows="15">Greetings,
 
 "{{share.name}}" has been updated on Bioshare.  Please visit the following URL to see changes:
@@ -45,5 +46,9 @@ $(function () {
 		$('#email-users-dialog').modal('show');
 	});
 	$('#send-email-button').click(email_users);
+	$('#email_all').click(function(el){
+		$('#select_emails').removeClass('hidden');
+		$('#email_all').hide();
+	});
 });
 </script>

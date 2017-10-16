@@ -374,7 +374,9 @@ Filtered by: <span id="filtered-tags"></span><br>
 <a class="btn btn-primary" id="reset-tag-button">Clear filters</a></div>
 
 {% include "dialogs/preview_file.html" %}
+{% if "write_to_share" in share_perms or "admin" in share_perms %}
 {% include "dialogs/email_users.html" %}
+{% endif %}
 
 <form id="download_archive_form" action="{% if subdir %}{% url 'download_archive_stream' share=share.id subdir=subdir %}{% else %}{% url 'download_archive_stream' share=share.id %}{% endif %}" method="GET">
 <input type="hidden" name="selection" id="archive_selection"/>
