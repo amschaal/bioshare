@@ -376,7 +376,7 @@ class ShareLog(models.Model):
     user = models.ForeignKey(User, null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=30,null=True,blank=True)
-    text = models.CharField(max_length=500,null=True,blank=True)
+    text = models.TextField(null=True,blank=True)
     paths = JSONField()
     @staticmethod
     def create(share,action,user=None,text='',paths=[],subdir=None,share_updated=True):
