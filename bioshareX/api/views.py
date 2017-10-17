@@ -281,8 +281,11 @@ def create_share(request):
 def email_participants(request,share,subdir=None):
     try:
         subject = request.POST.get('subject')
-        body = request.POST.get('body')
+        emails = request.POST.getlist('emails',[])
         users = [u for u in get_users_with_perms(share, attach_perms=False, with_superusers=False, with_group_users=True)]
+        if len(emails) > 0:
+            users = [u for u in User.objects.filter(id__in=[u.id for u in users]).filter(email__in=emails)]
+        body = request.POST.get('body')
         users.append(share.owner)
         email_users(users, ctx_dict={}, subject=subject, body=body,from_email=request.user.email)
         response = {'status':'success','sent_to':[u.email for u in users]}
