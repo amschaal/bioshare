@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load templatetag_handlebars %}
+
+{% block title %}Bioshare - Error{% endblock %}
+
+{% block content %}
+  <h3>
+    {{message|safe}}
+  </h3>
+  {% if share and subdir %}
+    You may want to try starting at <a href="{% url 'list_directory' share=share.id %}">the main directory of the share</a>.
+  {% endif %}
+{% endblock %}

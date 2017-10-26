@@ -157,8 +157,11 @@ class Share(models.Model):
         return os.path.join(settings.ZFS_BASE,self.id)
     def get_realpath(self):
         return os.path.realpath(self.get_path())
-    def check_path(self):
-        return os.path.exists(self.get_path())
+    def check_path(self,subdir=None):
+        path = self.get_path()
+        if subdir:
+            path = os.path.join(path,subdir)
+        return os.path.exists(path)
     def get_removed_path(self):
         return os.path.join(settings.REMOVED_FILES_ROOT,self.id)
     def get_path_type(self,subpath):

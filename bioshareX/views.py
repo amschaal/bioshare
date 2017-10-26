@@ -69,8 +69,8 @@ def edit_share(request,share):
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files'])
 def list_directory(request,share,subdir=None):
-    if not share.check_path():
-        return render(request,'index.html', {"message": "Unable to locate the files for this share.  Please contact the site administrator."})
+    if not share.check_path(subdir=subdir):
+        return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
     files,directories = list_share_dir(share,subdir=subdir,ajax=request.is_ajax())
     if request.is_ajax():
         return json_response({'files':files,'directories':directories.values()})
