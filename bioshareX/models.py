@@ -102,6 +102,14 @@ class Share(models.Model):
             return Share.objects.select_related('stats').filter(query)
         else:
             return Share.objects.filter(query)
+    #Get a list of users with ANY permission.  Useful for getting lists of emails, etc.
+    def get_users_with_permissions(self):
+        return list( 
+             set(
+                 [uop.user for uop in ShareUserObjectPermission.objects.filter(content_object=self).select_related('user')] +
+                 list(User.objects.filter(groups__in=ShareGroupObjectPermission.objects.filter(content_object=self).values_list('group_id',flat=True)))
+                 )
+             )
     def get_permissions(self,user_specific=False):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)

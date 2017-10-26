@@ -87,7 +87,7 @@ def list_directory(request,share,subdir=None):
     all_perms = share.get_permissions(user_specific=True)
     shared_users = all_perms['user_perms'].keys()
     shared_groups = [g['group']['name'] for g in all_perms['group_perms']]
-    emails = list( set( [uop.user.email for uop in ShareUserObjectPermission.objects.filter(content_object=share).select_related('user')] + list(User.objects.filter(groups__in=ShareGroupObjectPermission.objects.filter(content_object=share).values_list('group_id',flat=True)).values_list('email',flat=True))))
+    emails = sorted([u.email for u in share.get_users_with_permissions()])
     return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails})
 
 @safe_path_decorator(path_param='subdir')
