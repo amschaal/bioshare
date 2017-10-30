@@ -87,7 +87,7 @@ $( document ).ajaxError(function(event, xhr, settings) {
 		BC.login();
 });
 
-angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap","checklist-model","messages"])
+angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap","checklist-model","messages","ngPageState"])
 .run(function($rootScope) {
     $rootScope.getURL = django_js_utils.urls.resolve;
 })
