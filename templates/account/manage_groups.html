@@ -10,8 +10,8 @@
 	    <div class="pull-right input-append" ng-if="user.permissions.indexOf('auth.add_group') != -1"><input ng-model="new_group_name" class="form-control" placeholder="Enter group name"/><button ng-click="createGroup(new_group_name);new_group_name='';" class="btn btn-small btn-primary">Create Group</button></div>
 	    <table ng-table="tableParams" class="table" show-filter="true">
 		    <tr ng-repeat="group in $data track by group.id">
-		        <td title="'Name'" filter="{ name: 'text'}" sortable="'name'">
-		            {{group.name}}
+		        <td title="'Name'" filter="{ name__icontains: 'text'}" sortable="'name'">
+		            <a href="{{groupSharesURL(group)}}">{{group.name}}</a>
 		            <span class="pull-right">
 		            	<button ng-click="manageGroup(group)" class="btn btn-small btn-primary" ng-if="group.permissions.indexOf('manage_group') != -1 || user.permissions.indexOf('auth.manage_group') != -1">Manage</button>
 		            <button ng-click="deleteGroup(group)" class="btn btn-small btn-danger" ng-if="group.permissions.indexOf('delete_group') != -1 || user.permissions.indexOf('auth.delete_group') != -1">Delete</button>

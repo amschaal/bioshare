@@ -5,12 +5,11 @@
 {% load compress %}
 {% block title %}Shares{% endblock %}
 {% block content %}
-<h2>Shares</h2>
+<h2>Shares{% if group %} for group "{{group}}"{% endif %}</h2>
 {% if bad_paths %}
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
-
- <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false'{% endif %}})">
+ <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false',{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})">
 	    {% verbatim %}
 	    <h4>Fields</h4>
             <div style="margin-bottom: 20px">
@@ -25,7 +24,7 @@
 	        <td ng-if="cols['Tags']" data-title="'Tags'" filter="{tags: 'text'}"><span ng-repeat="tag in row.tags"><a class="pointer" ng-click="setFilter('tags',tag.name)">{{tag.name}}</a>{{$last ? '' : ', '}}</span></td>
 	        <td ng-if="cols['Owner']" data-title="'Owner'" filter="{owner__username__icontains: 'text'}" sortable="'owner__username'"><a class="pointer" ng-click="setFilter('owner__username__icontains',row.owner.username)">{{row.owner.username}}</a></td>
 	        <td ng-if="cols['Users']" data-title="'Users'" filter="{user: 'text'}"><span ng-repeat="u in row.users"><a class="pointer" ng-click="setFilter('user',u)">{{u}}</a>{{$last ? '' : ', '}}</span></td>
-	        <td ng-if="cols['Groups']" data-title="'Groups'" filter="{group: 'text'}"><span ng-repeat="g in row.groups"><a class="pointer" ng-click="setFilter('group',g)">{{g}}</a>{{$last ? '' : ', '}}</span></td>
+	        <td ng-if="cols['Groups']" data-title="'Groups'" {% if not group %}filter="{group: 'text'}"{% endif %}><span ng-repeat="g in row.groups"><a class="pointer" ng-click="setFilter('group',g)">{{g}}</a>{{$last ? '' : ', '}}</span></td>
 	        <td ng-if="cols['Created']" data-title="'Created'" sortable="'created'">{{row.created | date : 'short'}}</td>
 	        <td ng-if="cols['Modified']" data-title="'Modified'" sortable="'updated'">{{row.updated | date : 'short'}}</td>
 	        <td ng-if="cols['Files']" data-title="'Files*'" sortable="'stats__num_files'">{{row.stats.num_files}}</td>
@@ -34,11 +33,12 @@
 	    </table>
 	    {% endverbatim %}
 </div>
-
+{% if not group%}
 <p>
 {{total_size}} of storage being used by {{request.user.username}}.*
 </p>
 *Files statistics updated daily.
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

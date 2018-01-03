@@ -320,6 +320,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
 class GroupViewSet(viewsets.ModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,DjangoModelPermissions,)
+    filter_fields = {'name':['icontains']}
     model = Group
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.is_staff:

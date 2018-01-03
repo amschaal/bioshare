@@ -1,9 +1,11 @@
 angular.module("bioshare").requires.push('BioshareResources');
 angular.module("bioshare")
-.controller("GroupsController", ['$scope','Group','NgTableParams','$uibModal', function($scope,Group,NgTableParams,$uibModal) {
+.controller("GroupsController", ['$scope','Group','DRFNgTableParams','$uibModal', function($scope,Group,DRFNgTableParams,$uibModal) {
 	$scope.init = function(params){
 		$scope.user = params.user;
-		$scope.tableParams = new NgTableParams({}, { dataset: $scope.user.groups});
+		$scope.tableSettings = {sorting: { name: "desc" },filter:{}};
+		$scope.tableParams = DRFNgTableParams('/bioshare/api/groups/',$scope.tableSettings);
+//		$scope.tableParams = new NgTableParams({}, { dataset: $scope.user.groups});
 	}
 	$scope.createGroup = function(name){
 		var group = new Group({name:name});
@@ -49,6 +51,9 @@ angular.module("bioshare")
 //	      $log.info('Modal dismissed at: ' + new Date());
 	    });
 	  };
+	$scope.groupSharesURL = function (group){
+		return '/bioshare/groups/'+group.id+'/shares/';
+	}
 
  }]);
 

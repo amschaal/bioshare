@@ -14,7 +14,7 @@ from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
 import os
 from bioshareX.forms import SubShareForm
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 import operator
 from django.db.models.query_utils import Q
 from bioshareX.api.serializers import UserSerializer
@@ -34,12 +34,13 @@ def tag_cloud(request):
     # View code here...
     return render(request,'viz/cloud.html')
 @login_required
-def list_shares(request):
+def list_shares(request,group_id=None):
     # View code here...
 #     shares = Share.objects.filter(owner=request.user)
 #     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
-    total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
-    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths')})
+    group = None if not group_id else Group.objects.get(id=group_id)
+    total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)])) if not group_id else None
+    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths'),"group":group})
 
 def forbidden(request):
     # View code here...
