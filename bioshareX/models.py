@@ -15,6 +15,7 @@ from django.core.urlresolvers import reverse
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 import subprocess
 from django.utils import timezone
+import json
 
 def pkgen():
     import string, random
@@ -423,6 +424,7 @@ class ShareGroupObjectPermission(GroupObjectPermissionBase):
 
 Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']
-def user_permissions(self):
-    return [p.codename for p in self.user_permissions.all()]
+def user_permissions(self,serialize_json=True):
+    codes = [p.codename for p in self.user_permissions.all()]
+    return json.dumps(codes) if serialize_json else codes
 User.permissions = user_permissions
