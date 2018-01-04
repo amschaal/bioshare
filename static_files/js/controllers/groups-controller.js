@@ -3,10 +3,8 @@ angular.module("bioshare")
 .controller("GroupsController", ['$scope','Group','DRFNgTableParams','$uibModal', function($scope,Group,DRFNgTableParams,$uibModal) {
 	$scope.init = function(params){
 		$scope.user = params.user;
-		console.log('params',params);
 		$scope.tableSettings = {sorting: { name: "asc" },filter:{}};
 		$scope.tableParams = DRFNgTableParams('/bioshare/api/groups/',$scope.tableSettings);
-		$scope.foo = {USER_PERMISSIONS:'sdfsdffsd'};//USER_PERMISSIONS;
 //		$scope.tableParams = new NgTableParams({}, { dataset: $scope.user.groups});
 	}
 	$scope.createGroup = function(name){
