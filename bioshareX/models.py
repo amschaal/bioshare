@@ -423,3 +423,6 @@ class ShareGroupObjectPermission(GroupObjectPermissionBase):
 
 Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']
+def user_permissions(self):
+    return [p.codename for p in self.user_permissions.all()]
+User.permissions = user_permissions

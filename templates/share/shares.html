@@ -5,11 +5,17 @@
 {% load compress %}
 {% block title %}Shares{% endblock %}
 {% block content %}
+
 <h2>Shares{% if group %} for group "{{group}}"{% endif %}</h2>
 {% if bad_paths %}
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
-{% if group %}<a href="{% url 'create_group_share' group_id=group.id %}">Create</a> a new share for "{{group}}"{% endif %}
+{% if group %}
+	{% if 'add_share' in request.user.permissions or request.user.is_superuser %}
+		<a href="{% url 'create_group_share' group_id=group.id %}">Create</a> a new share for "{{group}}"
+	{% endif %}
+{% endif %}
+
  <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false',{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})">
 	    {% verbatim %}
 	    <h4>Fields</h4>
