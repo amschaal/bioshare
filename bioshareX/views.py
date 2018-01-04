@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect, HttpResponseForbidden
 from models import Share, SSHKey, MetaData, Tag, ShareStats, ShareUserObjectPermission, ShareGroupObjectPermission
 from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
-from guardian.shortcuts import get_perms, get_users_with_perms
+from guardian.shortcuts import get_perms, get_users_with_perms, assign_perm
 #from django.utils import simplejson
 import json
 from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response,\
@@ -110,9 +110,10 @@ def wget_listing(request,share,subdir=None):
     return render(request,'wget_listing.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir})
 
 @login_required
-def create_share(request):
+def create_share(request,group_id=None):
     if not request.user.has_perm('bioshareX.add_share'):
         return render(request,'index.html', {"message": "You must have permissions to create a Share.  You may request access from the <a href=\"mailto:webmaster@genomecenter.ucdavis.edu\">webmaster</a>."})
+    group = None if not group_id else Group.objects.get(id=group_id)
     if request.method == 'POST':
         form = ShareForm(request.user,request.POST)
         if form.is_valid():
@@ -124,11 +125,14 @@ def create_share(request):
                 share.set_tags(form.cleaned_data['tags'].split(','))
             except Exception, e:
                 share.delete()
-                return render(request, 'share/new_share.html', {'form': form, 'error':e.message})
+                return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':e.message})
+            if group:
+                assign_perm(Share.PERMISSION_VIEW,group,share)
+                assign_perm(Share.PERMISSION_DOWNLOAD,group,share)
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
     else:
         form = ShareForm(request.user)
-    return render(request, 'share/new_share.html', {'form': form})
+    return render(request, 'share/new_share.html', {'form': form,'group':group})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['admin'])

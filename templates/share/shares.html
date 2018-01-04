@@ -9,6 +9,7 @@
 {% if bad_paths %}
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
+{% if group %}<a href="{% url 'create_group_share' group_id=group.id %}">Create</a> a new share for "{{group}}"{% endif %}
  <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false',{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})">
 	    {% verbatim %}
 	    <h4>Fields</h4>

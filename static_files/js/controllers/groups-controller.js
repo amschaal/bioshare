@@ -54,7 +54,9 @@ angular.module("bioshare")
 	$scope.groupSharesURL = function (group){
 		return '/bioshare/groups/'+group.id+'/shares/';
 	}
-
+	$scope.groupCreateShareURL = function (group){
+		return '/bioshare/groups/'+group.id+'/shares/create/';
+	}
  }]);
 
 angular.module('bioshare').controller('GroupModalInstanceCtrl', function ($scope, $http,NgTableParams, Group, $uibModalInstance, group_id) {

@@ -6,7 +6,7 @@
   <p>
   <form class="form-horizontal" method="POST" action="#">
   <fieldset>
-	  <legend>Create a new Share</legend>
+	  <legend>Create a new Share{% if group %} for group "{{group}}"{% endif %}</legend>
 	  {% if share %}
 	  	<p>
 		  	This will create a new share from the '{{subdir}}' directory from the <a href="{% url 'list_directory' share.slug_or_id %}">{{share.name}}</a> share.
