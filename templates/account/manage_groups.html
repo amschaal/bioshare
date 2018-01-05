@@ -15,8 +15,8 @@
 		            <span class="pull-right">
 		            	<a class="btn btn-small btn-primary" href="{{groupSharesURL(group)}}">View Shares</a>
 		            	<a ng-if="user.permissions.indexOf('bioshareX.add_share') != -1" class="btn btn-small btn-primary" href="{{groupCreateShareURL(group)}}">Create Share</a>
-		            	<button ng-click="manageGroup(group)" class="btn btn-small btn-primary" ng-if="group.permissions.indexOf('manage_group') != -1 || user.permissions.indexOf('auth.manage_group') != -1">Manage</button>
-		            	<button ng-click="deleteGroup(group)" class="btn btn-small btn-danger" ng-if="group.permissions.indexOf('delete_group') != -1 || user.permissions.indexOf('auth.delete_group') != -1">Delete</button>
+		            	<button ng-click="manageGroup(group)" class="btn btn-small btn-primary" ng-if="user.permissions.indexOf('auth.manage_group') != -1">Manage</button>
+		            	<button ng-click="deleteGroup(group)" class="btn btn-small btn-danger" ng-if="user.permissions.indexOf('auth.delete_group') != -1">Delete</button>
 		            </span>
 		         </td>
 		            

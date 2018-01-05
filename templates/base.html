@@ -68,13 +68,13 @@
                         	<li><a href="{% url 'list_shares'%}">List</a></li>
 							<li><a href="{% url 'create_share'%}">Create</a></li>
                         </ul>
-                      </li>
+              </li>
+              <li><a href="{% url 'manage_groups'%}">Groups</a></li>
               <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Account <b class="caret"></b></a>
                         <ul class="dropdown-menu">
 							<li><a href="{% url 'password_change'%}">Update Password</a></li>
                           <li><a href="{% url 'list_ssh_keys'%}">SSH Keys</a></li>
-                          <li><a href="{% url 'manage_groups'%}">Manage Groups</a></li>
                           <li><a href="{% url 'view_messages'%}">System Messages</a></li>
                         </ul>
                       </li>

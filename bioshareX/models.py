@@ -421,5 +421,9 @@ class ShareUserObjectPermission(UserObjectPermissionBase):
 class ShareGroupObjectPermission(GroupObjectPermissionBase):
     content_object = models.ForeignKey(Share,related_name='group_permissions')
 
+def group_shares(self):
+    return Share.objects.filter(group_permissions__group=self)
+Group.shares = property(group_shares)
+
 Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']

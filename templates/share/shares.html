@@ -40,12 +40,11 @@
 	    </table>
 	    {% endverbatim %}
 </div>
-{% if not group%}
 <p>
-{{total_size}} of storage being used by {{request.user.username}}.*
+{{total_size}} of storage being used by {% if group%}{{group}}{% else %}{{request.user.username}}{% endif %}.*
 </p>
 *Files statistics updated daily.
-{% endif %}
+
 {% endblock %}
 
 {% block scripts %}

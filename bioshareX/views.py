@@ -39,7 +39,11 @@ def list_shares(request,group_id=None):
 #     shares = Share.objects.filter(owner=request.user)
 #     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
     group = None if not group_id else Group.objects.get(id=group_id)
-    total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)])) if not group_id else None
+    if not group:
+        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
+    else:
+        print group.shares
+        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
     return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths'),"group":group})
 
 def forbidden(request):
