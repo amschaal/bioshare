@@ -425,5 +425,9 @@ def group_shares(self):
     return Share.objects.filter(group_permissions__group=self)
 Group.shares = property(group_shares)
 
+def user_permission_codes(self):
+    return [p.codename for p in self.user_permissions.all()]
+User.permissions = user_permission_codes
+
 Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']

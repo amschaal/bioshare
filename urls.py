@@ -27,5 +27,4 @@ urlpatterns = [
     url(r'^accounts/', include('django.contrib.auth.urls')),
     url(r'^$', bioshare_views.list_shares, name='home'),
     url(r'^Data/(?P<id>[\da-zA-Z]{10})/(?:(?P<subpath>.*/?))?$', bioshare_views.redirect_old_path, name='redirect_old_path'),
-    
 ]

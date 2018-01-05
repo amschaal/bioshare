@@ -5,8 +5,23 @@
 {% load compress %}
 {% block title %}Shares{% endblock %}
 {% block content %}
+{% if group %}
+	<h2>{{group}}
+   	<div class="pull-right" ng-controller="GroupsController" ng-init="init({user:{{user}},group_id:{{group.id}}})">
+	   	{% if 'manage_group' in request.user.permissions or request.user.is_superuser %}
+	   	<button ng-click="manageGroup(group)" class="btn btn-small btn-primary">Manage Users</button>
+	   	{% endif %}
+	   	{% if request.user.is_superuser %}
+	   	<button ng-click="deleteGroup(group)" class="btn btn-small btn-danger">Delete</button>
+	   	{% endif %}
+	</div>
+	</h2>
+	<h3>Shares</h3>
+{% else %}
+<h2>Shares</h2>
+{% endif %}
 
-<h2>Shares{% if group %} for group "{{group}}"{% endif %}</h2>
+
 {% if bad_paths %}
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
@@ -52,5 +67,34 @@
 {% compress js %}
 <script src="{% static "js/services/ng-table-services.js" %}"></script>
 <script src="{% static "js/controllers/shares-controller.js" %}"></script>
+<script src="{% static "js/controllers/group-controller.js" %}"></script>
 {% endcompress %}
+{% if group %}
+{% verbatim %}
+<script type="text/ng-template" id="manageGroup.html">
+        <div class="modal-header">
+            <h3 class="modal-title">Manage "{{group.name}}"</h3>
+        </div>
+        <div class="modal-body">
+		<div class="input-append"><input type="email" ng-model="add_user" ng-change="checkUsername(add_user)" placeholder="Enter user's email address"><button class="btn btn-primary btn-sm" ng-click="addUser()" ng-disabled="!new_user">Add user</button></div>
+		<table ng-table="users" class="table" show-filter="true">
+		    <tr ng-repeat="user in $data">
+		        <td title="'Username'" filter="{ username: 'text'}" sortable="'username'">
+		            <i class="icon-trash" ng-click="removeUser(user)" title="remove user"></i> {{user.username}}
+					<span class="pull-right"><label title="Allow user to manage group"><input  type="checkbox" checklist-model="user.permissions" checklist-value="'manage_group'"/> Manager</label></span>
+		        </td>
+		    </tr>
+		</table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="disable_save">Save</button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+{% endverbatim %}
+{% endif %}
+
+
 {% endblock %}
+
+

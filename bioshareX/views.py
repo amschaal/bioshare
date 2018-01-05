@@ -25,6 +25,10 @@ def index(request):
     # View code here...
     return render(request,'index.html', {"message": "Hi there"})
 
+def group(request,group_id):
+    group = Group.objects.get(id=group_id)
+    return render(request,'groups/group.html', {"group": group})
+
 @safe_path_decorator()
 def redirect_old_path(request, id, subpath=''):
     share_id = '00000%s'%id
@@ -182,7 +186,7 @@ def update_password(request):
 @login_required
 def manage_groups(request):
     context ={'user':JSONRenderer().render(UserSerializer(request.user,include_perms=True).data)}
-    return render(request,'account/manage_groups.html',context)
+    return render(request,'groups/groups.html',context)
 
 @login_required
 def list_ssh_keys(request):
