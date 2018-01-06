@@ -409,6 +409,10 @@ class Message(models.Model):
     def __unicode__(self):
         return self.title
 
+class GroupProfile(models.Model):
+    group = models.OneToOneField(Group)
+    description = models.TextField(blank=True,null=True)
+    
 
 """
     Make permissions more efficient to check by having a direct foreign key:

@@ -31,7 +31,7 @@
 	{% endif %}
 {% endif %}
 
- <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false',{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})">
+ <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false',{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})" ng-cloak>
 	    {% verbatim %}
 	    <h4>Fields</h4>
             <div style="margin-bottom: 20px">
