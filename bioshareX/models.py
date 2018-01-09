@@ -411,8 +411,10 @@ class Message(models.Model):
 
 class GroupProfile(models.Model):
     group = models.OneToOneField(Group)
+    created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User,on_delete=models.PROTECT)
     description = models.TextField(blank=True,null=True)
-    
+
 
 """
     Make permissions more efficient to check by having a direct foreign key:

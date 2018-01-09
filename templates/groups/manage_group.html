@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+{% load guardian_tags %}
+{% load compress %}
+{% block title %}Manage Group{% endblock %}
+{% block content %}
+<h2>Manage {{group}}</h2>
+   	<div class="pull-right" ng-controller="GroupController" ng-init="init({user:{{user}},group_id:{{group.id}}})">
+	   	{% if 'manage_group' in request.user.permissions or request.user.is_superuser %}
+	   	<button ng-click="manageGroup(group)" class="btn btn-small btn-primary">Manage Users</button>
+	   	{% endif %}
+	   	{% if request.user.is_superuser %}
+	   	<button ng-click="deleteGroup(group)" class="btn btn-small btn-danger">Delete</button>
+	   	{% endif %}
+	</div>
+{% endblock %}
+
+{% block scripts %}
+{{block.super}}
+{% compress js %}
+<script src="{% static "js/controllers/group-controller.js" %}"></script>
+{% endcompress %}
+{% verbatim %}
+<script type="text/ng-template" id="manageGroup.html">
+        <div class="modal-header">
+            <h3 class="modal-title">Manage "{{group.name}}"</h3>
+        </div>
+        <div class="modal-body">
+		<div class="input-append"><input type="email" ng-model="add_user" ng-change="checkUsername(add_user)" placeholder="Enter user's email address"><button class="btn btn-primary btn-sm" ng-click="addUser()" ng-disabled="!new_user">Add user</button></div>
+		<table ng-table="users" class="table" show-filter="true">
+		    <tr ng-repeat="user in $data">
+		        <td title="'Username'" filter="{ username: 'text'}" sortable="'username'">
+		            <i class="icon-trash" ng-click="removeUser(user)" title="remove user"></i> {{user.username}}
+					<span class="pull-right"><label title="Allow user to manage group"><input  type="checkbox" checklist-model="user.permissions" checklist-value="'manage_group'"/> Manager</label></span>
+		        </td>
+		    </tr>
+		</table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="disable_save">Save</button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+{% endverbatim %}
+
+{% endblock %}

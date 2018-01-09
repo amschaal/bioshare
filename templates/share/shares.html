@@ -7,8 +7,9 @@
 {% block content %}
 {% if group %}
 	<h2>{{group}}
-   	<div class="pull-right" ng-controller="GroupsController" ng-init="init({user:{{user}},group_id:{{group.id}}})">
+   	<div class="pull-right" ng-controller="GroupController" ng-init="init({user:{{user}},group_id:{{group.id}}})">
 	   	{% if 'manage_group' in request.user.permissions or request.user.is_superuser %}
+	   	<a href="{% url 'manage_group' group_id=group.id %}" class="btn btn-small ptn-primary">Manage group</a>
 	   	<button ng-click="manageGroup(group)" class="btn btn-small btn-primary">Manage Users</button>
 	   	{% endif %}
 	   	{% if request.user.is_superuser %}

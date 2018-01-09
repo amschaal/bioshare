@@ -29,6 +29,10 @@ def group(request,group_id):
     group = Group.objects.get(id=group_id)
     return render(request,'groups/group.html', {"group": group})
 
+def manage_group(request,group_id):
+    group = Group.objects.get(id=group_id)
+    return render(request,'groups/manage_group.html', {"group": group})
+
 @safe_path_decorator()
 def redirect_old_path(request, id, subpath=''):
     share_id = '00000%s'%id
