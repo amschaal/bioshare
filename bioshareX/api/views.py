@@ -317,7 +317,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         test_path(subdir,share=share)
         size = du(os.path.join(share.get_path(),subdir))
         return Response({'share':share.id,'subdir':subdir,'size':size})
-class GroupViewSet(viewsets.ModelViewSet):
+class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,DjangoModelPermissions,)
     filter_fields = {'name':['icontains']}
@@ -345,12 +345,12 @@ class GroupViewSet(viewsets.ModelViewSet):
             if 'manage_group' in user['permissions']:
                 user = User.objects.get(id=user['id'])
                 assign_perm('manage_group', user, group)
-        return Response({'foo':'bar'})
-    @detail_route(['POST'])
-    def remove_user(self,request,*args,**kwargs):
-#         user = request.query_params.get('user')
-#         self.get_object().user_set.remove(user)
-        return Response({'status':'success'})
+        return self.retrieve(request,*args,**kwargs)#Response({'status':'success'})
+#     @detail_route(['POST'])
+#     def remove_user(self,request,*args,**kwargs):
+# #         user = request.query_params.get('user')
+# #         self.get_object().user_set.remove(user)
+#         return Response({'status':'success'})
 
 class MessageViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MessageSerializer
