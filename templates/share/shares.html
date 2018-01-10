@@ -13,6 +13,8 @@
 	   	{% endif %}
 	</div>
 	</h2>
+	<h4>Users</h4>
+	<p>{% for u in group.user_set.all %}{{u}}{% if not forloop.last%}, {% endif %}{% endfor %}</p>
 	<h3>Shares</h3>
 {% else %}
 <h2>Shares</h2>

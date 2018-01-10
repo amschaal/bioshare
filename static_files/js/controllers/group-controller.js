@@ -30,8 +30,10 @@ angular.module("bioshare")
 	      }
 	    });
 	    
-	    modalInstance.result.then(function (selectedItem) {
-	      $scope.selected = selectedItem;
+	    modalInstance.result.then(function (data) {
+	    	$scope.group = Group.get({id:$scope.group.id});
+//	      $scope.selected = selectedItem;
+	      
 	    }, function () {
 //	      $log.info('Modal dismissed at: ' + new Date());
 	    });
@@ -76,7 +78,7 @@ angular.module('bioshare').controller('GroupModalInstanceCtrl', function ($scope
 //	  $scope.group.$remove_user({user:user.id},function(data){console.log(data)});
   }
   $scope.save = function () {
-	$scope.group.$update_users(function(data){$uibModalInstance.close(data);})
+	$scope.group.$update_users(function(data){$uibModalInstance.close($scope.group);})
   };
   $scope.cancel = function () {
     $uibModalInstance.dismiss('cancel');

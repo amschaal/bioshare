@@ -4,15 +4,22 @@
 {% load compress %}
 {% block title %}Manage Group{% endblock %}
 {% block content %}
-<h2>Manage {{group}}</h2>
-   	<div class="pull-right" ng-controller="GroupController" ng-init="init({user:{{user}},group_id:{{group.id}}})">
-	   	{% if 'manage_group' in request.user.permissions or request.user.is_superuser %}
-	   	<button ng-click="manageGroup(group)" class="btn btn-small btn-primary">Manage Users</button>
-	   	{% endif %}
-	   	{% if request.user.is_superuser %}
-	   	<button ng-click="deleteGroup(group)" class="btn btn-small btn-danger">Delete</button>
-	   	{% endif %}
-	</div>
+<div  ng-controller="GroupController" ng-init="init({user:{{user}},group_id:{{group.id}}})">
+<h2>Manage {{group}}
+{% if request.user.is_superuser %}
+   	<button ng-click="deleteGroup(group)" class="btn btn-small btn-danger pull-right">Delete</button>
+{% endif %}
+</h2>
+	
+	  	<h3>Users
+			{% if 'manage_group' in request.user.permissions or request.user.is_superuser %}
+		   		<button ng-click="manageGroup(group)" class="btn btn-small btn-default pull-right">Manage Users</button>
+		   	{% endif %}
+	   	</h3>
+	  	{% verbatim %}
+	  	<span ng-repeat="u in group.users">{{u.username}}<span ng-if="!$last">, </span></span>
+	  	{% endverbatim %}
+  	</div>
 {% endblock %}
 
 {% block scripts %}
