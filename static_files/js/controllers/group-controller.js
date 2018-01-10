@@ -3,18 +3,7 @@ angular.module("bioshare")
 .controller("GroupController", ['$scope','$rootScope','Group','$uibModal', function($scope,$rootScope,Group,$uibModal) {
 	$scope.init = function(params){
 		console.log('params',params);
-		$scope.user = params.user;
 		$scope.group = Group.get({id:params.group_id});
-	}
-	$scope.deleteGroup = function(){
-		console.log('delete',$rootScope.getURL('groups'));
-		if (!confirm('Are you sure you want to delete the group "'+$scope.group.name+'"?'))
-			return;
-		$scope.group.$delete(function(){
-				window.location = $rootScope.getURL('groups');
-			},function(){
-				$.bootstrapGrowl('Error deleting group "'+group.name+'"',{type:'error',delay: 3000});
-			});
 	}
 	$scope.manageGroup = function () {
 
@@ -40,9 +29,6 @@ angular.module("bioshare")
 	  };
 	$scope.groupSharesURL = function (group){
 		return '/bioshare/groups/'+group.id+'/shares/';
-	}
-	$scope.groupCreateShareURL = function (group){
-		return '/bioshare/groups/'+group.id+'/shares/create/';
 	}
  }]);
 

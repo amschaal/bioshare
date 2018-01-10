@@ -21,6 +21,7 @@ from bioshareX.api.serializers import UserSerializer
 from rest_framework.renderers import JSONRenderer
 import re
 from bioshareX.models import GroupProfile
+from guardian.decorators import permission_required
 
 def index(request):
     # View code here...
@@ -30,12 +31,16 @@ def group(request,group_id):
     group = Group.objects.get(id=group_id)
     return render(request,'groups/group.html', {"group": group})
 
+@permission_required('auth.manage_group',(Group,'id','group_id'))
 def manage_group(request,group_id):
     group = Group.objects.get(id=group_id)
     return render(request,'groups/manage_group.html', {"group": group})
 
+# @permission_required('auth.manage_groups',(Group,'id','group_id'))
 def create_modify_group(request,group_id=None):
     group = Group.objects.get(id=group_id) if group_id else None
+    if not request.user.is_staff:# and not (request.user.has_perm('auth.add_group') and not group)
+        return forbidden(request)
     profile = GroupProfile.objects.filter(group=group).first() if group else None
     if request.method == 'GET':
         group_form = GroupForm(instance=group)

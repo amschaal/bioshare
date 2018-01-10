@@ -4,7 +4,7 @@
 {% load compress %}
 {% block title %}Groups{% endblock %}
 {% block content %}
-<h2>Groups <a href="{% url 'create_group' %}" class="btn btn-small btn-success pull-right" ng-if="user.permissions.indexOf('auth.add_group') != -1">Create Group</a></h2>
+<h2>Groups{% if request.user.is_staff %} <a href="{% url 'create_group' %}" class="btn btn-small btn-success pull-right">Create Group</a> {% endif %}</h2>
  <div ng-controller="GroupsController" ng-init="init({user:{{user}}})" ng-cloak>
 	    
 	    {% verbatim %}

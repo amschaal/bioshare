@@ -6,9 +6,10 @@
 {% block title %}Shares{% endblock %}
 {% block content %}
 {% if group %}
+	{% get_obj_perms request.user for group as "group_permissions" %}
 	<h2>{{group}}
    	<div class="pull-right">
-	   	{% if 'manage_group' in request.user.permissions or request.user.is_superuser %}
+	   	{% if request.user.is_staff or 'manage_group' in group_permissions %}
 	   	<a href="{% url 'manage_group' group_id=group.id %}" class="btn btn-small ptn-primary">Manage group</a>
 	   	{% endif %}
 	</div>

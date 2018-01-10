@@ -4,12 +4,12 @@
 {% load compress %}
 {% block title %}Manage Group{% endblock %}
 {% block content %}
-<div  ng-controller="GroupController" ng-init="init({user:{{user}},group_id:{{group.id}}})">
+<div  ng-controller="GroupController" ng-init="init({group_id:{{group.id}}})">
 <h2>Manage <a href="{% url 'group' group_id=group.id %}">{{group}}</a>
-{% if request.user.is_superuser %}
+{% if request.user.is_staff %}
    	<div class="pull-right">
    		<a href="{% url 'modify_group' group_id=group.id %}" class="btn btn-small btn-default">Modify</a>
-   		<button ng-click="deleteGroup(group)" class="btn btn-small btn-danger">Delete</button>
+   		<!--<button ng-click="deleteGroup(group)" class="btn btn-small btn-danger">Delete</button>-->
  	</div>
 {% endif %}
 </h2>
@@ -20,9 +20,7 @@
 <tr><th>Users</th>
 	<td>
 		{% verbatim %}<span ng-repeat="u in group.users">{{u.username}}<span ng-if="!$last">, </span></span> {% endverbatim %}
-		{% if 'manage_group' in request.user.permissions or request.user.is_superuser %}
    			<button ng-click="manageGroup(group)" class="btn btn-small btn-default pull-right">Manage Users</button>
-	   	{% endif %}
 	</td>
 </tr>
 </table>
