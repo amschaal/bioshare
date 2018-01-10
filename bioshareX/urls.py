@@ -35,6 +35,8 @@ urlpatterns = [
     url(r'^groups/?$', bioshare_views.manage_groups, name='groups'),
     url(r'^groups/(?P<group_id>[\d]+)/?$', bioshare_views.list_shares, name='group'),
     url(r'^groups/(?P<group_id>[\d]+)/manage/?$', bioshare_views.manage_group, name='manage_group'),
+    url(r'^groups/(?P<group_id>[\d]+)/modify/?$', bioshare_views.create_modify_group, name='modify_group'),
+    url(r'^groups/create/?$', bioshare_views.create_modify_group, name='create_group'),
 #     url(r'^account/update_password/?$', 'update_password', name='update_password'),
     url(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':False},name='delete_share'),
     url(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':True},name='confirm_delete_share'),

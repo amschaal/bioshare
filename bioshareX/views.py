@@ -13,13 +13,14 @@ from bioshareX.file_utils import istext
 from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
 import os
-from bioshareX.forms import SubShareForm
+from bioshareX.forms import SubShareForm, GroupForm, GroupProfileForm
 from django.contrib.auth.models import User, Group
 import operator
 from django.db.models.query_utils import Q
 from bioshareX.api.serializers import UserSerializer
 from rest_framework.renderers import JSONRenderer
 import re
+from bioshareX.models import GroupProfile
 
 def index(request):
     # View code here...
@@ -33,6 +34,20 @@ def manage_group(request,group_id):
     group = Group.objects.get(id=group_id)
     return render(request,'groups/manage_group.html', {"group": group})
 
+def create_modify_group(request,group_id=None):
+    group = Group.objects.get(id=group_id) if group_id else None
+    profile = GroupProfile.objects.filter(group=group).first() if group else None
+    if request.method == 'GET':
+        group_form = GroupForm(instance=group)
+        profile_form = GroupProfileForm(instance=profile)
+    if request.method == 'POST':
+        group_form = GroupForm(request.POST,instance=group)
+        profile_form = GroupProfileForm(request.POST,initial={'group':group,'created_by':request.user},instance=profile)
+        if group_form.is_valid() and profile_form.is_valid():
+            group = group_form.save()
+            profile_form.save(group,request.user)
+            return redirect('manage_group',group_id=group.id)
+    return render(request,'groups/create_modify_group.html', {'group': group,'group_form':group_form,'profile_form':profile_form})
 @safe_path_decorator()
 def redirect_old_path(request, id, subpath=''):
     share_id = '00000%s'%id

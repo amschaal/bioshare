@@ -1,6 +1,6 @@
 from django import forms
-from bioshareX.models import Share, SSHKey
-from django.contrib.auth.models import User
+from bioshareX.models import Share, SSHKey, GroupProfile
+from django.contrib.auth.models import User, Group
 from django.utils.translation import ugettext_lazy as _
 from django.utils.html import strip_tags
 from django.core.validators import RegexValidator
@@ -251,3 +251,20 @@ class BiosharePasswordResetForm(PasswordResetForm):
                                context={'email':email}, from_email=settings.DEFAULT_FROM_EMAIL, to_email=email)
             else:
                 super(BiosharePasswordResetForm, self).save(*args,**kwargs)
+
+class GroupForm(forms.ModelForm):
+    class Meta:
+        model = Group
+        fields = ('name',)
+
+class GroupProfileForm(forms.ModelForm):
+    def save(self,group,user,commit=True,**kwargs):
+        instance = super(GroupProfileForm, self).save(commit=False,**kwargs)
+        instance.group = group
+        if not hasattr(instance, 'created_by'):
+            instance.created_by = user
+        if commit:
+            instance.save()
+    class Meta:
+        model = GroupProfile
+        fields = ('description',)

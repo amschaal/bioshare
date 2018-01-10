@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}{% if group.id %}Modify{% else %}Create{% endif %} group{% endblock %}
+
+{% block content %}
+  <form class="form-horizontal" method="POST" action="#">
+  <fieldset>
+	  <legend>{% if group.id %}Modify{% else %}Create{% endif %} group</legend>
+	    {{ group_form|crispy }}
+	    {{ profile_form|crispy }}
+	  <div class="control-group">
+	    <div class="controls">
+	    	<button type="submit" class="btn">{% if group.id %}Modify{% else %}Create{% endif %}</button>
+	    </div>
+	  </div>
+  </fieldset>
+  {% csrf_token %}
+  </form>
+{% endblock %}

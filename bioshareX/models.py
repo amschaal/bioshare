@@ -410,7 +410,7 @@ class Message(models.Model):
         return self.title
 
 class GroupProfile(models.Model):
-    group = models.OneToOneField(Group)
+    group = models.OneToOneField(Group,related_name='profile')
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User,on_delete=models.PROTECT)
     description = models.TextField(blank=True,null=True)
