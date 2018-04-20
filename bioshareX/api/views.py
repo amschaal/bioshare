@@ -287,7 +287,7 @@ def email_participants(request,share,subdir=None):
             users = [u for u in User.objects.filter(id__in=[u.id for u in users]).filter(email__in=emails)]
         body = request.POST.get('body')
         users.append(share.owner)
-        email_users(users, ctx_dict={}, subject=subject, body=body,from_email=request.user.email)
+        email_users(users, ctx_dict={}, subject=subject, body=body,from_email=request.user.email,content_subtype='plain')
         response = {'status':'success','sent_to':[u.email for u in users]}
         return json_response(response)
     except Exception, e:

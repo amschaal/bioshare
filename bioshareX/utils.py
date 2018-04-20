@@ -244,7 +244,7 @@ def validate_email( email ):
     except ValidationError:
         return False
 
-def email_users(users, subject_template=None, body_template=None, ctx_dict={},subject=None,body=None, from_email=settings.DEFAULT_FROM_EMAIL):
+def email_users(users, subject_template=None, body_template=None, ctx_dict={},subject=None,body=None, from_email=settings.DEFAULT_FROM_EMAIL,content_subtype = "html"):
     from django.template.loader import render_to_string
     from django.core.mail import EmailMessage
     if subject:
@@ -259,7 +259,7 @@ def email_users(users, subject_template=None, body_template=None, ctx_dict={},su
     else:
         message = render_to_string(body_template, ctx_dict)
     msg = EmailMessage(subject, message, from_email, [u.email for u in users])
-    msg.content_subtype = "html"  # Main content is now text/html
+    msg.content_subtype = content_subtype  # Main content is now text/html
     msg.send(fail_silently=False)
 #     
 # def get_file_info(path):
