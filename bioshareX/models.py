@@ -437,3 +437,8 @@ User.permissions = user_permission_codes
 
 Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']
+
+def lowercase_user(sender, instance, **kwargs):
+    if instance.username != instance.username.lower() or instance.email != instance.email.lower():
+        User.objects.filter(id=instance.id).update(username=instance.username.lower(),email=instance.email.lower())
+post_save.connect(lowercase_user, sender=User)
