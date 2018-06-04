@@ -246,7 +246,7 @@ class BiosharePasswordResetForm(PasswordResetForm):
             user.
             """
             email = self.cleaned_data["email"]
-            if User.objects.filter(email=email).count() == 0:
+            if User.objects.filter(email__iexact=email).count() == 0:
                 self.send_mail(subject_template_name='registration/bad_password_reset_email_subject.txt', email_template_name='registration/bad_password_reset_email_body.txt',
                                context={'email':email}, from_email=settings.DEFAULT_FROM_EMAIL, to_email=email)
             else:
