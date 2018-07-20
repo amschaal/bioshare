@@ -22,6 +22,7 @@ from rest_framework.renderers import JSONRenderer
 import re
 from bioshareX.models import GroupProfile
 from guardian.decorators import permission_required
+from django.views.decorators.cache import never_cache
 
 def index(request):
     # View code here...
@@ -101,6 +102,7 @@ def edit_share(request,share):
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files'])
+@never_cache
 def list_directory(request,share,subdir=None):
     if not share.check_path(subdir=subdir):
         return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
