@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+{% load guardian_tags %}
+{% load compress %}
+{% block title %}Groups{% endblock %}
+{% block content %}
+<h2>Groups{% if request.user.is_staff %} <a href="{% url 'create_group' %}" class="btn btn-small btn-success pull-right">Create Group</a> {% endif %}</h2>
+ <div ng-controller="GroupsController" ng-init="init({user:{{user}}})" ng-cloak>
+	    
+	    {% verbatim %}
+	    
+	    <table ng-table="tableParams" class="table" show-filter="true">
+		    <tr ng-repeat="group in $data track by group.id">
+		        <td title="'Name'" filter="{ name__icontains: 'text'}" sortable="'name'">
+		            <a href="{{ getURL('group',{'group_id':group.id}) }}">{{group.name}}</a>
+<!--		            
+					<span class="pull-right">
+		            	<a class="btn btn-small btn-primary" href="{{groupSharesURL(group)}}">View Shares</a>
+ 		            	<a ng-if="user.permissions.indexOf('bioshareX.add_share') != -1" class="btn btn-small btn-primary" href="{{groupCreateShareURL(group)}}">Create Share</a> 
+		            </span>
+-->		            
+		         </td>
+		            
+		    </tr>
+		</table>
+	    {% endverbatim %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{block.super}}
+{% compress js %}
+<script src="{% static "js/services/ng-table-services.js" %}"></script>
+<script src="{% static "js/controllers/groups-controller.js" %}"></script>
+
+{% endcompress %}
+{% endblock %}

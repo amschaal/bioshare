@@ -5,12 +5,33 @@
 {% load compress %}
 {% block title %}Shares{% endblock %}
 {% block content %}
+{% if group %}
+	{% get_obj_perms request.user for group as "group_permissions" %}
+	<h2>{{group}}
+   	<div class="pull-right">
+	   	{% if request.user.is_staff or 'manage_group' in group_permissions %}
+	   	<a href="{% url 'manage_group' group_id=group.id %}" class="btn btn-small ptn-primary">Manage group</a>
+	   	{% endif %}
+	</div>
+	</h2>
+	<h4>Users</h4>
+	<p>{% for u in group.user_set.all %}{{u}}{% if not forloop.last%}, {% endif %}{% endfor %}</p>
+	<h3>Shares</h3>
+{% else %}
 <h2>Shares</h2>
+{% endif %}
+
+
 {% if bad_paths %}
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
+{% if group %}
+	{% if 'add_share' in request.user.permissions or request.user.is_superuser %}
+		<a href="{% url 'create_group_share' group_id=group.id %}">Create</a> a new share for "{{group}}"
+	{% endif %}
+{% endif %}
 
- <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false'{% endif %}})">
+ <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false',{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})" ng-cloak>
 	    {% verbatim %}
 	    <h4>Fields</h4>
             <div style="margin-bottom: 20px">
@@ -20,12 +41,12 @@
 		      </div>
 	     <table ng-table="tableParams" class="limit-col-width table table-bordered table-striped table-condensed">
 	      <tr ng-repeat="row in $data track by row.id">
-	        <td ng-if="cols['Share']" data-title="'Share'" filter="{name__icontains: 'text'}" sortable="'name'"><a ng-if="row.path_exists" href="{{row.url}}">{{row.name}}</a><span ng-if="!row.path_exists" class="error" title="Share has non existant path">{{row.name}}</span></td>
+	        <td ng-if="cols['Share']" data-title="'Share'" filter="{name__icontains: 'text'}" sortable="'name'"><a ng-click="saveState()" ng-if="row.path_exists" href="{{row.url}}">{{row.name}}</a><span ng-if="!row.path_exists" class="error" title="Share has non existant path">{{row.name}}</span></td>
 	        <td ng-if="cols['Description']" data-title="'Description'" filter="{notes__icontains: 'text'}">{{row.notes}}</td>
 	        <td ng-if="cols['Tags']" data-title="'Tags'" filter="{tags: 'text'}"><span ng-repeat="tag in row.tags"><a class="pointer" ng-click="setFilter('tags',tag.name)">{{tag.name}}</a>{{$last ? '' : ', '}}</span></td>
 	        <td ng-if="cols['Owner']" data-title="'Owner'" filter="{owner__username__icontains: 'text'}" sortable="'owner__username'"><a class="pointer" ng-click="setFilter('owner__username__icontains',row.owner.username)">{{row.owner.username}}</a></td>
 	        <td ng-if="cols['Users']" data-title="'Users'" filter="{user: 'text'}"><span ng-repeat="u in row.users"><a class="pointer" ng-click="setFilter('user',u)">{{u}}</a>{{$last ? '' : ', '}}</span></td>
-	        <td ng-if="cols['Groups']" data-title="'Groups'" filter="{group: 'text'}"><span ng-repeat="g in row.groups"><a class="pointer" ng-click="setFilter('group',g)">{{g}}</a>{{$last ? '' : ', '}}</span></td>
+	        <td ng-if="cols['Groups']" data-title="'Groups'" {% if not group %}filter="{group: 'text'}"{% endif %}><span ng-repeat="g in row.groups"><a class="pointer" ng-click="setFilter('group',g)">{{g}}</a>{{$last ? '' : ', '}}</span></td>
 	        <td ng-if="cols['Created']" data-title="'Created'" sortable="'created'">{{row.created | date : 'short'}}</td>
 	        <td ng-if="cols['Modified']" data-title="'Modified'" sortable="'updated'">{{row.updated | date : 'short'}}</td>
 	        <td ng-if="cols['Files']" data-title="'Files*'" sortable="'stats__num_files'">{{row.stats.num_files}}</td>
@@ -34,11 +55,11 @@
 	    </table>
 	    {% endverbatim %}
 </div>
-
 <p>
-{{total_size}} of storage being used by {{request.user.username}}.*
+{{total_size}} of storage being used by {% if group%}{{group}}{% else %}{{request.user.username}}{% endif %}.*
 </p>
 *Files statistics updated daily.
+
 {% endblock %}
 
 {% block scripts %}
@@ -47,4 +68,8 @@
 <script src="{% static "js/services/ng-table-services.js" %}"></script>
 <script src="{% static "js/controllers/shares-controller.js" %}"></script>
 {% endcompress %}
+
+
 {% endblock %}
+
+

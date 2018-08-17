@@ -367,8 +367,10 @@ class SFTPInterface (SFTPServerInterface):
             return SFTPServer.convert_errno(e.errno)
     @sftp_response
     def open(self, path, flags, attr):
+        print 'OPENING'
         permissions = self._get_bioshare_path_permissions(path)
-        if Share.PERMISSION_VIEW not in permissions or (flags & os.O_CREAT or flags & os.O_WRONLY or flags & os.O_RDWR or flags & os.O_APPEND) and Share.PERMISSION_WRITE not in permissions:
+        IS_WRITE = flags & os.O_CREAT or flags & os.O_WRONLY or flags & os.O_RDWR or flags & os.O_APPEND
+        if not ((not IS_WRITE and Share.PERMISSION_VIEW in permissions and Share.PERMISSION_DOWNLOAD in permissions) or  (IS_WRITE and Share.PERMISSION_WRITE in permissions and Share.PERMISSION_VIEW in permissions)):
 #         if Share.PERMISSION_WRITE not in permissions:
             raise PermissionDenied()
         if flags & os.O_CREAT or flags & os.O_WRONLY or flags & os.O_RDWR or flags & os.O_APPEND:

@@ -109,6 +109,7 @@ TEMPLATES = [
 ]
 
 MIDDLEWARE_CLASSES = (
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -147,6 +148,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework.authtoken',
     'compressor',
+    'corsheaders',
 )
 
 LOGGING = {

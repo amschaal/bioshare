@@ -31,6 +31,7 @@
     <script src="{% static "lib/ng-table/ng-table.min.js" %}"></script>
     <script src="{% static "lib/ui-bootstrap/ui-bootstrap.min.js" %}"></script>
   	<script src="{% static "lib/angular-checklist/checklist-model.js" %}"></script>
+  	<script src="{% static "js/services/ng-page-state.js" %}"></script>
   	{% endcompress %}
   {% endblock %}
   </head>
@@ -67,13 +68,13 @@
                         	<li><a href="{% url 'list_shares'%}">List</a></li>
 							<li><a href="{% url 'create_share'%}">Create</a></li>
                         </ul>
-                      </li>
+              </li>
+              <li><a href="{% url 'groups'%}">Groups</a></li>
               <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Account <b class="caret"></b></a>
                         <ul class="dropdown-menu">
 							<li><a href="{% url 'password_change'%}">Update Password</a></li>
                           <li><a href="{% url 'list_ssh_keys'%}">SSH Keys</a></li>
-                          <li><a href="{% url 'manage_groups'%}">Manage Groups</a></li>
                           <li><a href="{% url 'view_messages'%}">System Messages</a></li>
                         </ul>
                       </li>
@@ -139,7 +140,7 @@
     <script src="{% static "js/lib.js" %}"></script>
     <script src="{% static "lib/bootstrap/js/bootstrap.min.js" %}"></script>
     <script src="{% static "lib/jquery.bootstrap-growl.min.js" %}"></script> 
-    <script src="{% static "js/bioshare.js?foobarbaz" %}"></script>
+    <script src="{% static "js/bioshare.js" %}"></script>
 	{% endcompress%}
 	{% block scripts %}{% endblock %}
 	

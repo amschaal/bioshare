@@ -2,9 +2,9 @@
 from django.shortcuts import render_to_response, render, redirect
 from django.core.urlresolvers import reverse
 from django.http.response import HttpResponseRedirect, HttpResponseForbidden
-from models import Share, SSHKey, MetaData, Tag, ShareStats
+from models import Share, SSHKey, MetaData, Tag, ShareStats, ShareUserObjectPermission, ShareGroupObjectPermission
 from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
-from guardian.shortcuts import get_perms, get_users_with_perms
+from guardian.shortcuts import get_perms, get_users_with_perms, assign_perm
 #from django.utils import simplejson
 import json
 from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response,\
@@ -13,18 +13,47 @@ from bioshareX.file_utils import istext
 from django.contrib.auth.decorators import login_required
 from guardian.shortcuts import get_objects_for_user
 import os
-from bioshareX.forms import SubShareForm
-from django.contrib.auth.models import User
+from bioshareX.forms import SubShareForm, GroupForm, GroupProfileForm
+from django.contrib.auth.models import User, Group
 import operator
 from django.db.models.query_utils import Q
 from bioshareX.api.serializers import UserSerializer
 from rest_framework.renderers import JSONRenderer
 import re
+from bioshareX.models import GroupProfile
+from guardian.decorators import permission_required
+from django.views.decorators.cache import never_cache
 
 def index(request):
     # View code here...
     return render(request,'index.html', {"message": "Hi there"})
 
+def group(request,group_id):
+    group = Group.objects.get(id=group_id)
+    return render(request,'groups/group.html', {"group": group})
+
+@permission_required('auth.manage_group',(Group,'id','group_id'))
+def manage_group(request,group_id):
+    group = Group.objects.get(id=group_id)
+    return render(request,'groups/manage_group.html', {"group": group})
+
+# @permission_required('auth.manage_groups',(Group,'id','group_id'))
+def create_modify_group(request,group_id=None):
+    group = Group.objects.get(id=group_id) if group_id else None
+    if not request.user.is_staff:# and not (request.user.has_perm('auth.add_group') and not group)
+        return forbidden(request)
+    profile = GroupProfile.objects.filter(group=group).first() if group else None
+    if request.method == 'GET':
+        group_form = GroupForm(instance=group)
+        profile_form = GroupProfileForm(instance=profile)
+    if request.method == 'POST':
+        group_form = GroupForm(request.POST,instance=group)
+        profile_form = GroupProfileForm(request.POST,initial={'group':group,'created_by':request.user},instance=profile)
+        if group_form.is_valid() and profile_form.is_valid():
+            group = group_form.save()
+            profile_form.save(group,request.user)
+            return redirect('manage_group',group_id=group.id)
+    return render(request,'groups/create_modify_group.html', {'group': group,'group_form':group_form,'profile_form':profile_form})
 @safe_path_decorator()
 def redirect_old_path(request, id, subpath=''):
     share_id = '00000%s'%id
@@ -34,12 +63,17 @@ def tag_cloud(request):
     # View code here...
     return render(request,'viz/cloud.html')
 @login_required
-def list_shares(request):
+def list_shares(request,group_id=None):
     # View code here...
 #     shares = Share.objects.filter(owner=request.user)
 #     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
-    total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
-    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths')})
+    group = None if not group_id else Group.objects.get(id=group_id)
+    if not group:
+        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
+    else:
+        print group.shares
+        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
+    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths'),"group":group})
 
 def forbidden(request):
     # View code here...
@@ -68,9 +102,10 @@ def edit_share(request,share):
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files'])
+@never_cache
 def list_directory(request,share,subdir=None):
-    if not share.check_path():
-        return render(request,'index.html', {"message": "Unable to locate the files for this share.  Please contact the site administrator."})
+    if not share.check_path(subdir=subdir):
+        return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
     files,directories = list_share_dir(share,subdir=subdir,ajax=request.is_ajax())
     if request.is_ajax():
         return json_response({'files':files,'directories':directories.values()})
@@ -87,7 +122,8 @@ def list_directory(request,share,subdir=None):
     all_perms = share.get_permissions(user_specific=True)
     shared_users = all_perms['user_perms'].keys()
     shared_groups = [g['group']['name'] for g in all_perms['group_perms']]
-    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups})
+    emails = sorted([u.email for u in share.get_users_with_permissions()])
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
@@ -108,9 +144,10 @@ def wget_listing(request,share,subdir=None):
     return render(request,'wget_listing.html', {"files":file_list,"directories":dir_list,"path":PATH,"share":share,"subdir": subdir})
 
 @login_required
-def create_share(request):
+def create_share(request,group_id=None):
     if not request.user.has_perm('bioshareX.add_share'):
         return render(request,'index.html', {"message": "You must have permissions to create a Share.  You may request access from the <a href=\"mailto:webmaster@genomecenter.ucdavis.edu\">webmaster</a>."})
+    group = None if not group_id else Group.objects.get(id=group_id)
     if request.method == 'POST':
         form = ShareForm(request.user,request.POST)
         if form.is_valid():
@@ -122,11 +159,14 @@ def create_share(request):
                 share.set_tags(form.cleaned_data['tags'].split(','))
             except Exception, e:
                 share.delete()
-                return render(request, 'share/new_share.html', {'form': form, 'error':e.message})
+                return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':e.message})
+            if group:
+                assign_perm(Share.PERMISSION_VIEW,group,share)
+                assign_perm(Share.PERMISSION_DOWNLOAD,group,share)
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
     else:
         form = ShareForm(request.user)
-    return render(request, 'share/new_share.html', {'form': form})
+    return render(request, 'share/new_share.html', {'form': form,'group':group})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['admin'])
@@ -172,7 +212,7 @@ def update_password(request):
 @login_required
 def manage_groups(request):
     context ={'user':JSONRenderer().render(UserSerializer(request.user,include_perms=True).data)}
-    return render(request,'account/manage_groups.html',context)
+    return render(request,'groups/groups.html',context)
 
 @login_required
 def list_ssh_keys(request):

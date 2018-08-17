@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+{% load guardian_tags %}
+{% load compress %}
+{% block title %}Manage Group{% endblock %}
+{% block content %}
+<div  ng-controller="GroupController" ng-init="init({group_id:{{group.id}}})">
+<h2>Manage <a href="{% url 'group' group_id=group.id %}">{{group}}</a>
+{% if request.user.is_staff %}
+   	<div class="pull-right">
+   		<a href="{% url 'modify_group' group_id=group.id %}" class="btn btn-small btn-default">Modify</a>
+   		<!--<button ng-click="deleteGroup(group)" class="btn btn-small btn-danger">Delete</button>-->
+ 	</div>
+{% endif %}
+</h2>
+<table class="table">
+<tr><th>Created</th><td>{{group.profile.created}}</td></tr>
+<tr><th>Created By</th><td>{{group.profile.created_by}}</td></tr>
+<tr><th>Description</th><td>{{group.profile.description}}</td></tr>
+<tr><th>Users</th>
+	<td>
+		{% verbatim %}<span ng-repeat="u in group.users">{{u.username}}<span ng-if="!$last">, </span></span> {% endverbatim %}
+   			<button ng-click="manageGroup(group)" class="btn btn-small btn-default pull-right">Manage Users</button>
+	</td>
+</tr>
+</table>
+			
+  	</div>
+{% endblock %}
+
+{% block scripts %}
+{{block.super}}
+{% compress js %}
+<script src="{% static "js/controllers/group-controller.js" %}"></script>
+{% endcompress %}
+{% verbatim %}
+<script type="text/ng-template" id="manageGroup.html">
+        <div class="modal-header">
+            <h3 class="modal-title">Manage "{{group.name}}"</h3>
+        </div>
+        <div class="modal-body">
+		<div class="input-append"><input type="email" ng-model="add_user" ng-change="checkUsername(add_user)" placeholder="Enter user's email address"><button class="btn btn-primary btn-sm" ng-click="addUser()" ng-disabled="!new_user">Add user</button></div>
+		<table ng-table="users" class="table" show-filter="true">
+		    <tr ng-repeat="user in $data">
+		        <td title="'Username'" filter="{ username: 'text'}" sortable="'username'">
+		            <i class="icon-trash" ng-click="removeUser(user)" title="remove user"></i> {{user.username}}
+					<span class="pull-right"><label title="Allow user to manage group"><input  type="checkbox" checklist-model="user.permissions" checklist-value="'manage_group'"/> Manager</label></span>
+		        </td>
+		    </tr>
+		</table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" type="button" ng-click="save()" ng-disabled="disable_save">Save</button>
+            <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+{% endverbatim %}
+
+{% endblock %}

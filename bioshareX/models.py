@@ -102,6 +102,14 @@ class Share(models.Model):
             return Share.objects.select_related('stats').filter(query)
         else:
             return Share.objects.filter(query)
+    #Get a list of users with ANY permission.  Useful for getting lists of emails, etc.
+    def get_users_with_permissions(self):
+        return list( 
+             set(
+                 [uop.user for uop in ShareUserObjectPermission.objects.filter(content_object=self).select_related('user')] +
+                 list(User.objects.filter(groups__in=ShareGroupObjectPermission.objects.filter(content_object=self).values_list('group_id',flat=True)))
+                 )
+             )
     def get_permissions(self,user_specific=False):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
@@ -149,8 +157,11 @@ class Share(models.Model):
         return os.path.join(settings.ZFS_BASE,self.id)
     def get_realpath(self):
         return os.path.realpath(self.get_path())
-    def check_path(self):
-        return os.path.exists(self.get_path())
+    def check_path(self,subdir=None):
+        path = self.get_path()
+        if subdir:
+            path = os.path.join(path,subdir)
+        return os.path.exists(path)
     def get_removed_path(self):
         return os.path.join(settings.REMOVED_FILES_ROOT,self.id)
     def get_path_type(self,subpath):
@@ -398,6 +409,12 @@ class Message(models.Model):
     def __unicode__(self):
         return self.title
 
+class GroupProfile(models.Model):
+    group = models.OneToOneField(Group,related_name='profile')
+    created = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User,on_delete=models.PROTECT)
+    description = models.TextField(blank=True,null=True)
+
 
 """
     Make permissions more efficient to check by having a direct foreign key:
@@ -410,5 +427,18 @@ class ShareUserObjectPermission(UserObjectPermissionBase):
 class ShareGroupObjectPermission(GroupObjectPermissionBase):
     content_object = models.ForeignKey(Share,related_name='group_permissions')
 
+def group_shares(self):
+    return Share.objects.filter(group_permissions__group=self)
+Group.shares = property(group_shares)
+
+def user_permission_codes(self):
+    return [p.codename for p in self.user_permissions.all()]
+User.permissions = user_permission_codes
+
 Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']
+
+def lowercase_user(sender, instance, **kwargs):
+    if instance.username != instance.username.lower() or instance.email != instance.email.lower():
+        User.objects.filter(id=instance.id).update(username=instance.username.lower(),email=instance.email.lower())
+post_save.connect(lowercase_user, sender=User)

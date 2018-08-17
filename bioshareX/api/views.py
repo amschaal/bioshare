@@ -287,7 +287,7 @@ def email_participants(request,share,subdir=None):
             users = [u for u in User.objects.filter(id__in=[u.id for u in users]).filter(email__in=emails)]
         body = request.POST.get('body')
         users.append(share.owner)
-        email_users(users, ctx_dict={}, subject=subject, body=body,from_email=request.user.email)
+        email_users(users, ctx_dict={}, subject=subject, body=body,from_email=request.user.email,content_subtype='plain')
         response = {'status':'success','sent_to':[u.email for u in users]}
         return json_response(response)
     except Exception, e:
@@ -317,9 +317,10 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         test_path(subdir,share=share)
         size = du(os.path.join(share.get_path(),subdir))
         return Response({'share':share.id,'subdir':subdir,'size':size})
-class GroupViewSet(viewsets.ModelViewSet):
+class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,DjangoModelPermissions,)
+    filter_fields = {'name':['icontains']}
     model = Group
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.is_staff:
@@ -344,12 +345,12 @@ class GroupViewSet(viewsets.ModelViewSet):
             if 'manage_group' in user['permissions']:
                 user = User.objects.get(id=user['id'])
                 assign_perm('manage_group', user, group)
-        return Response({'foo':'bar'})
-    @detail_route(['POST'])
-    def remove_user(self,request,*args,**kwargs):
-#         user = request.query_params.get('user')
-#         self.get_object().user_set.remove(user)
-        return Response({'status':'success'})
+        return self.retrieve(request,*args,**kwargs)#Response({'status':'success'})
+#     @detail_route(['POST'])
+#     def remove_user(self,request,*args,**kwargs):
+# #         user = request.query_params.get('user')
+# #         self.get_object().user_set.remove(user)
+#         return Response({'status':'success'})
 
 class MessageViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MessageSerializer

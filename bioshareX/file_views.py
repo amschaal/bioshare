@@ -123,7 +123,7 @@ def move_paths(request, share, subdir=None, json={}):
 # @JSONDecorator
 def download_archive_stream(request, share, subdir=None):
 #     try:
-    selection = request.GET.get('selection').split(',')
+    selection = request.GET.get('selection','').split(',')
     for item in selection:
         test_path(item)
     try:

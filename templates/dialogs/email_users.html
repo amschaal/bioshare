@@ -7,7 +7,7 @@
   	<form id="email-users-form" action="{% url 'api_email_participants' share=share.id subdir=subdir|default_if_none:"" %}" method="POST">
   	<fieldset>
   	{% csrf_token %}
-  	<label>To:</label><label id="email_all"><input type="checkbox" checked/> All</label><span id="select_emails" class="hidden"></label>{% for u in shared_users %}<label><input name="emails" value="{{u}}" type="checkbox"/> {{u}}</label>{% endfor %}</span>
+  	<label>To:</label><span id="email_all"><label><input type="checkbox" checked/> All </label> {% for email in emails %}{{email}}{% if not forloop.last %}, {% endif %}{% endfor %}</span><span id="select_emails" class="hidden"></label>{% for email in emails %}<label><input name="emails" value="{{email}}" type="checkbox"/> {{email}}</label>{% endfor %}</span>
     <label>Subject:</label> 
     <input type="text" name="subject" value='Bioshare: "{{share.name}}" updated' class="input-block-level"/>
     <label>Body:</label> 

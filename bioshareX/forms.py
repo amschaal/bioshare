@@ -1,13 +1,13 @@
 from django import forms
-from bioshareX.models import Share, SSHKey
-from django.contrib.auth.models import User
+from bioshareX.models import Share, SSHKey, GroupProfile
+from django.contrib.auth.models import User, Group
 from django.utils.translation import ugettext_lazy as _
 from django.utils.html import strip_tags
 from django.core.validators import RegexValidator
 from bioshareX.utils import test_path, paths_contain
 from django.conf import settings
 import os   
-from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.forms import PasswordResetForm, AuthenticationForm
 
 class ShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
@@ -246,8 +246,29 @@ class BiosharePasswordResetForm(PasswordResetForm):
             user.
             """
             email = self.cleaned_data["email"]
-            if User.objects.filter(email=email).count() == 0:
+            if User.objects.filter(email=email.lower()).count() == 0:
                 self.send_mail(subject_template_name='registration/bad_password_reset_email_subject.txt', email_template_name='registration/bad_password_reset_email_body.txt',
                                context={'email':email}, from_email=settings.DEFAULT_FROM_EMAIL, to_email=email)
             else:
                 super(BiosharePasswordResetForm, self).save(*args,**kwargs)
+
+class BioshareAuthenticationForm(AuthenticationForm):
+    def clean_username(self):
+        return self.cleaned_data.get('username').lower()
+
+class GroupForm(forms.ModelForm):
+    class Meta:
+        model = Group
+        fields = ('name',)
+
+class GroupProfileForm(forms.ModelForm):
+    def save(self,group,user,commit=True,**kwargs):
+        instance = super(GroupProfileForm, self).save(commit=False,**kwargs)
+        instance.group = group
+        if not hasattr(instance, 'created_by'):
+            instance.created_by = user
+        if commit:
+            instance.save()
+    class Meta:
+        model = GroupProfile
+        fields = ('description',)
