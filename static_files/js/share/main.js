@@ -204,7 +204,7 @@ function edit_metadata(){
 					var row = $('#file-table [data-id="'+id+'"]');
 					var tags_html = BC.run_template('tags-template',data.tags);
 					var rowIndex = filetable.fnGetPosition(row[0]);
-					filetable.fnUpdate(tags_html,rowIndex,2);//2 is for column index
+					filetable.fnUpdate(tags_html,rowIndex,3);//3 is for column index
 //					row.find('.tags').html(tags_html);
 					row.attr('data-notes',data.notes);
 					row.attr('data-tags',data.tags);
