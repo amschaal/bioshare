@@ -9,6 +9,7 @@
 <!-- CSS to style the file input field as button and adjust the Bootstrap progress bars -->
 <link rel="stylesheet" href="{{ STATIC_URL }}lib/jquery_upload/css/jquery.fileupload-ui.css">
 <!-- <link rel="stylesheet" type="text/css" href="{% static "lib/datatables/DT_bootstrap.css" %}"> -->
+<link rel="stylesheet" type="text/css" href="{% static "lib/datatables/datatables.min.css" %}"/>
 <!-- For dynatree -->
 <link href="{% static "lib/dynatree/src/skin-vista/ui.dynatree.css"%}" rel="stylesheet" type="text/css">
 {% endblock %}
@@ -425,15 +426,9 @@ Filtered by: <span id="filtered-tags"></span><br>
 <!-- The basic File Upload plugin -->
 <script src="{{STATIC_URL}}lib/jquery_upload/js/jquery.fileupload.js"></script>
 <!-- 
-<script src="{% static "lib/datatables/jquery.dataTables.min.js" %}"></script>
-<script src="{% static "lib/datatables/datatables.filesize.js" %}"></script>
 <script src="{% static "lib/datatables/datatables.addtr.js" %}"></script>
-<script src="{% static "lib/datatables/datatables.datetimeus.js" %}"></script>
 <script src="{% static "lib/datatables/DT_bootstrap.js" %}"></script>
  -->
- 
-
-<link rel="stylesheet" type="text/css" href="{% static "lib/datatables/datatables.min.css" %}"/>
 
 <script type="text/javascript" src="{% static "lib/datatables/datatables.min.js" %}"></script>
 <script src="{% static "lib/datatables/datatables.filesize.js" %}"></script>
