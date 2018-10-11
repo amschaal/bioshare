@@ -17,6 +17,7 @@ Handlebars.registerHelper('list_tags', function(tags) {
 {% tplhandlebars "directory-template" %}
 <tr class="directory real-directory" data-id="{{name}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
 <td><input class="action-check" type="checkbox"/></td>
+<td>directory</td>
 <td class="name" {{#if metadata.notes}}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-folder"></i><a href="{{name}}">{{ name }}</a></td>
 <td class="tags">{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td></td>
@@ -30,6 +31,7 @@ Handlebars.registerHelper('list_tags', function(tags) {
 {% tplhandlebars "file-template" %}
 <tr class="file" data-id="{{name}}" data-bytes="{{bytes}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
 <td><input class="action-check" type="checkbox"/></td>
+<td>file</td>
 <td class="name" {{#if metadata.notes }}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-page-white"></i>{{#if download }}<a href="{{url}}">{{ name }}</a>{{else}}{{ name }}{{/if}}</td>
 <td class="tags">{{#if metadata.tags }}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td>{{ extension }}</td>
