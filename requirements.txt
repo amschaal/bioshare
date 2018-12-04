@@ -10,7 +10,7 @@ djangorestframework-filters==0.8.0
 jsonfield==1.0.3
 longerusername==0.4
 Markdown==2.6.5
-paramiko==2.1.2
+paramiko>=2.1.6
 rcssmin==1.0.6
 rjsmin==1.0.12
 scandir==1.5
