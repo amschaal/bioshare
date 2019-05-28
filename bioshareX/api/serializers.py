@@ -36,10 +36,12 @@ class ShareLogSerializer(serializers.ModelSerializer):
     paths = serializers.JSONField()
     class Meta:
         model = ShareLog
+        exclude = []
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
+        exclude = []
 
 class ShareStatsSerializer(serializers.ModelSerializer):
     class Meta:
