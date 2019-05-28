@@ -23,6 +23,7 @@ import re
 from bioshareX.models import GroupProfile
 from guardian.decorators import permission_required
 from django.views.decorators.cache import never_cache
+import codecs
 
 def index(request):
     # View code here...
@@ -107,6 +108,7 @@ def list_directory(request,share,subdir=None):
     if not share.check_path(subdir=subdir):
         return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
     files,directories = list_share_dir(share,subdir=subdir,ajax=request.is_ajax())
+    print files
     if request.is_ajax():
         return json_response({'files':files,'directories':directories.values()})
     #Find any shares that point at this directory
@@ -123,7 +125,13 @@ def list_directory(request,share,subdir=None):
     shared_users = all_perms['user_perms'].keys()
     shared_groups = [g['group']['name'] for g in all_perms['group_perms']]
     emails = sorted([u.email for u in share.get_users_with_permissions()])
-    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails})
+    readme = None
+    if os.path.isfile(os.path.join(PATH,'README.md')):
+        import markdown
+        input_file = codecs.open(os.path.join(PATH,'README.md'), mode="r", encoding="utf-8")
+        text = input_file.read()
+        readme = markdown.markdown(text)
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails, "readme":readme})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
