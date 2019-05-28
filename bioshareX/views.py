@@ -126,11 +126,14 @@ def list_directory(request,share,subdir=None):
     shared_groups = [g['group']['name'] for g in all_perms['group_perms']]
     emails = sorted([u.email for u in share.get_users_with_permissions()])
     readme = None
+    #The following block is for markdown rendering
     if os.path.isfile(os.path.join(PATH,'README.md')):
         import markdown
         input_file = codecs.open(os.path.join(PATH,'README.md'), mode="r", encoding="utf-8")
         text = input_file.read()
-        readme = markdown.markdown(text)
+        readme = markdown.markdown(text,extensions=['fenced_code','tables','nl2br'])
+        download_base = reverse('download_file',kwargs={'share':share.id,'subpath':subdir if subdir else ''})
+        readme = re.sub(r'src="(?!http)',r'src="{0}'.format(download_base),readme)
     return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails, "readme":readme})
 
 @safe_path_decorator(path_param='subdir')

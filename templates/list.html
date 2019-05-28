@@ -185,7 +185,7 @@
 	  {% endfor %}
 	  </tbody>
 	  </table>
-	  {{readme|safe}}
+	  {% if readme %}{{readme|safe}}{% else %}<p>Add a "README.md" file to have it rendered here.</p>{% endif %}
   </div>
   <div class="tab-pane" id="search-tab">
   		<ul>
