@@ -16,3 +16,4 @@ rjsmin==1.0.12
 scandir==1.5
 zipstream==1.1.0
 django-cors-headers
+psycopg2
