@@ -336,11 +336,11 @@ def list_share_dir(share,subdir=None,ajax=False):
         metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
         if entry.is_file():
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"),'metadata':metadata,'isText':True}
+            file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
             file_list.append(file)
         else:
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}
+            dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
             directories[os.path.realpath(entry.path)]=dir
     return (file_list,directories)
 

@@ -41,7 +41,7 @@ def upload_file(request, share, subdir=None):
         subpath = filename if subdir is None else subdir + filename
         url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
-        data['files'].append({'name':filename,'extension':filename.split('.').pop() if '.' in filename else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p"), 'isText':istext(FILE_PATH)}) 
+        data['files'].append({'name':filename,'extension':filename.split('.').pop() if '.' in filename else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'isText':istext(FILE_PATH)}) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FILE_ADDED,paths=[clean_filename(file.name) for file in request.FILES.values()],subdir=subdir)
@@ -55,7 +55,7 @@ def create_folder(request, share, subdir=None):
     if form.is_valid():
         folder_path = share.create_folder(form.cleaned_data['name'],subdir)
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
-        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %I:%M %p")}]
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FOLDER_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
         return json_response(data)
     else:
