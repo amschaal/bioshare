@@ -20,9 +20,10 @@ class Command(BaseCommand):
         parser.add_argument('-t', action="store_true", default=False)
         parser.add_argument('-v', action="store_true", default=False)
         parser.add_argument('-r', action="store_true", default=False)
+        parser.add_argument('-c', action="store_true", default=False) #allow user to use checksums
         parser.add_argument('-e')
         parsed = parser.parse_known_args(args)
-        flags =  ''.join([flag for flag in 'vrzt' if getattr(parsed[0],flag)])
+        flags =  ''.join([flag for flag in 'vrztc' if getattr(parsed[0],flag)])
         return '-%se.iLsf'%flags
     def add_arguments(self, parser):
         parser.add_argument('user')
