@@ -15,6 +15,7 @@ from utils import share_access_decorator, safe_path_decorator, json_response
 import datetime
 from django.conf import settings
 from bioshareX.models import ShareLog
+from django.utils import timezone
 
 def handle_uploaded_file(path,file):
     with open(path, 'wb+') as destination:
@@ -135,6 +136,8 @@ def download_archive_stream(request, share, subdir=None):
 @share_access_decorator(['download_share_files'])
 def download_file(request, share, subpath=None):
     from sendfile import sendfile
+    share.last_data_access = timezone.now()
+    share.save()
     file_path = os.path.join(share.get_path(),subpath)
     response={'path':file_path}
     return sendfile(request, os.path.realpath(file_path))

@@ -253,12 +253,16 @@ class SFTPInterface (SFTPServerInterface):
         self.server = server
         self.user = server.user
         self.shares = {}
+        self.shares_accessed = set()
         self.modified_date = {}
         for share in Share.user_queryset(self.user,include_stats=False):
             self.shares[share.slug_or_id] = share#{'path':share.get_realpath()}
 #         print 'user'
 #         print self.user
 #         self.ROOT = root
+    def session_ended(self):
+        SFTPServerInterface.session_ended(self)
+        Share.objects.filter(id__in=list(self.shares_accessed)).update(last_data_access=timezone.now())
     def _get_share(self,path):
         parts = path.split(os.path.sep)
         if len(parts) < 2:
@@ -284,6 +288,7 @@ class SFTPInterface (SFTPServerInterface):
             Share.objects.filter(id=share.id,updated__lt=current_date).update(updated=current_date) 
     def _get_bioshare_path_permissions(self,path):
         share = self._get_share(path)
+        self.shares_accessed.add(share.id)
         permissions = share.get_user_permissions(self.user)
 #         print permissions
         return permissions

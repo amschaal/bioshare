@@ -68,6 +68,8 @@ class Command(BaseCommand):
                     user_permissions = share.get_user_permissions(self.user)
                     if Share.PERMISSION_DOWNLOAD not in user_permissions:
                         raise WrapperException('User %s cannot read from share %s' % (self.user.username,share.id))
+                    share.last_data_access = timezone.now()
+                    share.save()
                 command = ['rsync', '--server', '--sender', flags, '.'] + paths
             else:#client->server
                 # --no-p --no-g --chmod=ugo=rwX  //destination default permissions
