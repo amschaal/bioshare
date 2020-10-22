@@ -4,3 +4,5 @@
 settings/config.py
 *.pyc
 bioshareX/migrations/backup
+.project
+.pydevproject

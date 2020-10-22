@@ -104,7 +104,8 @@ def get_group(request):
         return json_response({'group':{'name':group.name}})
     except Exception, e:
         return json_error([e.message])
-    
+
+@api_view(['GET'])
 @share_access_decorator(['admin'])
 def get_permissions(request,share):
     data = share.get_permissions(user_specific=True)
@@ -117,6 +118,7 @@ def update_share(request,share,json=None):
     share.save()
     return json_response({'status':'okay'})
 
+@api_view(['POST'])
 @share_access_decorator(['admin'])
 @JSONDecorator
 def set_permissions(request,share,json=None):
@@ -124,6 +126,9 @@ def set_permissions(request,share,json=None):
     emailed=[]
     created=[]
     failed=[]
+    if not json:
+        json = request.data
+    print('json', json, request.data)
 #     if not request.user.has_perm('admin',share):
 #         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
     if json.has_key('groups'):
