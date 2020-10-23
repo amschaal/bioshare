@@ -25,7 +25,9 @@ class JSONDecorator(object):
                 import json
                 json_arg = args[0].POST.get('json',args[0].GET.get('json',None))
                 if json_arg is not None:
-                    kwargs['json']=json.loads(json_arg)
+                    kwargs['json'] = json.loads(json_arg)
+                elif hasattr(args[0], 'data'):
+                    kwargs['json'] = args[0].data
                 return self.orig_func(*args, **kwargs)
 def share_access_decorator_old(perms,share_param='share'):
     def wrap(f):
