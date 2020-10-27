@@ -303,6 +303,7 @@ def get_share_stats(share):
 #     total_files = 0
     ZFS_PATH = share.get_zfs_path()
     if ZFS_PATH:
+        ZFS_PATH = share.get_path()
         total_size = subprocess.check_output(['zfs', 'get', '-H', '-o', 'value', '-p', 'used', ZFS_PATH])
     else:
         for dirpath, dirnames, filenames in os.walk(path):
