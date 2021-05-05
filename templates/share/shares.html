@@ -59,7 +59,7 @@
 {{total_size}} of storage being used by {% if group%}{{group}}{% else %}{{request.user.username}}{% endif %}.*
 </p>
 *Files statistics updated daily.
-
+<p><a href="/api/shares/export/?ordering=-updated" class="btn btn-primary" title="Export share table">Export</a></p>
 {% endblock %}
 
 {% block scripts %}

@@ -1,6 +1,6 @@
 # Create your views here.
 from django.core.urlresolvers import reverse
-from django.http.response import JsonResponse
+from django.http.response import JsonResponse, HttpResponse
 from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
 from bioshareX.models import Share, SSHKey, MetaData, Tag
 from bioshareX.forms import MetaDataForm, json_form_validate
@@ -10,7 +10,8 @@ from bioshareX.utils import JSONDecorator, json_response, json_error, share_acce
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
-from rest_framework.decorators import api_view, detail_route, throttle_classes
+from rest_framework.decorators import api_view, detail_route, throttle_classes,\
+    action
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
@@ -27,6 +28,8 @@ import datetime
 from bioshareX.api.filters import UserShareFilter, ShareTagFilter,\
     GroupShareFilter, ActiveMessageFilter
 from rest_framework.throttling import UserRateThrottle
+from django.utils import timezone
+import csv
 
 @ajax_login_required
 def get_user(request):
@@ -319,6 +322,17 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         test_path(subdir,share=share)
         size = du(os.path.join(share.get_path(),subdir))
         return Response({'share':share.id,'subdir':subdir,'size':size})
+    @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated])
+    def export(self, request):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="shares_{}.csv"'.format(str(timezone.now())[:19].replace(' ','_'))
+        writer = csv.writer(response, delimiter='\t')
+        writer.writerow(['id','name','url','users','groups','bytes','tags','owner','slug','created','updated','secure','read_only','notes','path_exists'])
+        for r in serializer.data:
+            writer.writerow([r['id'],r['name'],r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join(r['tags']),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'],r['path_exists'] ])
+        return response
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,DjangoModelPermissions,)

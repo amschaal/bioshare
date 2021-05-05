@@ -124,6 +124,8 @@ def move_paths(request, share, subdir=None, json={}):
 # @JSONDecorator
 def download_archive_stream(request, share, subdir=None):
 #     try:
+    share.last_data_access = timezone.now()
+    share.save()
     selection = request.GET.get('selection','').split(',')
     for item in selection:
         test_path(item)
