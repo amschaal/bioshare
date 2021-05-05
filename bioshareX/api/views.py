@@ -331,7 +331,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         writer = csv.writer(response, delimiter='\t')
         writer.writerow(['id','name','url','users','groups','bytes','tags','owner','slug','created','updated','secure','read_only','notes','path_exists'])
         for r in serializer.data:
-            writer.writerow([r['id'],r['name'],r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join(r['tags']),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'],r['path_exists'] ])
+            writer.writerow([r['id'],r['name'],r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join([t['name'] for t in r['tags']]),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'],r['path_exists'] ])
         return response
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
