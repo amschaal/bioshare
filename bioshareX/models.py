@@ -11,10 +11,10 @@ from bioshareX.utils import test_path, paths_contain, path_contains
 from jsonfield import JSONField
 import datetime
 from guardian.shortcuts import get_users_with_perms, get_objects_for_group
-from django.core.urlresolvers import reverse
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 import subprocess
 from django.utils import timezone
+from django.urls.base import reverse
 
 def pkgen():
     import string, random
@@ -26,10 +26,10 @@ class ShareStats(models.Model):
     bytes = models.BigIntegerField(default=0)
     updated = models.DateTimeField(null=True)
     def hr_size(self):
-        from utils import sizeof_fmt
+        from bioshareX.utils import sizeof_fmt
         return sizeof_fmt(self.bytes)
     def update_stats(self):
-        from utils import get_share_stats
+        from bioshareX.utils import get_share_stats
         from django.utils import timezone
         #         if self.updated is None:
         stats = get_share_stats(self.share)
@@ -119,7 +119,7 @@ class Share(models.Model):
         return {'user_perms':user_perms,'group_perms':group_perms}
     def get_user_permissions(self,user,user_specific=False):
         if user_specific:
-            from utils import fetchall
+            from bioshareX.utils import fetchall
             perms = [uop.permission.codename for uop in ShareUserObjectPermission.objects.filter(user=user,content_object=self).select_related('permission')]
         else:
             from guardian.shortcuts import get_perms
@@ -250,7 +250,7 @@ class Share(models.Model):
     
     
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
-        from utils import zipdir, get_total_size
+        from bioshareX.utils import zipdir, get_total_size
         from os.path import isfile, isdir
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
         if not os.path.exists(path):

@@ -1,5 +1,4 @@
 from django.shortcuts import redirect, render
-from django.core.urlresolvers import reverse
 import os
 import json
 from functools import wraps
@@ -15,6 +14,7 @@ import re
 import datetime
 from bioshareX.file_utils import istext
 from os import path
+from django.urls.base import reverse
 
 
 
