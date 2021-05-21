@@ -72,7 +72,6 @@ def list_shares(request,group_id=None):
     if not group:
         total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
     else:
-        print group.shares
         total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
     return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":'bad_paths' in request.GET,"group":group})
 
@@ -108,7 +107,6 @@ def list_directory(request,share,subdir=None):
     if not share.check_path(subdir=subdir):
         return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
     files,directories = list_share_dir(share,subdir=subdir,ajax=request.is_ajax())
-    print files
     if request.is_ajax():
         return json_response({'files':files,'directories':directories.values()})
     #Find any shares that point at this directory

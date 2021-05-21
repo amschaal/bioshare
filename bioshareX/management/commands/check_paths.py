@@ -12,4 +12,4 @@ class Command(BaseCommand):
             share.real_path = os.path.realpath(share.get_path())
             share.save()
             if not share.path_exists:
-                print "Path '%s' does not exist for share: '%s'" % (share.get_path(),share.name)
+                print("Path '%s' does not exist for share: '%s'" % (share.get_path(),share.name))

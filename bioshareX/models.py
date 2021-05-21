@@ -139,8 +139,6 @@ class Share(models.Model):
         if not user_specific:
             from guardian.shortcuts import get_users_with_perms
             users = get_users_with_perms(self,attach_perms=True, with_group_users=False)
-            print 'users'
-            print users
             user_perms = [{'user':{'username':user.username, 'email':user.email, 'first_name':user.first_name, 'last_name':user.last_name},'permissions':permissions} for user, permissions in users.iteritems()]
         else:
             perms = ShareUserObjectPermission.objects.filter(content_object=self).select_related('permission','user')
@@ -204,7 +202,6 @@ class Share(models.Model):
         if save:
             self.save()
     def set_tags(self,tags,save=True):
-        print tags
         self.tags.clear()
         self.add_tags(tags,save)
     def move_path(self,item_subpath,destination_subpath=''):
@@ -318,7 +315,7 @@ def share_pre_save(sender, instance, **kwargs):
         elif instance.link_to_path and instance.link_to_path != old_share.link_to_path:
             old_share.unlink()
             instance.create_link()
-    except Share.DoesNotExist, e:
+    except Share.DoesNotExist as e:
         pass
         
 def share_post_delete(sender, instance, **kwargs):

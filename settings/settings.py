@@ -220,4 +220,4 @@ STRIP_REGEX = r'[^\w\.\- \*^]+'
 UNDERSCORE_REGEX = r'[ ]+'
 MD5SUM_COMMAND = 'md5sum'
 
-from config import *
+from settings.config import *
