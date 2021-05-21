@@ -131,7 +131,7 @@ def set_permissions(request,share,json=None):
     failed=[]
 #     if not request.user.has_perm('admin',share):
 #         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
-    if json.has_key('groups'):
+    if 'groups' in json:
         for group, permissions in json['groups'].iteritems():
             g = Group.objects.get(id__iexact=group)
             current_perms = get_perms(g,share)
@@ -145,7 +145,7 @@ def set_permissions(request,share,json=None):
                 remove_perm(perm,g,share)
             for perm in added_perms:
                 assign_perm(perm,g,share)
-    if json.has_key('users'):
+    if 'users' in json:
         for username, permissions in json['users'].iteritems():
             username = username.lower()
             try:
@@ -331,8 +331,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         writer = csv.writer(response, delimiter='\t')
         writer.writerow(['id','name','url','users','groups','bytes','tags','owner','slug','created','updated','secure','read_only','notes','path_exists'])
         for r in serializer.data:
-            row = [r['id'],r['name'],r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join([t['name'] for t in r['tags']]),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'],r['path_exists'] ]
-            writer.writerow([c.encode('ascii', 'replace') if hasattr(c,'decode') else c for c in row])
+            writer.writerow([r['id'],r['name'].encode('ascii', 'replace'),r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join([t['name'].encode('ascii', 'replace') for t in r['tags']]),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'].encode('ascii', 'replace'),r['path_exists'] ])
         return response
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer

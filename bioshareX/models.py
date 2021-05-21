@@ -146,7 +146,7 @@ class Share(models.Model):
             perms = ShareUserObjectPermission.objects.filter(content_object=self).select_related('permission','user')
             user_perms={}
             for perm in perms:
-                if not user_perms.has_key(perm.user.username):
+                if perm.user.username not in user_perms:
                     user_perms[perm.user.username]={'user':{'username':perm.user.username},'permissions':[]}
                 user_perms[perm.user.username]['permissions'].append(perm.permission.codename)
         return user_perms

@@ -335,7 +335,7 @@ def list_share_dir(share,subdir=None,ajax=False):
         metadatas[md.subpath]= md if not ajax else md.json()    
     for entry in scandir(PATH):
         subpath= entry.name if subdir is None else os.path.join(subdir,entry.name)
-        metadata = metadatas[subpath] if metadatas.has_key(subpath) else {}
+        metadata = metadatas[subpath] if subpath in metadatas else {}
         if entry.is_file():
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
             file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}

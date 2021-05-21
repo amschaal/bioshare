@@ -6,7 +6,7 @@ import os
 CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir))
 
 # Used for rsync wrapper to choose correct python (especially when using virtualenv).  Override this in config.py if different from what is used by web server.
-if os.environ.has_key('VIRTUAL_ENV'):
+if 'VIRTUAL_ENV' in os.environ:
     PYTHON_BIN = os.path.join(os.environ['VIRTUAL_ENV'],'bin/python')
 else:
     PYTHON_BIN = sys.executable

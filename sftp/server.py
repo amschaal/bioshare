@@ -268,13 +268,13 @@ class SFTPInterface (SFTPServerInterface):
         if len(parts) < 2:
             print 'bad length'
             raise PermissionDenied("Received an invalid path: %s"%path)
-        if not self.shares.has_key(parts[1]) and self.user.id == -1: #Anonymous users don't yet have a dictionary of shares.
+        if parts[1] not in self.shares and self.user.id == -1: #Anonymous users don't yet have a dictionary of shares.
             try:
                 share = Share.get_by_slug_or_id(parts[1])
                 self.shares[share.slug_or_id] = share
             except:
                 pass
-        if not self.shares.has_key(parts[1]):
+        if parts[1] not in self.shares:
             print 'no share exists'
             print path
             raise PermissionDenied("Share does not exist: %s"%path[1])
