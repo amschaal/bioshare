@@ -21,7 +21,7 @@ def pkgen():
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(15))
 
 class ShareStats(models.Model):
-    share = models.OneToOneField('Share',unique=True,related_name='stats')
+    share = models.OneToOneField('Share',unique=True,related_name='stats', on_delete=models.CASCADE)
     num_files = models.IntegerField(default=0)
     bytes = models.BigIntegerField(default=0)
     updated = models.DateTimeField(null=True)
@@ -52,7 +52,7 @@ class Filesystem(models.Model):
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     slug = models.SlugField(max_length=50,blank=True,null=True)
-    parent = models.ForeignKey('self',null=True,blank=True)
+    parent = models.ForeignKey('self',null=True,blank=True, on_delete=models.RESTRICT)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now_add=True,null=True,blank=True)
     owner = models.ForeignKey(User, on_delete=models.PROTECT)
@@ -339,7 +339,7 @@ class Tag(models.Model):
     def clean(self):
         self.name = strip_tags(self.name)
 class MetaData(models.Model):
-    share = models.ForeignKey(Share)
+    share = models.ForeignKey(Share, on_delete=models.CASCADE)
     subpath = models.CharField(max_length=250,null=True,blank=True)
     notes = models.TextField(blank=True,null=True)
     tags = models.ManyToManyField(Tag)
@@ -356,7 +356,7 @@ class MetaData(models.Model):
     def json(self):
         return {'tags':[tag.name for tag in self.tags.all()],'notes':self.notes}
 class SSHKey(models.Model):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
     key = models.TextField(blank=False,null=False)
     def create_authorized_key(self):
@@ -381,8 +381,8 @@ class ShareLog(models.Model):
     ACTION_RENAMED = 'File/Folder Renamed'
     ACTION_RSYNC = 'Files rsynced'
     ACTION_PERMISSIONS_UPDATED = 'Permissions updated'
-    share = models.ForeignKey(Share, related_name="logs")
-    user = models.ForeignKey(User, null=True, blank=True)
+    share = models.ForeignKey(Share, related_name="logs", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT)
     timestamp = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=30,null=True,blank=True)
     text = models.TextField(null=True,blank=True)
@@ -408,7 +408,7 @@ class Message(models.Model):
         return self.title
 
 class GroupProfile(models.Model):
-    group = models.OneToOneField(Group,related_name='profile')
+    group = models.OneToOneField(Group,related_name='profile', on_delete=models.PROTECT)
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User,on_delete=models.PROTECT)
     description = models.TextField(blank=True,null=True)
@@ -420,10 +420,10 @@ class GroupProfile(models.Model):
 """
 
 class ShareUserObjectPermission(UserObjectPermissionBase):
-    content_object = models.ForeignKey(Share,related_name='user_permissions')
+    content_object = models.ForeignKey(Share,related_name='user_permissions', on_delete=models.CASCADE)
 
 class ShareGroupObjectPermission(GroupObjectPermissionBase):
-    content_object = models.ForeignKey(Share,related_name='group_permissions')
+    content_object = models.ForeignKey(Share,related_name='group_permissions', on_delete=models.CASCADE)
 
 def group_shares(self):
     return Share.objects.filter(group_permissions__group=self)

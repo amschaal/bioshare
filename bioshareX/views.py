@@ -1,9 +1,8 @@
 # Create your views here.
-from django.shortcuts import render_to_response, render, redirect
-from django.core.urlresolvers import reverse
+from django.shortcuts import render, redirect
 from django.http.response import HttpResponseRedirect, HttpResponseForbidden
-from models import Share, SSHKey, MetaData, Tag, ShareStats, ShareUserObjectPermission, ShareGroupObjectPermission
-from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
+from bioshareX.models import Share, SSHKey, MetaData, Tag, ShareStats, ShareUserObjectPermission, ShareGroupObjectPermission
+from bioshareX.forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
 from guardian.shortcuts import get_perms, get_users_with_perms, assign_perm
 #from django.utils import simplejson
 import json
@@ -24,6 +23,7 @@ from bioshareX.models import GroupProfile
 from guardian.decorators import permission_required
 from django.views.decorators.cache import never_cache
 import codecs
+from django.urls.base import reverse
 
 def index(request):
     # View code here...
@@ -166,7 +166,7 @@ def create_share(request,group_id=None):
             try:
                 share.save()
                 share.set_tags(form.cleaned_data['tags'].split(','))
-            except Exception, e:
+            except Exception as e:
                 share.delete()
                 return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':e.message})
             if group:
@@ -196,7 +196,7 @@ def create_subshare(request,share,subdir):
                 subshare.read_only = True
             try:
                 subshare.save()
-            except Exception, e:
+            except Exception as e:
                 subshare.delete()
                 return render(request, 'share/new_share.html', {'form': form, 'error':e.message,'share':share,'subdir':subdir})
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':subshare.slug_or_id}))
@@ -273,7 +273,7 @@ def delete_share(request, share, confirm=False):
     
 @login_required
 def search_files(request):
-    from utils import find
+    from bioshareX.utils import find
     query = request.GET.get('query',None)
     results=[]
     if query:
