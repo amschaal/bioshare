@@ -56,7 +56,9 @@ class FilePath(models.Model):
     name = models.CharField(max_length=50,null=True,blank=True)
     description = models.TextField(null=True,blank=True)
     regexes = ArrayField(models.CharField(max_length=200), blank=False)
-    users = models.ManyToManyField(User, related_name='file_paths')
+    users = models.ManyToManyField(User, related_name='file_paths', blank=True)
+    def __unicode__(self):
+        return '%s: %s' %(self.name, self.path) if self.name else self.path
 
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
