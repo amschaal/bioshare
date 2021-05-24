@@ -15,6 +15,7 @@ from django.core.urlresolvers import reverse
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 import subprocess
 from django.utils import timezone
+from django.contrib.postgres.fields.array import ArrayField
 
 def pkgen():
     import string, random
@@ -49,6 +50,14 @@ class Filesystem(models.Model):
     type = models.CharField(max_length=20,choices=TYPES,default=TYPE_STANDARD)
     def __unicode__(self):
         return '%s: %s' %(self.name, self.path)
+
+class FilePath(models.Model):
+    path = models.CharField(max_length=200)
+    name = models.CharField(max_length=50,null=True,blank=True)
+    description = models.TextField(null=True,blank=True)
+    regexes = ArrayField(models.CharField(max_length=200), blank=False)
+    users = models.ManyToManyField(User, related_name='file_paths')
+
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     slug = models.SlugField(max_length=50,blank=True,null=True)
