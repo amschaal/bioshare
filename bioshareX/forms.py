@@ -1,5 +1,5 @@
 from django import forms
-from bioshareX.models import Share, SSHKey, GroupProfile
+from bioshareX.models import Share, SSHKey, GroupProfile, FilePath
 from django.contrib.auth.models import User, Group
 from django.utils.translation import ugettext_lazy as _
 from django.utils.html import strip_tags
@@ -8,6 +8,7 @@ from bioshareX.utils import test_path, paths_contain
 from django.conf import settings
 import os   
 from django.contrib.auth.forms import PasswordResetForm, AuthenticationForm
+import re
 
 class ShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
@@ -15,12 +16,15 @@ class ShareForm(forms.ModelForm):
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
+        self.file_paths = FilePath.objects.all() if user.is_superuser else self.user.file_paths.all()
         self.fields['filesystem'].queryset = user.filesystems
         self.fields['owner'].required = False
         if not user.is_superuser:
             self.fields.pop('owner',None)
-        if not user.has_perm('bioshareX.link_to_path'):
+        if self.file_paths.count() == 0:#user.has_perm('bioshareX.link_to_path'):
             self.fields.pop('link_to_path',None)
+        else:
+            self.fields['link_to_path'].help_text = 'Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths])
         self.the_instance = kwargs.get('instance',None)
         if self.the_instance:
             if not self.the_instance.link_to_path:
@@ -31,6 +35,7 @@ class ShareForm(forms.ModelForm):
                 self.fields.pop('read_only',None)
     def clean_link_to_path(self):
         path = self.cleaned_data['link_to_path']
+        file_paths = [fp.path for fp in self.file_paths]
         if path == '' or not path:
             path = None
         if path:
@@ -38,10 +43,17 @@ class ShareForm(forms.ModelForm):
                 test_path(path,allow_absolute=True)
             except:
                 raise forms.ValidationError('Bad path: "%s"'%path)
-            if not os.path.isdir(path):
-                raise forms.ValidationError('Path: "%s" does not exist'%path)
+            parent_path = paths_contain(file_paths,path,get_path=True)
+            if not parent_path:
+                raise forms.ValidationError('Path not allowed.')#  Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths]))
+            else: #Check agains regeexes
+                fp = FilePath.objects.get(path=parent_path)
+                if not fp.is_valid(path):
+                    raise forms.ValidationError('Path not allowed.  Must match begin with {} and match one of the expressions: {}'.format(fp.path,', '.join(['"'+r+'"' for r in fp.regexes])))
             if not paths_contain(settings.LINK_TO_DIRECTORIES,path):
-                raise forms.ValidationError('Path not allowed.')
+                raise forms.ValidationError('Path not whitelisted.  Contact the site admin if you believe this to be an error.')
+            if not os.path.isdir(path):
+                raise forms.ValidationError('Path: Directory "%s" does not exist'%path)
         if self.the_instance:
             if self.the_instance.link_to_path and not path:
                 raise forms.ValidationError('It is not possible to change a linked share to a regular share.')

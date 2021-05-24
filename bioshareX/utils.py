@@ -170,10 +170,10 @@ def path_contains(parent_path,child_path,real_path=True):
     else:
         return os.path.join(child_path,'').startswith(os.path.join(parent_path,''))
 
-def paths_contain(paths,child_path):
+def paths_contain(paths,child_path, get_path=False):
     for path in paths:
         if path_contains(path, child_path):
-            return True
+            return path if get_path else True
     return False
 
 def json_response(dict):

@@ -16,6 +16,7 @@ from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 import subprocess
 from django.utils import timezone
 from django.contrib.postgres.fields.array import ArrayField
+import re
 
 def pkgen():
     import string, random
@@ -57,6 +58,15 @@ class FilePath(models.Model):
     description = models.TextField(null=True,blank=True)
     regexes = ArrayField(models.CharField(max_length=200), blank=False)
     users = models.ManyToManyField(User, related_name='file_paths', blank=True)
+    def is_valid(self, path):
+        if not path_contains(self.path, path):
+            return False
+        if not self.regexes or len(self.regexes) == 0:
+            return True
+        for regex in self.regexes:
+            if re.match(regex, path):
+                return True
+        return False
     def __unicode__(self):
         return '%s: %s' %(self.name, self.path) if self.name else self.path
 
