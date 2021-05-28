@@ -16,7 +16,7 @@ class ShareForm(forms.ModelForm):
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
-        self.file_paths = FilePath.objects.all() if user.is_superuser else self.user.file_paths.all()
+        self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
         self.fields['filesystem'].queryset = user.filesystems
         self.fields['owner'].required = False
         if not user.is_superuser:
