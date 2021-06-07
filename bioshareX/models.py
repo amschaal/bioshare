@@ -58,6 +58,7 @@ class FilePath(models.Model):
     description = models.TextField(null=True,blank=True)
     regexes = ArrayField(models.CharField(max_length=200), blank=False)
     users = models.ManyToManyField(User, related_name='file_paths', blank=True)
+    cluster = models.BooleanField(default=False)
     def is_valid(self, path):
         if not path_contains(self.path, path):
             return False
@@ -83,6 +84,7 @@ class Share(models.Model):
     notes = models.TextField(null=True,blank=True)
     tags = models.ManyToManyField('Tag')
     link_to_path = models.CharField(max_length=200,blank=True,null=True)
+    filepath = models.ForeignKey(FilePath,blank=True,null=True)
     sub_directory = models.CharField(max_length=200,blank=True,null=True)
     real_path = models.CharField(max_length=200,blank=True,null=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
@@ -173,6 +175,10 @@ class Share(models.Model):
         return user_perms
     def get_path(self):
         return os.path.join(self.filesystem.path,self.id)
+    def get_link_path(self, add_trailing_slash=True):
+        if self.link_to_path and add_trailing_slash:
+            return os.path.join(self.link_to_path, '')
+        return None
     def get_zfs_path(self):
         if not getattr(settings,'ZFS_BASE',False) or not self.filesystem.type == Filesystem.TYPE_ZFS:
             return None

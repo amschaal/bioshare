@@ -46,10 +46,10 @@ class ShareForm(forms.ModelForm):
             parent_path = paths_contain(file_paths,path,get_path=True)
             if not parent_path:
                 raise forms.ValidationError('Path not allowed.')#  Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths]))
-            else: #Check agains regeexes
-                fp = FilePath.objects.get(path=parent_path)
-                if not fp.is_valid(path):
-                    raise forms.ValidationError('Path not allowed.  Must match begin with {} and match one of the expressions: {}'.format(fp.path,', '.join(['"'+r+'"' for r in fp.regexes])))
+            else: #Check against regeexes
+                self.fp = FilePath.objects.get(path=parent_path)
+                if not self.fp.is_valid(path):
+                    raise forms.ValidationError('Path not allowed.  Must match begin with {} and match one of the expressions: {}'.format(fp.path,', '.join(['"'+r+'"' for r in self.fp.regexes])))
             if not paths_contain(settings.LINK_TO_DIRECTORIES,path):
                 raise forms.ValidationError('Path not whitelisted.  Contact the site admin if you believe this to be an error.')
             if not os.path.isdir(path):
@@ -76,7 +76,14 @@ class ShareForm(forms.ModelForm):
         if path and not cleaned_data.get('read_only',None):
             self.add_error('read_only', forms.ValidationError('Linked shares must be read only.'))
         cleaned_data['read_only'] = True if path else self.cleaned_data['read_only']
-        return cleaned_data         
+        return cleaned_data
+    def save(self, commit=False):
+        share = super(ShareForm, self).save(commit=False)
+        if hasattr(self,'fp'):
+            share.filepath = self.fp
+        if commit:
+            share.save()
+        return share
     class Meta:
         model = Share
         fields = ('name','owner','slug', 'notes','filesystem','link_to_path','read_only')

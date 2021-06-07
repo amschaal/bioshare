@@ -92,8 +92,8 @@ def edit_share(request,share):
     if request.method == 'POST':
         form = ShareForm(request.user,request.POST,instance=share)
         if form.is_valid():
-            share = form.save(commit=False)
-            share.set_tags(form.cleaned_data['tags'].split(','))
+            share = form.save(commit=False) #gets commited in next call?
+            share.set_tags(form.cleaned_data['tags'].split(',')) 
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
     else:
         tags = ','.join([tag.name for tag in share.tags.all()])
