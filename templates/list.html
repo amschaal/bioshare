@@ -58,8 +58,8 @@
 	<br><b>Tags:</b> {% for tag in share.tags.all %}{{tag.name}}{% if not forloop.last %}, {% endif %}{% endfor %}
 {% endif %}
 <br><b>Directory size:</b> <span ng-cloak ng-controller="SizeController" >{% verbatim %}<span ng-if="size">{{size}}</span>{% endverbatim %}<a class="pointer" ng-if="!size" ng-click="calculate('{{share.id}}'{% if subdir %},'{{subdir}}'{% endif %})">Calculate...</a></span>
-{% if share.link_to_path and share.filepath and share.filepath.cluster %}
-<br><b>Cluster path:</b> {{share.get_link_path}}{% if subdir %}{{subdir}}{% endif %}
+{% if share.link_to_path and share.filepath and share.filepath.show_path %}
+<br><b>System path:</b> {{share.get_link_path}}{% if subdir %}{{subdir}} <i class="fam-help" title="If you have access to the cluster, data may be available at this path."></i>{% endif %}
 {% endif %}
 </div>
 

@@ -58,7 +58,7 @@ class FilePath(models.Model):
     description = models.TextField(null=True,blank=True)
     regexes = ArrayField(models.CharField(max_length=200), blank=False)
     users = models.ManyToManyField(User, related_name='file_paths', blank=True)
-    cluster = models.BooleanField(default=False)
+    show_path = models.BooleanField(default=False)
     def is_valid(self, path):
         if not path_contains(self.path, path):
             return False
