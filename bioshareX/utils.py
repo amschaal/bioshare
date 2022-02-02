@@ -350,3 +350,10 @@ def md5sum(path):
     output = subprocess.check_output([settings.MD5SUM_COMMAND,path]) #Much more efficient than reading file contents into python and using hashlib
     #IE: output = 4968966191e485885a0ed8854c591720  /tmp/Project/Undetermined_S0_L002_R2_001.fastq.gz
     return re.findall(r'([0-9a-fA-F]{32})',output)[0]
+
+def find_symlink(path): #pretty crude check to make sure the path is not and does not contain any symlinks
+    if os.path.isfile(path):
+        return os.path.islink(path)
+    elif os.path.isdir(path):
+        output = subprocess.check_output(['find', path, '-type', 'l', '-ls'])
+        return bool(output)

@@ -16,6 +16,7 @@ import datetime
 from django.conf import settings
 from bioshareX.models import ShareLog
 from django.utils import timezone
+from bioshareX.utils import find_symlink
 
 def handle_uploaded_file(path,file):
     with open(path, 'wb+') as destination:
@@ -127,8 +128,13 @@ def download_archive_stream(request, share, subdir=None):
     share.last_data_access = timezone.now()
     share.save()
     selection = request.GET.get('selection','').split(',')
+    path = share.get_path()
+    if subdir:
+        path = os.path.join(path,subdir)
     for item in selection:
         test_path(item)
+        if find_symlink(os.path.join(path,item)):
+            return json_error(['Item {} is or contained symlinks.  It is not eligible to be archived.'.format(item)])
     try:
         return share.create_archive_stream(items=selection,subdir=subdir)
     except Exception, e:
