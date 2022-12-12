@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  app:
+    build: .
+    hostname: app
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    volumes:
+      - .:/usr/src/app 
+      - data_volume:/data
+    environment:
+      - VERSION=DOCKER
+      - DEBUG=1
+    env_file:
+      - ./.env.dev
+    networks:
+      - internal-network
+    depends_on:
+      - db
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - "POSTGRES_HOST_AUTH_METHOD=trust"
+    networks:
+      - internal-network
+volumes:
+  postgres_data:
+  data_volume:
+networks:
+  internal-network:
