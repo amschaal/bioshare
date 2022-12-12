@@ -1,5 +1,5 @@
 from django.contrib import admin
-from bioshareX.models import Share, Filesystem, Message
+from bioshareX.models import Share, Filesystem, Message, FilePath
 from guardian.admin import GuardedModelAdmin
 from django.contrib.auth.admin import UserAdmin as OriginalUserAdmin
 from django.contrib.auth.models import User
@@ -18,9 +18,15 @@ class FSInline(admin.TabularInline):
     model = Filesystem.users.through
 #     fk_name = ""
 
+class FilePathAdmin(GuardedModelAdmin):
+    pass
+
+class FPInline(admin.TabularInline):
+    model = FilePath.users.through
+
 class UserAdmin(OriginalUserAdmin):
     """ Just add inlines to the original UserAdmin class """
-    inlines = [FSInline, ]
+    inlines = [FSInline, FPInline]
 #     def formfield_for_manytomany(self, db_field, request, **kwargs):
 #         if db_field.name == "cars":
 #             kwargs["queryset"] = Car.objects.filter(owner=request.user)
@@ -36,4 +42,5 @@ class MessageAdmin(admin.ModelAdmin):
 
 admin.site.register(Share, ShareAdmin)
 admin.site.register(Filesystem, FilesystemAdmin)
+admin.site.register(FilePath, FilePathAdmin)
 admin.site.register(Message,MessageAdmin)

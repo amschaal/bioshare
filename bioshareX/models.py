@@ -14,6 +14,8 @@ from guardian.shortcuts import get_users_with_perms, get_objects_for_group
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 import subprocess
 from django.utils import timezone
+from django.contrib.postgres.fields.array import ArrayField
+import re
 from django.urls.base import reverse
 
 def pkgen():
@@ -49,6 +51,26 @@ class Filesystem(models.Model):
     type = models.CharField(max_length=20,choices=TYPES,default=TYPE_STANDARD)
     def __unicode__(self):
         return '%s: %s' %(self.name, self.path)
+
+class FilePath(models.Model):
+    path = models.CharField(max_length=200)
+    name = models.CharField(max_length=50,null=True,blank=True)
+    description = models.TextField(null=True,blank=True)
+    regexes = ArrayField(models.CharField(max_length=200), blank=False)
+    users = models.ManyToManyField(User, related_name='file_paths', blank=True)
+    show_path = models.BooleanField(default=False)
+    def is_valid(self, path):
+        if not path_contains(self.path, path):
+            return False
+        if not self.regexes or len(self.regexes) == 0:
+            return True
+        for regex in self.regexes:
+            if re.match(regex, path):
+                return True
+        return False
+    def __unicode__(self):
+        return '%s: %s' %(self.name, self.path) if self.name else self.path
+
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     slug = models.SlugField(max_length=50,blank=True,null=True)
@@ -62,6 +84,7 @@ class Share(models.Model):
     notes = models.TextField(null=True,blank=True)
     tags = models.ManyToManyField('Tag')
     link_to_path = models.CharField(max_length=200,blank=True,null=True)
+    filepath = models.ForeignKey(FilePath,blank=True,null=True)
     sub_directory = models.CharField(max_length=200,blank=True,null=True)
     real_path = models.CharField(max_length=200,blank=True,null=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
@@ -150,6 +173,10 @@ class Share(models.Model):
         return user_perms
     def get_path(self):
         return os.path.join(self.filesystem.path,self.id)
+    def get_link_path(self, add_trailing_slash=True):
+        if self.link_to_path and add_trailing_slash:
+            return os.path.join(self.link_to_path, '')
+        return None
     def get_zfs_path(self):
         if not getattr(settings,'ZFS_BASE',False) or not self.filesystem.type == Filesystem.TYPE_ZFS:
             return None
