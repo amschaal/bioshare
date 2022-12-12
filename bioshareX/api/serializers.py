@@ -1,7 +1,6 @@
 from bioshareX.models import ShareLog, Share, Tag, ShareStats, Message
 from rest_framework import serializers
 from django.contrib.auth.models import User, Group
-from django.core.urlresolvers import reverse
 from guardian.shortcuts import get_users_with_perms, get_groups_with_perms
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,7 +28,7 @@ class GroupSerializer(serializers.ModelSerializer):
 #         data['permissions'] = [{'user':UserSerializer(user).data,'permissions':permissions} for user, permissions in user_perms.iteritems()]
         perm_map = {user.id:permissions for user, permissions in user_perms.iteritems()}
         for user in data['users']:
-            user['permissions'] = [] if not perm_map.has_key(user['id']) else perm_map[user['id']]
+            user['permissions'] = [] if user['id'] not in perm_map else perm_map[user['id']]
         return data
 class ShareLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

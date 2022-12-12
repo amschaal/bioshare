@@ -6,7 +6,7 @@ def update_file_stats():
         try:
             share.get_stats()
         except:
-            print 'Unable to create stats for share: %s'%share.name
+            print('Unable to create stats for share: %s'%share.name)
 import subprocess        
 def istext(path):
     return ('text' in  subprocess.Popen(["file", '-b', path], stdout=subprocess.PIPE).communicate()[0])

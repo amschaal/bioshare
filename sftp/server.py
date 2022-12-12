@@ -173,7 +173,7 @@ def _SFTPHandle_chattr(self, attr):
 def _SFTPHandle_write(self, offset, data):
     #Custom Auth
     if Share.PERMISSION_WRITE not in self.permissions:
-        print 'permission denied'
+        print('permission denied')
         raise PermissionDenied()
     #Below this is implementation from SFTPHandle
     writefile = getattr(self, 'writefile', None)
@@ -215,7 +215,7 @@ def _SFTPHandle_read(self, offset, length):
     :return: data read from the file, or an SFTP error code, as a `str`.
     """
     if Share.PERMISSION_VIEW not in self.permissions:
-        print 'permission denied'
+        print('permission denied')
         raise PermissionDenied()
     readfile = getattr(self, 'readfile', None)
     if readfile is None:
@@ -266,17 +266,17 @@ class SFTPInterface (SFTPServerInterface):
     def _get_share(self,path):
         parts = path.split(os.path.sep)
         if len(parts) < 2:
-            print 'bad length'
+            print('bad length')
             raise PermissionDenied("Received an invalid path: %s"%path)
-        if not self.shares.has_key(parts[1]) and self.user.id == -1: #Anonymous users don't yet have a dictionary of shares.
+        if parts[1] not in self.shares and self.user.id == -1: #Anonymous users don't yet have a dictionary of shares.
             try:
                 share = Share.get_by_slug_or_id(parts[1])
                 self.shares[share.slug_or_id] = share
             except:
                 pass
-        if not self.shares.has_key(parts[1]):
-            print 'no share exists'
-            print path
+        if parts[1] not in self.shares:
+            print('no share exists')
+            print(path)
             raise PermissionDenied("Share does not exist: %s"%path[1])
         return self.shares[parts[1]]
     def _path_modified(self,path):
@@ -348,8 +348,8 @@ class SFTPInterface (SFTPServerInterface):
                     out.append(attr)
                 except Exception as e:
 #                     @todo: Add the file to the list anyway.  It will fail on download.
-                    print 'OSError with file: '+os.path.join(path, fname)
-                    print e
+                    print('OSError with file: '+os.path.join(path, fname))
+                    print(e)
             return out
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
@@ -372,7 +372,7 @@ class SFTPInterface (SFTPServerInterface):
             return SFTPServer.convert_errno(e.errno)
     @sftp_response
     def open(self, path, flags, attr):
-        print 'OPENING'
+        print('OPENING')
         permissions = self._get_bioshare_path_permissions(path)
         IS_WRITE = flags & os.O_CREAT or flags & os.O_WRONLY or flags & os.O_RDWR or flags & os.O_APPEND
         if not ((not IS_WRITE and Share.PERMISSION_VIEW in permissions and Share.PERMISSION_DOWNLOAD in permissions) or  (IS_WRITE and Share.PERMISSION_WRITE in permissions and Share.PERMISSION_VIEW in permissions)):
@@ -411,7 +411,7 @@ class SFTPInterface (SFTPServerInterface):
                 # O_RDONLY (== 0)
                 fstr = 'rb'
         except Exception as e:
-            print e.message
+            print(e.message)
         try:
             f = os.fdopen(fd, fstr)
         except OSError as e:

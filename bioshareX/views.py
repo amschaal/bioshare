@@ -1,9 +1,8 @@
 # Create your views here.
-from django.shortcuts import render_to_response, render, redirect
-from django.core.urlresolvers import reverse
+from django.shortcuts import render, redirect
 from django.http.response import HttpResponseRedirect, HttpResponseForbidden
-from models import Share, SSHKey, MetaData, Tag, ShareStats, ShareUserObjectPermission, ShareGroupObjectPermission
-from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
+from bioshareX.models import Share, SSHKey, MetaData, Tag, ShareStats, ShareUserObjectPermission, ShareGroupObjectPermission
+from bioshareX.forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
 from guardian.shortcuts import get_perms, get_users_with_perms, assign_perm
 #from django.utils import simplejson
 import json
@@ -24,6 +23,7 @@ from bioshareX.models import GroupProfile
 from guardian.decorators import permission_required
 from django.views.decorators.cache import never_cache
 import codecs
+from django.urls.base import reverse
 
 def index(request):
     # View code here...
@@ -72,9 +72,8 @@ def list_shares(request,group_id=None):
     if not group:
         total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
     else:
-        print group.shares
         total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
-    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths'),"group":group})
+    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":'bad_paths' in request.GET,"group":group})
 
 def forbidden(request):
     # View code here...
@@ -108,7 +107,6 @@ def list_directory(request,share,subdir=None):
     if not share.check_path(subdir=subdir):
         return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
     files,directories = list_share_dir(share,subdir=subdir,ajax=request.is_ajax())
-    print files
     if request.is_ajax():
         return json_response({'files':files,'directories':directories.values()})
     #Find any shares that point at this directory
@@ -168,7 +166,7 @@ def create_share(request,group_id=None):
             try:
                 share.save()
                 share.set_tags(form.cleaned_data['tags'].split(','))
-            except Exception, e:
+            except Exception as e:
                 share.delete()
                 return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':e.message})
             if group:
@@ -198,7 +196,7 @@ def create_subshare(request,share,subdir):
                 subshare.read_only = True
             try:
                 subshare.save()
-            except Exception, e:
+            except Exception as e:
                 subshare.delete()
                 return render(request, 'share/new_share.html', {'form': form, 'error':e.message,'share':share,'subdir':subdir})
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':subshare.slug_or_id}))
@@ -275,7 +273,7 @@ def delete_share(request, share, confirm=False):
     
 @login_required
 def search_files(request):
-    from utils import find
+    from bioshareX.utils import find
     query = request.GET.get('query',None)
     results=[]
     if query:

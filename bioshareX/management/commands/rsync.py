@@ -37,11 +37,11 @@ class Command(BaseCommand):
         match = re.match('/(?P<share>[a-zA-Z0-9]{15})(?:/(?P<subpath>.*))', path)
         try:
             matches = match.groupdict()
-            if not matches.has_key('share'):
+            if 'share' not in matches:
                 raise WrapperException('analyze_path: Bad key: %s' % path)
             share = Share.objects.get(id=matches['share'])
 #             share_path = get_share_meta(matches['share'])['path']
-            if matches.has_key('subpath'):
+            if 'subpath' in matches:
                 try:
                     test_path(matches['subpath'])
                 except:

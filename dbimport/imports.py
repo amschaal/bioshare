@@ -6,22 +6,22 @@ from guardian.shortcuts import assign_perm
 @transaction.commit_on_success
 def import_users():
     group = Group.objects.get_or_create(name='old_accounts')[0]
-    print group
+    print(group)
     users = dictfetchall('select * from user')
     for user in users:
         try:
             User.objects.get(email=user['login'])
-            print 'User with email %s exists' % user['login']
+            print('User with email %s exists' % user['login'])
         except:
             try:
-                print 'Creating user %s' % user['login']
+                print('Creating user %s' % user['login'])
                 u = User(username=user['login'],email=user['login'],first_name=user['firstname'],last_name=user['lastname'])
     #             u.set_password(password)
                 u.save()
                 u.groups.add(group)
                 u.save()
             except:
-                print 'Failed creating user %s' % user['login']
+                print('Failed creating user %s' % user['login'])
             
 #     raise Exception('do not commit this')
 @transaction.commit_on_success
@@ -47,7 +47,7 @@ def import_shares():
             pass
         share = Share(id=share_id)
         share.name = ('%s: %s- %s, %s'%(sp['db_group'],sp['ptitle'],sp['type'],sp['submitted']))[:99]
-        print 'Creating %s'%share.name[:99]
+        print('Creating %s'%share.name[:99])
         share.notes = "Project Description:%s\nSubproject Description:%s"%(sp['pdescription'],sp['description'])
         share.owner=admin
         share.created = sp['submitted']
@@ -87,7 +87,7 @@ def import_permissions():
     perm_map = {'administer':'admin','view-project':'view_share_files','view-files':'download_share_files','upload-files':'write_to_share','delete-files':'delete_share_files'}
     for p in perms:
         share_id = '00000%s'%p['random_dir']
-        print 'treating share %s' % share_id
+        print('treating share %s' % share_id)
         share = Share.objects.get(id=share_id)
         user = User.objects.get(email=p['login'])
         assign_perm(perm_map[p['permission']],user,share)
@@ -107,8 +107,8 @@ def create_symlinks():
         try:
             link = '00000%s'%line['random_dir']
             target= base+line['target']
-            print '%s -> %s'%(link,target)
+            print('%s -> %s'%(link,target))
             os.symlink(target,link)
-            print 'success'
-        except Exception, e:
-            print str(e)
+            print('success')
+        except Exception as e:
+            print(str(e))

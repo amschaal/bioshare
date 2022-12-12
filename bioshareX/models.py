@@ -11,27 +11,27 @@ from bioshareX.utils import test_path, paths_contain, path_contains
 from jsonfield import JSONField
 import datetime
 from guardian.shortcuts import get_users_with_perms, get_objects_for_group
-from django.core.urlresolvers import reverse
 from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
 import subprocess
 from django.utils import timezone
 from django.contrib.postgres.fields.array import ArrayField
 import re
+from django.urls.base import reverse
 
 def pkgen():
     import string, random
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(15))
 
 class ShareStats(models.Model):
-    share = models.OneToOneField('Share',unique=True,related_name='stats')
+    share = models.OneToOneField('Share',unique=True,related_name='stats', on_delete=models.CASCADE)
     num_files = models.IntegerField(default=0)
     bytes = models.BigIntegerField(default=0)
     updated = models.DateTimeField(null=True)
     def hr_size(self):
-        from utils import sizeof_fmt
+        from bioshareX.utils import sizeof_fmt
         return sizeof_fmt(self.bytes)
     def update_stats(self):
-        from utils import get_share_stats
+        from bioshareX.utils import get_share_stats
         from django.utils import timezone
         #         if self.updated is None:
         stats = get_share_stats(self.share)
@@ -74,7 +74,7 @@ class FilePath(models.Model):
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     slug = models.SlugField(max_length=50,blank=True,null=True)
-    parent = models.ForeignKey('self',null=True,blank=True)
+    parent = models.ForeignKey('self',null=True,blank=True, on_delete=models.RESTRICT)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now_add=True,null=True,blank=True)
     owner = models.ForeignKey(User, on_delete=models.PROTECT)
@@ -142,7 +142,7 @@ class Share(models.Model):
         return {'user_perms':user_perms,'group_perms':group_perms}
     def get_user_permissions(self,user,user_specific=False):
         if user_specific:
-            from utils import fetchall
+            from bioshareX.utils import fetchall
             perms = [uop.permission.codename for uop in ShareUserObjectPermission.objects.filter(user=user,content_object=self).select_related('permission')]
         else:
             from guardian.shortcuts import get_perms
@@ -162,14 +162,12 @@ class Share(models.Model):
         if not user_specific:
             from guardian.shortcuts import get_users_with_perms
             users = get_users_with_perms(self,attach_perms=True, with_group_users=False)
-            print 'users'
-            print users
             user_perms = [{'user':{'username':user.username, 'email':user.email, 'first_name':user.first_name, 'last_name':user.last_name},'permissions':permissions} for user, permissions in users.iteritems()]
         else:
             perms = ShareUserObjectPermission.objects.filter(content_object=self).select_related('permission','user')
             user_perms={}
             for perm in perms:
-                if not user_perms.has_key(perm.user.username):
+                if perm.user.username not in user_perms:
                     user_perms[perm.user.username]={'user':{'username':perm.user.username},'permissions':[]}
                 user_perms[perm.user.username]['permissions'].append(perm.permission.codename)
         return user_perms
@@ -231,7 +229,6 @@ class Share(models.Model):
         if save:
             self.save()
     def set_tags(self,tags,save=True):
-        print tags
         self.tags.clear()
         self.add_tags(tags,save)
     def move_path(self,item_subpath,destination_subpath=''):
@@ -280,7 +277,7 @@ class Share(models.Model):
     
     
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
-        from utils import zipdir, get_total_size
+        from bioshareX.utils import zipdir, get_total_size
         from os.path import isfile, isdir
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
         if not os.path.exists(path):
@@ -345,7 +342,7 @@ def share_pre_save(sender, instance, **kwargs):
         elif instance.link_to_path and instance.link_to_path != old_share.link_to_path:
             old_share.unlink()
             instance.create_link()
-    except Share.DoesNotExist, e:
+    except Share.DoesNotExist as e:
         pass
         
 def share_post_delete(sender, instance, **kwargs):
@@ -369,7 +366,7 @@ class Tag(models.Model):
     def clean(self):
         self.name = strip_tags(self.name)
 class MetaData(models.Model):
-    share = models.ForeignKey(Share)
+    share = models.ForeignKey(Share, on_delete=models.CASCADE)
     subpath = models.CharField(max_length=250,null=True,blank=True)
     notes = models.TextField(blank=True,null=True)
     tags = models.ManyToManyField(Tag)
@@ -386,7 +383,7 @@ class MetaData(models.Model):
     def json(self):
         return {'tags':[tag.name for tag in self.tags.all()],'notes':self.notes}
 class SSHKey(models.Model):
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
     key = models.TextField(blank=False,null=False)
     def create_authorized_key(self):
@@ -411,8 +408,8 @@ class ShareLog(models.Model):
     ACTION_RENAMED = 'File/Folder Renamed'
     ACTION_RSYNC = 'Files rsynced'
     ACTION_PERMISSIONS_UPDATED = 'Permissions updated'
-    share = models.ForeignKey(Share, related_name="logs")
-    user = models.ForeignKey(User, null=True, blank=True)
+    share = models.ForeignKey(Share, related_name="logs", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT)
     timestamp = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=30,null=True,blank=True)
     text = models.TextField(null=True,blank=True)
@@ -438,7 +435,7 @@ class Message(models.Model):
         return self.title
 
 class GroupProfile(models.Model):
-    group = models.OneToOneField(Group,related_name='profile')
+    group = models.OneToOneField(Group,related_name='profile', on_delete=models.PROTECT)
     created = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User,on_delete=models.PROTECT)
     description = models.TextField(blank=True,null=True)
@@ -450,10 +447,10 @@ class GroupProfile(models.Model):
 """
 
 class ShareUserObjectPermission(UserObjectPermissionBase):
-    content_object = models.ForeignKey(Share,related_name='user_permissions')
+    content_object = models.ForeignKey(Share,related_name='user_permissions', on_delete=models.CASCADE)
 
 class ShareGroupObjectPermission(GroupObjectPermissionBase):
-    content_object = models.ForeignKey(Share,related_name='group_permissions')
+    content_object = models.ForeignKey(Share,related_name='group_permissions', on_delete=models.CASCADE)
 
 def group_shares(self):
     return Share.objects.filter(group_permissions__group=self)

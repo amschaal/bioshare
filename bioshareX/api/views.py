@@ -37,7 +37,7 @@ def get_user(request):
     try:
         user = User.objects.get(Q(username=query)|Q(email=query))
         return JsonResponse({'user':UserSerializer(user).data})
-    except Exception, e:
+    except Exception as e:
         return JsonResponse({'status':'error','query':query,'errors':[e.message]},status=status.HTTP_404_NOT_FOUND)
 
 @ajax_login_required
@@ -46,7 +46,7 @@ def get_address_book(request):
         emails = User.objects.filter(shareuserobjectpermission__content_object__in=Share.objects.filter(owner=request.user).values_list('id')).values_list('email').distinct().order_by('email')
         groups = Group.objects.all().order_by('name')
         return json_response({'emails':[email[0] for email in emails], 'groups':[g.name for g in groups]})
-    except Exception, e:
+    except Exception as e:
         return json_error([e.message])
 
 @ajax_login_required
@@ -54,7 +54,7 @@ def get_tags(request):
     try:
         tags = Tag.objects.filter(name__icontains=request.GET.get('tag'))
         return json_response({'tags':[tag.name for tag in tags]})
-    except Exception, e:
+    except Exception as e:
         return json_error([e.message])
     
 @share_access_decorator(['admin'])    
@@ -85,7 +85,7 @@ def share_with(request,share):
             else:
                 invalid.append(email)
         return json_response({'exists':exists, 'groups':groups,'new_users':new_users,'invalid':invalid})
-    except Exception, e:
+    except Exception as e:
         return json_error([e.message])
 
 @ajax_login_required
@@ -96,7 +96,7 @@ def share_autocomplete(request):
         share_objs = Share.user_queryset(request.user).filter(query).order_by('-created')[:10]
         shares = [{'id':s.id,'url':reverse('list_directory',kwargs={'share':s.id}),'name':s.name,'notes':s.notes} for s in share_objs]
         return json_response({'status':'success','shares':shares})
-    except Exception, e:
+    except Exception as e:
         return json_error([e.message])
 
 
@@ -105,7 +105,7 @@ def get_group(request):
     try:
         group = Group.objects.get(name=query)
         return json_response({'group':{'name':group.name}})
-    except Exception, e:
+    except Exception as e:
         return json_error([e.message])
 
 @api_view(['GET'])
@@ -131,7 +131,7 @@ def set_permissions(request,share,json=None):
     failed=[]
 #     if not request.user.has_perm('admin',share):
 #         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
-    if json.has_key('groups'):
+    if 'groups' in json:
         for group, permissions in json['groups'].iteritems():
             g = Group.objects.get(id__iexact=group)
             current_perms = get_perms(g,share)
@@ -145,7 +145,7 @@ def set_permissions(request,share,json=None):
                 remove_perm(perm,g,share)
             for perm in added_perms:
                 assign_perm(perm,g,share)
-    if json.has_key('users'):
+    if 'users' in json:
         for username, permissions in json['users'].iteritems():
             username = username.lower()
             try:
@@ -169,16 +169,8 @@ def set_permissions(request,share,json=None):
                         failed.append(username)
                         u.delete()
             current_perms = share.get_user_permissions(u,user_specific=True)
-            print 'CURRENT'
-            print current_perms
-            print 'PERMISSIONS'
-            print permissions
             removed_perms = list(set(current_perms) - set(permissions))
             added_perms = list(set(permissions) - set(current_perms))
-            print 'ADDING: '
-            print added_perms
-            print 'REMOVING: '
-            print removed_perms
             for perm in removed_perms:
                 if u.username not in failed:
                     remove_perm(perm,u,share)
@@ -228,7 +220,7 @@ def edit_metadata(request, share, subpath):
         metadata.save()
         name = os.path.basename(os.path.normpath(subpath))
         return json_response({'name':name,'notes':metadata.notes,'tags':[tag.name for tag in tags]})
-    except Exception, e:
+    except Exception as e:
         return json_error([str(e)])
 @ajax_login_required
 def delete_ssh_key(request):
@@ -252,7 +244,7 @@ def delete_ssh_key(request):
         key.delete()
         SSHKey.objects.filter(key__contains=keystring).delete()
         response = {'status':'success','deleted':id}
-    except Exception, e:
+    except Exception as e:
         response = {'status':'error','message':'Unable to delete ssh key'+str(e)}
     return json_response(response)
 
@@ -274,7 +266,7 @@ def create_share(request):
                 return JsonResponse({'error':"You do not have permission to link to a specific path."},status=400)
         try:
             share.save()
-        except Exception, e:
+        except Exception as e:
             share.delete()
             return JsonResponse({'error':e.message},status=400)
         return JsonResponse({'url':"%s%s"%(SITE_URL,reverse('list_directory',kwargs={'share':share.id})),'id':share.id})
@@ -295,7 +287,7 @@ def email_participants(request,share,subdir=None):
         email_users(users, ctx_dict={}, subject=subject, body=body,from_email=request.user.email,content_subtype='plain')
         response = {'status':'success','sent_to':[u.email for u in users]}
         return json_response(response)
-    except Exception, e:
+    except Exception as e:
         return JsonResponse({'errors':[str(e)]},status=400)
 
 class ShareLogList(generics.ListAPIView):
@@ -331,8 +323,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         writer = csv.writer(response, delimiter='\t')
         writer.writerow(['id','name','url','users','groups','bytes','tags','owner','slug','created','updated','secure','read_only','notes','path_exists'])
         for r in serializer.data:
-            row = [r['id'],r['name'],r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join([t['name'] for t in r['tags']]),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'],r['path_exists'] ]
-            writer.writerow([c.encode('ascii', 'replace') if hasattr(c,'decode') else c for c in row])
+            writer.writerow([r['id'],r['name'].encode('ascii', 'replace'),r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join([t['name'].encode('ascii', 'replace') for t in r['tags']]),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'].encode('ascii', 'replace'),r['path_exists'] ])
         return response
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer

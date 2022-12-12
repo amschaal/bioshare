@@ -53,7 +53,7 @@ def verbatim_tags(parser, token, endtagname):
                 parser.invalid_block_tag(token, command, None)
             try:
                 node = compile_func(parser, token)
-            except template.TemplateSyntaxError, e:
+            except template.TemplateSyntaxError as e:
                 if not parser.compile_function_error(token, e):
                     raise
             text_and_nodes.append(node)
@@ -136,5 +136,5 @@ def tplhandlebars(parser, token):
     try:
         tag_name, template_id = map(stripquote , tokens[:2])
     except ValueError:
-        raise template.TemplateSyntaxError, "%s tag requires exactly one argument" % token.split_contents()[0]
+        raise template.TemplateSyntaxError("%s tag requires exactly one argument" % token.split_contents()[0])
     return HandlebarsNode(template_id, text_and_nodes)
