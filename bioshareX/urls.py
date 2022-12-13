@@ -1,5 +1,5 @@
 from django.conf.urls import  url, include
-from bioshareX import views as bioshare_views, jsutils
+from bioshareX import views as bioshare_views#, jsutils
 from bioshareX.api import views as api_views
 from bioshareX import file_views
 from rest_framework import routers
@@ -41,7 +41,7 @@ urlpatterns = [
     url(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':False},name='delete_share'),
     url(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':True},name='confirm_delete_share'),
     url(r'^search/files/?$', bioshare_views.search_files, name='search_files'),
-    url(r'^jsurls.js$', jsutils.jsurls, {}, 'jsurls'),
+    # url(r'^jsurls.js$', jsutils.jsurls, {}, 'jsurls'), # @todo: replace this
 ]
 
 # urlpatterns += [

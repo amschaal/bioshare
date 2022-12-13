@@ -1,22 +1,25 @@
 # Create your views here.
 # from django.shortcuts import render_to_response, render
-from django.http.response import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render_to_response, render, redirect
-from django.core.urlresolvers import reverse
-from models import Share
+import datetime
 # from django.utils import simplejson
 import json
-from forms import UploadFileForm, FolderForm, json_form_validate, RenameForm
-from utils import JSONDecorator, test_path, sizeof_fmt, json_error
-from file_utils import istext
 import os
 import re
-from utils import share_access_decorator, safe_path_decorator, json_response
-import datetime
+
 from django.conf import settings
-from bioshareX.models import ShareLog
+from django.http.response import HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
-from bioshareX.utils import find_symlink
+
+from bioshareX.file_utils import istext
+from bioshareX.forms import (FolderForm, RenameForm, UploadFileForm,
+                             json_form_validate)
+from bioshareX.models import Share, ShareLog
+from bioshareX.utils import (JSONDecorator, find_symlink, json_error,
+                             json_response, safe_path_decorator,
+                             share_access_decorator, sizeof_fmt, test_path)
+
 
 def handle_uploaded_file(path,file):
     with open(path, 'wb+') as destination:
@@ -114,7 +117,7 @@ def move_paths(request, share, subdir=None, json={}):
                 response['moved'].append(item)
             else:
                 response['failed'].append(item)
-        except Exception, e:
+        except Exception as e:
             pass
     text = '%s moved from "%s" to "%s"' % (', '.join(response['moved']), subdir if subdir else '', json['destination'])
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_MOVED,text=text,paths=json['selection'],subdir=subdir)
@@ -137,7 +140,7 @@ def download_archive_stream(request, share, subdir=None):
             return json_error(['Item {} is or contained symlinks.  It is not eligible to be archived.'.format(item)])
     try:
         return share.create_archive_stream(items=selection,subdir=subdir)
-    except Exception, e:
+    except Exception as e:
         return json_error([str(e)])
 
 @safe_path_decorator()    
@@ -164,7 +167,7 @@ def preview_file(request, share, subpath):
         if 'get_total' in request.GET:
             response['total'] = get_num_lines(file_path)
         return json_response(response)
-    except Exception, e:
+    except Exception as e:
         content = "Unable to preview file.  This file may not be a plain text file, or has unsupported characters."
         response = {'share_id':share.id,'subpath':subpath,'content':content,'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
         return json_response(response)
@@ -189,5 +192,5 @@ def get_md5sum(request, share, subpath):
     file_path = os.path.join(share.get_path(),subpath)
     try:
         return json_response({'md5sum':md5sum(file_path),'path':subpath})
-    except Exception, e:
+    except Exception as e:
         return json_error(str(e))

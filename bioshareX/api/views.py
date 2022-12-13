@@ -1,5 +1,5 @@
 # Create your views here.
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http.response import JsonResponse, HttpResponse
 from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
 from bioshareX.models import Share, SSHKey, MetaData, Tag
@@ -10,8 +10,7 @@ from bioshareX.utils import JSONDecorator, json_response, json_error, share_acce
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
 import os
-from rest_framework.decorators import api_view, detail_route, throttle_classes,\
-    action
+from rest_framework.decorators import api_view, throttle_classes, action
 from bioshareX.forms import ShareForm
 from guardian.decorators import permission_required
 from bioshareX.utils import ajax_login_required, email_users
@@ -306,7 +305,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
         return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags','user_permissions__user','group_permissions__group')
-    @detail_route(['GET'])
+    @action(methods=['GET'], detail=True)
     @throttle_classes([UserRateThrottle])
     def directory_size(self, request, *args, **kwargs):
         share = self.get_object()
@@ -335,7 +334,7 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
             return Group.objects.all()
         else:
             return self.request.user.groups.all()
-    @detail_route(['POST'],permission_classes=[ManageGroupPermission])
+    @action(methods=['POST'], detail=True,permission_classes=[ManageGroupPermission])
     def update_users(self, request, *args, **kwargs):
         users =  request.data.get('users')
         group = self.get_object()
@@ -368,7 +367,7 @@ class MessageViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Message.objects.all().order_by('-created')
 #         return Message.objects.filter(active=True).filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=self.request.user.id)
-    @detail_route(['POST','GET'],permission_classes=[IsAuthenticated])
+    @action(methods=['POST','GET'], detail=True, permission_classes=[IsAuthenticated])
     def dismiss(self, request, pk=None):
         message = self.get_object()
         message.viewed_by.add(request.user)

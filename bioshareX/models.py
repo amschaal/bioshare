@@ -84,7 +84,7 @@ class Share(models.Model):
     notes = models.TextField(null=True,blank=True)
     tags = models.ManyToManyField('Tag')
     link_to_path = models.CharField(max_length=200,blank=True,null=True)
-    filepath = models.ForeignKey(FilePath,blank=True,null=True)
+    filepath = models.ForeignKey(FilePath,blank=True,null=True, on_delete=models.RESTRICT)
     sub_directory = models.CharField(max_length=200,blank=True,null=True)
     real_path = models.CharField(max_length=200,blank=True,null=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
