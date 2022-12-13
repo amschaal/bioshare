@@ -42,7 +42,7 @@ def share_access_decorator_old(perms,share_param='share'):
 def ajax_login_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             return view_func(request, *args, **kwargs)
         return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']},status=status.HTTP_401_UNAUTHORIZED)
     return wrapper
@@ -76,13 +76,13 @@ class share_access_decorator(object):
                     continue
                 if not perm in user_permissions:
                     if request.is_ajax():
-                        if not request.user.is_authenticated():
+                        if not request.user.is_authenticated:
                             return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']},status=status.HTTP_401_UNAUTHORIZED)
                             return json_error({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']})
                         else:
                             return json_error(['You do not have access to this resource.'])
                     else:
-                        if not request.user.is_authenticated():
+                        if not request.user.is_authenticated:
                             url = reverse('login') + '?next=%s' % request.get_full_path()
                             return redirect(url)
                         return redirect('forbidden')

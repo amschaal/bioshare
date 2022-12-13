@@ -145,6 +145,7 @@ INSTALLED_APPS = (
     'bioshareX',
     'crispy_forms',
     'guardian',
+    'django_filters',
     'rest_framework',
     'rest_framework.authtoken',
     'compressor',
@@ -195,7 +196,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ),
     # 'DEFAULT_FILTER_BACKENDS': ('rest_framework_filters.backends.DjangoFilterBackend','rest_framework.filters.OrderingFilter'),
-    'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.OrderingFilter',),
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend', 'rest_framework.filters.OrderingFilter',),
     'DEFAULT_PAGINATION_CLASS': 'bioshareX.pagination.StandardPagePagination',
     'PAGE_SIZE': 10,
     'PAGINATE_BY_PARAM': 'page_size',  # Allow client to override, using `?page_size=xxx`.

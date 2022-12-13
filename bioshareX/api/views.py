@@ -292,7 +292,7 @@ def email_participants(request,share,subdir=None):
 class ShareLogList(generics.ListAPIView):
     serializer_class = ShareLogSerializer
     permission_classes = (IsAuthenticated,)
-    filter_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains'],'share':['exact']}
+    filterset_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains'],'share':['exact']}
     def get_queryset(self):
         shares = Share.user_queryset(self.request.user,include_stats=False)
         return ShareLog.objects.filter(share__in=shares)
@@ -301,7 +301,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareSerializer
     permission_classes = (IsAuthenticated,)
     filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter]
-    filter_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains'],'path_exists':['exact']}
+    filterset_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains'],'path_exists':['exact']}
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
         return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags','user_permissions__user','group_permissions__group')
@@ -327,7 +327,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,DjangoModelPermissions,)
-    filter_fields = {'name':['icontains']}
+    filterset_fields = {'name':['icontains']}
     model = Group
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.is_staff:

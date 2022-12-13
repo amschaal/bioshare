@@ -120,8 +120,8 @@ class Share(models.Model):
     def user_queryset(user,include_stats=True):
         from guardian.shortcuts import get_objects_for_user
         shares = get_objects_for_user(user, 'bioshareX.view_share_files')
-#         query = Q(id__in=[s.id for s in shares])|Q(owner=user) if user.is_authenticated() else Q(id__in=[s.id for s in shares])
-        query = Q(id__in=shares)|Q(owner=user) if user.is_authenticated() else Q(id__in=shares)
+#         query = Q(id__in=[s.id for s in shares])|Q(owner=user) if user.is_authenticated else Q(id__in=[s.id for s in shares])
+        query = Q(id__in=shares)|Q(owner=user) if user.is_authenticated else Q(id__in=shares)
         if include_stats:
             return Share.objects.select_related('stats').filter(query)
         else:
