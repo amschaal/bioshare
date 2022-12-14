@@ -214,7 +214,7 @@ FILE_UPLOAD_HANDLERS = (
 )
 SSH_WRAPPER_SCRIPT = os.path.join(CURRENT_DIR, 'sshwrapper.py')
 
-UMASK = '0002'
+UMASK = 0o002
 
 INCLUDE_REGISTER_URL = False
 

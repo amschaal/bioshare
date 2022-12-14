@@ -49,7 +49,7 @@ class Filesystem(models.Model):
     path = models.CharField(max_length=200)
     users = models.ManyToManyField(User, related_name='filesystems')
     type = models.CharField(max_length=20,choices=TYPES,default=TYPE_STANDARD)
-    def __unicode__(self):
+    def __str__(self):
         return '%s: %s' %(self.name, self.path)
 
 class FilePath(models.Model):
@@ -68,7 +68,7 @@ class FilePath(models.Model):
             if re.match(regex, path):
                 return True
         return False
-    def __unicode__(self):
+    def __str__(self):
         return '%s: %s' %(self.name, self.path) if self.name else self.path
 
 class Share(models.Model):
@@ -96,7 +96,7 @@ class Share(models.Model):
     PERMISSION_WRITE = 'write_to_share'
     PERMISSION_LINK_TO_PATH = 'link_to_path'
     PERMISSION_ADMIN = 'admin'
-    def __unicode__(self):
+    def __str__(self):
         return self.name
     @property
     def slug_or_id(self):
@@ -138,7 +138,7 @@ class Share(models.Model):
         from guardian.shortcuts import get_groups_with_perms
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
         groups = get_groups_with_perms(self,attach_perms=True)
-        group_perms = [{'group':{'name':group.name,'id':group.id},'permissions':permissions} for group, permissions in groups.iteritems()]
+        group_perms = [{'group':{'name':group.name,'id':group.id},'permissions':permissions} for group, permissions in groups.items()]
         return {'user_perms':user_perms,'group_perms':group_perms}
     def get_user_permissions(self,user,user_specific=False):
         if user_specific:
@@ -162,7 +162,7 @@ class Share(models.Model):
         if not user_specific:
             from guardian.shortcuts import get_users_with_perms
             users = get_users_with_perms(self,attach_perms=True, with_group_users=False)
-            user_perms = [{'user':{'username':user.username, 'email':user.email, 'first_name':user.first_name, 'last_name':user.last_name},'permissions':permissions} for user, permissions in users.iteritems()]
+            user_perms = [{'user':{'username':user.username, 'email':user.email, 'first_name':user.first_name, 'last_name':user.last_name},'permissions':permissions} for user, permissions in users.items()]
         else:
             perms = ShareUserObjectPermission.objects.filter(content_object=self).select_related('permission','user')
             user_perms={}
@@ -225,7 +225,7 @@ class Share(models.Model):
             tag = tag.strip()
             if len(tag) > 2 :
                 tag_list.append(Tag.objects.get_or_create(name=tag)[0])
-        self.tags = tag_list
+        self.tags.set(tag_list)
         if save:
             self.save()
     def set_tags(self,tags,save=True):
@@ -359,7 +359,7 @@ post_delete.connect(share_post_delete, sender=Share)
 
 class Tag(models.Model):
     name = models.CharField(blank=False,null=False,max_length=30,primary_key=True)
-    def __unicode__(self):
+    def __str__(self):
         return self.name
     def to_html(self):
         return '<span class="tag">%s</span>'%self.name
@@ -431,7 +431,7 @@ class Message(models.Model):
     active = models.BooleanField(default=True)
     expires = models.DateField(null=True,blank=True)
     viewed_by = models.ManyToManyField(User)
-    def __unicode__(self):
+    def __str__(self):
         return self.title
 
 class GroupProfile(models.Model):

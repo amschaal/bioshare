@@ -38,8 +38,8 @@ def upload_file(request, share, subdir=None):
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
-    data = {'share':share.id,'subdir':subdir,'files':[]}#{key:val for key,val in request.POST.iteritems()}
-    for name,file in request.FILES.iteritems():
+    data = {'share':share.id,'subdir':subdir,'files':[]}#{key:val for key,val in request.POST.items()}
+    for name,file in request.FILES.items():
         filename = clean_filename(file.name)
         FILE_PATH = join(PATH,filename)
         handle_uploaded_file(FILE_PATH,file)

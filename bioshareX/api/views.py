@@ -37,7 +37,7 @@ def get_user(request):
         user = User.objects.get(Q(username=query)|Q(email=query))
         return JsonResponse({'user':UserSerializer(user).data})
     except Exception as e:
-        return JsonResponse({'status':'error','query':query,'errors':[e.message]},status=status.HTTP_404_NOT_FOUND)
+        return JsonResponse({'status':'error','query':query,'errors':[str(e)]},status=status.HTTP_404_NOT_FOUND)
 
 @ajax_login_required
 def get_address_book(request):
@@ -46,7 +46,7 @@ def get_address_book(request):
         groups = Group.objects.all().order_by('name')
         return json_response({'emails':[email[0] for email in emails], 'groups':[g.name for g in groups]})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
 
 @ajax_login_required
 def get_tags(request):
@@ -54,7 +54,7 @@ def get_tags(request):
         tags = Tag.objects.filter(name__icontains=request.GET.get('tag'))
         return json_response({'tags':[tag.name for tag in tags]})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
     
 @share_access_decorator(['admin'])    
 def share_with(request,share):
@@ -85,7 +85,7 @@ def share_with(request,share):
                 invalid.append(email)
         return json_response({'exists':exists, 'groups':groups,'new_users':new_users,'invalid':invalid})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
 
 @ajax_login_required
 def share_autocomplete(request):
@@ -96,7 +96,7 @@ def share_autocomplete(request):
         shares = [{'id':s.id,'url':reverse('list_directory',kwargs={'share':s.id}),'name':s.name,'notes':s.notes} for s in share_objs]
         return json_response({'status':'success','shares':shares})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
 
 
 def get_group(request):
@@ -105,7 +105,7 @@ def get_group(request):
         group = Group.objects.get(name=query)
         return json_response({'group':{'name':group.name}})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
 
 @api_view(['GET'])
 @share_access_decorator(['admin'])
@@ -131,7 +131,7 @@ def set_permissions(request,share,json=None):
 #     if not request.user.has_perm('admin',share):
 #         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
     if 'groups' in json:
-        for group, permissions in json['groups'].iteritems():
+        for group, permissions in json['groups'].items():
             g = Group.objects.get(id__iexact=group)
             current_perms = get_perms(g,share)
             removed_perms = list(set(current_perms) - set(permissions))
@@ -145,7 +145,7 @@ def set_permissions(request,share,json=None):
             for perm in added_perms:
                 assign_perm(perm,g,share)
     if 'users' in json:
-        for username, permissions in json['users'].iteritems():
+        for username, permissions in json['users'].items():
             username = username.lower()
             try:
                 u = User.objects.get(username__iexact=username)
@@ -267,7 +267,7 @@ def create_share(request):
             share.save()
         except Exception as e:
             share.delete()
-            return JsonResponse({'error':e.message},status=400)
+            return JsonResponse({'error':str(e)},status=400)
         return JsonResponse({'url':"%s%s"%(SITE_URL,reverse('list_directory',kwargs={'share':share.id})),'id':share.id})
     else:
         return JsonResponse({'errors':form.errors},status=400)

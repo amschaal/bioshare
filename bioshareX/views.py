@@ -168,7 +168,7 @@ def create_share(request,group_id=None):
                 share.set_tags(form.cleaned_data['tags'].split(','))
             except Exception as e:
                 share.delete()
-                return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':e.message})
+                return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':str(e)})
             if group:
                 assign_perm(Share.PERMISSION_VIEW,group,share)
                 assign_perm(Share.PERMISSION_DOWNLOAD,group,share)
@@ -198,7 +198,7 @@ def create_subshare(request,share,subdir):
                 subshare.save()
             except Exception as e:
                 subshare.delete()
-                return render(request, 'share/new_share.html', {'form': form, 'error':e.message,'share':share,'subdir':subdir})
+                return render(request, 'share/new_share.html', {'form': form, 'error':str(e),'share':share,'subdir':subdir})
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':subshare.slug_or_id}))
     else:
         name = os.path.basename(os.path.normpath(subdir))

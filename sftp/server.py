@@ -320,7 +320,7 @@ class SFTPInterface (SFTPServerInterface):
             return []
         try:
             out = []
-            for id,share in self.shares.iteritems():
+            for id,share in self.shares.items():
                 try:
 #                     print id
                     attr = paramiko.SFTPAttributes.from_stat(os.stat(share.get_realpath()))
