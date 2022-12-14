@@ -214,7 +214,7 @@ def edit_metadata(request, share, subpath):
             tag = tag.strip()
             if len(tag) >2 :
                 tags.append(Tag.objects.get_or_create(name=tag)[0])
-        metadata.tags = tags
+        metadata.tags.set(tags)
         metadata.notes = form.cleaned_data['notes']
         metadata.save()
         name = os.path.basename(os.path.normpath(subpath))

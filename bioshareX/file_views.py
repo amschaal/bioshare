@@ -4,6 +4,7 @@ import datetime
 # from django.utils import simplejson
 import json
 import os
+from os.path import join
 import re
 
 from django.conf import settings
@@ -12,13 +13,13 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from bioshareX.file_utils import istext
+from bioshareX.file_utils import istext, get_lines, get_num_lines
 from bioshareX.forms import (FolderForm, RenameForm, UploadFileForm,
                              json_form_validate)
 from bioshareX.models import Share, ShareLog
 from bioshareX.utils import (JSONDecorator, find_symlink, json_error,
                              json_response, safe_path_decorator,
-                             share_access_decorator, sizeof_fmt, test_path)
+                             share_access_decorator, sizeof_fmt, test_path, md5sum)
 
 
 def handle_uploaded_file(path,file):
@@ -33,7 +34,7 @@ def clean_filename(filename):
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])
 def upload_file(request, share, subdir=None):
-    from os.path import join
+
     os.umask(settings.UMASK)
     PATH = share.get_path()
     if subdir is not None:
@@ -157,7 +158,6 @@ def download_file(request, share, subpath=None):
 @safe_path_decorator()    
 @share_access_decorator(['download_share_files'])
 def preview_file(request, share, subpath):
-    from file_utils import get_lines, get_num_lines
     from_line = int(request.GET.get('from',1))
     num_lines = int(request.GET.get('for',100))
     file_path = os.path.join(share.get_path(),subpath)
@@ -188,7 +188,6 @@ def get_directories(request, share):
 @safe_path_decorator()    
 @share_access_decorator([Share.PERMISSION_VIEW])
 def get_md5sum(request, share, subpath):
-    from utils import md5sum
     file_path = os.path.join(share.get_path(),subpath)
     try:
         return json_response({'md5sum':md5sum(file_path),'path':subpath})
