@@ -1,34 +1,39 @@
 # Create your views here.
-from django.urls import reverse
-from django.http.response import JsonResponse, HttpResponse
-from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
-from bioshareX.models import Share, SSHKey, MetaData, Tag
-from bioshareX.forms import MetaDataForm, json_form_validate
-from guardian.shortcuts import get_perms, get_users_with_perms, remove_perm, assign_perm
-from bioshareX.utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email, fetchall,\
-    test_path, du
-from django.contrib.auth.models import User, Group
-from django.db.models import Q
-import os
-from rest_framework.decorators import api_view, throttle_classes, action
-from bioshareX.forms import ShareForm
-from guardian.decorators import permission_required
-from bioshareX.utils import ajax_login_required, email_users
-from rest_framework import generics, viewsets, status
-from bioshareX.models import ShareLog, Message
-from bioshareX.api.serializers import ShareLogSerializer, ShareSerializer,\
-    GroupSerializer, UserSerializer, MessageSerializer
-from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
-from bioshareX.permissions import ManageGroupPermission
-from rest_framework.response import Response
-from guardian.models import UserObjectPermission
-from django.contrib.contenttypes.models import ContentType
-import datetime
-from bioshareX.api.filters import UserShareFilter, ShareTagFilter,\
-    GroupShareFilter, ActiveMessageFilter
-from rest_framework.throttling import UserRateThrottle
-from django.utils import timezone
 import csv
+import datetime
+import os
+from functools import reduce
+
+from django.contrib.auth.models import Group, User
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
+from django.http.response import HttpResponse, JsonResponse
+from django.urls import reverse
+from django.utils import timezone
+from guardian.decorators import permission_required
+from guardian.models import UserObjectPermission
+from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
+                                remove_perm)
+from rest_framework import generics, status, viewsets
+from rest_framework.decorators import action, api_view, throttle_classes
+from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
+
+from bioshareX.api.filters import (ActiveMessageFilter, GroupShareFilter,
+                                   ShareTagFilter, UserShareFilter)
+from bioshareX.api.serializers import (GroupSerializer, MessageSerializer,
+                                       ShareLogSerializer, ShareSerializer,
+                                       UserSerializer)
+from bioshareX.forms import MetaDataForm, ShareForm, json_form_validate
+from bioshareX.models import Message, MetaData, Share, ShareLog, SSHKey, Tag
+from bioshareX.permissions import ManageGroupPermission
+from bioshareX.utils import (JSONDecorator, ajax_login_required, du,
+                             email_users, fetchall, json_error, json_response,
+                             safe_path_decorator, share_access_decorator,
+                             test_path, validate_email)
+from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
+
 
 @ajax_login_required
 def get_user(request):
@@ -343,7 +348,7 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
 #         remove_users = set(old_user_ids) - set(user_ids)
 #         add_users = set(user_ids) - set(old_user_ids)
         
-        group.user_set = [u['id'] for u in users]
+        group.user_set.set([u['id'] for u in users])
         #clear permissions
         ct = ContentType.objects.get_for_model(Group)
         UserObjectPermission.objects.filter(content_type=ct,object_pk=group.id).delete()

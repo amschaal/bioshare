@@ -221,7 +221,7 @@ def find(share, pattern, subdir=None,prepend_share_id=True):
     import subprocess, os
     path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
     base_path = os.path.realpath(path) 
-    output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0]
+    output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
 #     output = subprocess.check_output(['find',path,'-name',pattern])
     paths = output.split('\n')
 #     return paths
@@ -347,7 +347,7 @@ def list_share_dir(share,subdir=None,ajax=False):
     return (file_list,directories)
 
 def md5sum(path):
-    output = subprocess.check_output([settings.MD5SUM_COMMAND,path]) #Much more efficient than reading file contents into python and using hashlib
+    output = subprocess.check_output([settings.MD5SUM_COMMAND,path]).decode('utf-8') #Much more efficient than reading file contents into python and using hashlib
     #IE: output = 4968966191e485885a0ed8854c591720  /tmp/Project/Undetermined_S0_L002_R2_001.fastq.gz
     return re.findall(r'([0-9a-fA-F]{32})',output)[0]
 

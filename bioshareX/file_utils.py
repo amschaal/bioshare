@@ -9,7 +9,7 @@ def update_file_stats():
             print('Unable to create stats for share: %s'%share.name)
      
 def istext(path):
-    return ('text' in  str(subprocess.Popen(["file", '-b', path], stdout=subprocess.PIPE).communicate()[0]))
+    return ('text' in  subprocess.Popen(["file", '-b', path], stdout=subprocess.PIPE).communicate()[0].decode('utf-8'))
 
 def get_lines(path,from_line=1,to_line=100):
 #     return ' '.join(["sed", "'%d,%dp; %dq'" % (from_line,to_line,to_line+1), path])

@@ -220,7 +220,7 @@ def update_password(request):
 
 @login_required
 def manage_groups(request):
-    context ={'user':JSONRenderer().render(UserSerializer(request.user,include_perms=True).data)}
+    context ={'user':JSONRenderer().render(UserSerializer(request.user,include_perms=True).data).decode('utf-8')}
     return render(request,'groups/groups.html',context)
 
 @login_required
