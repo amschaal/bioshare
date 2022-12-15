@@ -1,19 +1,16 @@
 Django<4.0
-# django-appconf==1.0.2
 django-compressor
 django-crispy-forms
 django-filter
 django-guardian
 django-sendfile
 djangorestframework
-# djangorestframework-filters==1.0.0.dev2
 jsonfield
-# longerusername==0.4
 Markdown
 paramiko>=2.1.6
 rcssmin
 rjsmin
 scandir
-zipstream==1.1.0
+zipstream
 django-cors-headers
 psycopg2
