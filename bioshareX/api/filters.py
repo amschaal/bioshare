@@ -1,9 +1,11 @@
-from rest_framework import filters
-from django.contrib.auth.models import User, Group
-from guardian.shortcuts import get_objects_for_user, get_objects_for_group
-from bioshareX.models import Share
-from django.db.models.query_utils import Q
 import datetime
+
+from django.contrib.auth.models import Group, User
+from django.db.models.query_utils import Q
+from rest_framework import filters
+
+from bioshareX.models import Share
+
 
 class UserShareFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):

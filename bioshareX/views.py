@@ -1,29 +1,30 @@
 # Create your views here.
-from django.shortcuts import render, redirect
-from django.http.response import HttpResponseRedirect, HttpResponseForbidden
-from bioshareX.models import Share, SSHKey, MetaData, Tag, ShareStats, ShareUserObjectPermission, ShareGroupObjectPermission
-from bioshareX.forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
-from guardian.shortcuts import get_perms, get_users_with_perms, assign_perm
-#from django.utils import simplejson
-import json
-from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response,\
-    get_setting, list_share_dir
-from bioshareX.file_utils import istext
-from django.contrib.auth.decorators import login_required
-from guardian.shortcuts import get_objects_for_user
-import os
-from bioshareX.forms import SubShareForm, GroupForm, GroupProfileForm
-from django.contrib.auth.models import User, Group
-import operator
-from django.db.models.query_utils import Q
-from bioshareX.api.serializers import UserSerializer
-from rest_framework.renderers import JSONRenderer
-import re
-from bioshareX.models import GroupProfile
-from guardian.decorators import permission_required
-from django.views.decorators.cache import never_cache
 import codecs
+import json
+import os
+import re
+from os import listdir
+from os.path import isdir, isfile, join
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Group
+from django.http.response import HttpResponseForbidden, HttpResponseRedirect
+from django.shortcuts import redirect, render
 from django.urls.base import reverse
+from django.views.decorators.cache import never_cache
+from guardian.decorators import permission_required
+from guardian.shortcuts import assign_perm
+from rest_framework.renderers import JSONRenderer
+
+from bioshareX.api.serializers import UserSerializer
+from bioshareX.forms import (FolderForm, GroupForm, GroupProfileForm,
+                             MetaDataForm, PasswordChangeForm, RenameForm,
+                             ShareForm, SSHKeyForm, SubShareForm)
+from bioshareX.models import GroupProfile, Share, ShareStats, SSHKey
+from bioshareX.utils import (find, get_setting, json_response, list_share_dir,
+                             safe_path_decorator, share_access_decorator,
+                             sizeof_fmt)
+
 
 def index(request):
     # View code here...
@@ -137,8 +138,6 @@ def list_directory(request,share,subdir=None):
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
 def wget_listing(request,share,subdir=None):
-    from os import listdir
-    from os.path import isfile, join
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
@@ -237,8 +236,8 @@ def create_ssh_key(request):
 #             key = form.save(commit=False)
 #             key.user=request.user
             key.save()
+
             from settings.settings import AUTHORIZED_KEYS_FILE
-            import subprocess
 #            subprocess.check_call(['/bin/chmod','600',AUTHORIZED_KEYS_FILE])
             auth_keys = open(AUTHORIZED_KEYS_FILE, "a")
             auth_keys.write(key.create_authorized_key()+'\n')
@@ -248,13 +247,10 @@ def create_ssh_key(request):
     else:
         form = SSHKeyForm()
     return render(request, 'ssh/new_key.html', {'form': form})
-from django.contrib.auth.forms import SetPasswordForm
 
 @safe_path_decorator()
 @share_access_decorator(['view_share_files'])    
 def go_to_file_or_folder(request, share, subpath=None):
-    from os.path import isdir, isfile, join
-    import os
     path = share.get_path() if subpath is None else join(share.get_path(),subpath)
     if isdir(path):
         return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id,'subdir':os.path.normpath(subpath) + os.sep}))
@@ -273,7 +269,6 @@ def delete_share(request, share, confirm=False):
     
 @login_required
 def search_files(request):
-    from bioshareX.utils import find
     query = request.GET.get('query',None)
     results=[]
     if query:

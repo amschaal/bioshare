@@ -1,6 +1,5 @@
 # Create your views here.
 import csv
-import datetime
 import os
 from functools import reduce
 
@@ -29,7 +28,7 @@ from bioshareX.forms import MetaDataForm, ShareForm, json_form_validate
 from bioshareX.models import Message, MetaData, Share, ShareLog, SSHKey, Tag
 from bioshareX.permissions import ManageGroupPermission
 from bioshareX.utils import (JSONDecorator, ajax_login_required, du,
-                             email_users, fetchall, json_error, json_response,
+                             email_users, json_error, json_response,
                              safe_path_decorator, share_access_decorator,
                              test_path, validate_email)
 from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL

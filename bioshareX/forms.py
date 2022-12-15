@@ -1,14 +1,14 @@
+import os
+
 from django import forms
-from bioshareX.models import Share, SSHKey, GroupProfile, FilePath
-from django.contrib.auth.models import User, Group
-from django.utils.translation import ugettext_lazy as _
-from django.utils.html import strip_tags
-from django.core.validators import RegexValidator
-from bioshareX.utils import test_path, paths_contain
 from django.conf import settings
-import os   
-from django.contrib.auth.forms import PasswordResetForm, AuthenticationForm
-import re
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
+from django.contrib.auth.models import Group, User
+from django.utils.translation import ugettext_lazy as _
+
+from bioshareX.models import FilePath, GroupProfile, Share, SSHKey
+from bioshareX.utils import paths_contain, test_path
+
 
 class ShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
@@ -200,6 +200,8 @@ class RegistrationForm(forms.Form):
         return self.cleaned_data['email']
 
 from django.template.loader import render_to_string
+
+
 def json_form_validate(form,save=False,html=True,template='ajax/crispy_form.html'):
     data={}
     if form.is_valid():
@@ -217,6 +219,7 @@ def json_form_validate(form,save=False,html=True,template='ajax/crispy_form.html
 
 
 from django.contrib import auth
+
 
 class PasswordChangeForm(auth.forms.PasswordChangeForm):
     MIN_LENGTH = 8

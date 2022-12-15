@@ -1,7 +1,10 @@
-from bioshareX.models import ShareLog, Share, Tag, ShareStats, Message
+from django.contrib.auth.models import Group, User
+from guardian.shortcuts import get_users_with_perms
 from rest_framework import serializers
-from django.contrib.auth.models import User, Group
-from guardian.shortcuts import get_users_with_perms, get_groups_with_perms
+
+from bioshareX.models import Message, Share, ShareLog, ShareStats, Tag
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

@@ -1,4 +1,3 @@
-import errno
 import functools
 import logging
 import os
@@ -326,7 +325,7 @@ class SFTPInterface (SFTPServerInterface):
                     attr = paramiko.SFTPAttributes.from_stat(os.stat(share.get_realpath()))
                     attr.filename = id
                     out.append(attr)
-                except Exception, e:
+                except Exception as e:
                     pass #directory may be missing
             return out
         except OSError as e:

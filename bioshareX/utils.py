@@ -1,21 +1,19 @@
-from django.shortcuts import redirect, render
-import os
-import json
-from functools import wraps
-
-from django.http.response import JsonResponse
-from django.conf import settings
-from django.template import Context, Template
-from rest_framework import status
-from django.db.models.query_utils import Q
-import subprocess
-from scandir import scandir
-import re
 import datetime
-from bioshareX.file_utils import istext
+import os
+import re
+import subprocess
+from functools import wraps
 from os import path
-from django.urls.base import reverse
 
+from django.conf import settings
+from django.http.response import JsonResponse
+from django.shortcuts import redirect, render
+from django.template import Context, Template
+from django.urls.base import reverse
+from rest_framework import status
+from scandir import scandir
+
+from bioshareX.file_utils import istext
 
 
 class JSONDecorator(object):
@@ -177,8 +175,9 @@ def paths_contain(paths,child_path, get_path=False):
     return False
 
 def json_response(dict):
-    from django.http.response import HttpResponse
     import json
+
+    from django.http.response import HttpResponse
     return HttpResponse(json.dumps(dict), content_type='application/json')
 def json_error(messages,http_status=None):
     http_status = http_status or status.HTTP_400_BAD_REQUEST
@@ -218,7 +217,8 @@ def find_in_shares(shares, pattern):
     return output.split('\n')
 
 def find(share, pattern, subdir=None,prepend_share_id=True):
-    import subprocess, os
+    import os
+    import subprocess
     path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
     base_path = os.path.realpath(path) 
     output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
@@ -238,8 +238,8 @@ def find(share, pattern, subdir=None,prepend_share_id=True):
     return results
 
 def validate_email( email ):
-    from django.core.validators import validate_email
     from django.core.exceptions import ValidationError
+    from django.core.validators import validate_email
     try:
         validate_email( email )
         return True
@@ -247,8 +247,8 @@ def validate_email( email ):
         return False
 
 def email_users(users, subject_template=None, body_template=None, ctx_dict={},subject=None,body=None, from_email=settings.DEFAULT_FROM_EMAIL,content_subtype = "html"):
-    from django.template.loader import render_to_string
     from django.core.mail import EmailMessage
+    from django.template.loader import render_to_string
     if subject:
         t = Template(subject)
         subject = t.render(Context(ctx_dict))

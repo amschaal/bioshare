@@ -1,4 +1,4 @@
-import os, time, shutil, subprocess
+import subprocess
 
 def update_file_stats():
     from bioshareX.models import Share

@@ -1,8 +1,10 @@
 from django.contrib import admin
-from bioshareX.models import Share, Filesystem, Message, FilePath
-from guardian.admin import GuardedModelAdmin
 from django.contrib.auth.admin import UserAdmin as OriginalUserAdmin
 from django.contrib.auth.models import User
+from guardian.admin import GuardedModelAdmin
+
+from bioshareX.models import FilePath, Filesystem, Message, Share
+
 
 class ShareAdmin(GuardedModelAdmin):
     exclude = ('real_path','path_exists','id','tags')

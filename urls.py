@@ -1,20 +1,23 @@
+from django.conf import settings
 from django.conf.urls import include, url
-
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
-from django.conf import settings
-from bioshareX.forms import BiosharePasswordResetForm,\
-    BioshareAuthenticationForm
 from django.urls.conf import path
+
+from bioshareX.forms import (BioshareAuthenticationForm,
+                             BiosharePasswordResetForm)
+
 admin.autodiscover()
+# ***HACKY***  Monkey patching the authentication form so that the username field says email instead.
+from django.contrib.auth.forms import AuthenticationForm
 # from registration.forms import RegistrationFormUniqueEmail
 # from bioshareX.forms import RegistrationForm, SetPasswordForm
 # from registration.backends.default.views import RegistrationView
-from django.contrib.auth.views import logout_then_login, PasswordResetView, LoginView#, login, password_reset_confirm, password_reset
+from django.contrib.auth.views import (  # , login, password_reset_confirm, password_reset
+    LoginView, PasswordResetView, logout_then_login)
+
 from bioshareX import views as bioshare_views
 
-# ***HACKY***  Monkey patching the authentication form so that the username field says email instead.
-from django.contrib.auth.forms import AuthenticationForm
 AuthenticationForm.base_fields['username'].label = 'Email' 
 
 

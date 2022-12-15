@@ -1,25 +1,26 @@
-from django.db import models
-from django.contrib.auth.models import User, Group
-from django.dispatch import receiver
-from django.db.models.signals import post_save, post_delete, pre_save,\
-    m2m_changed
-from django.db.models import Q
-from django.conf import settings
 import os
-from django.utils.html import strip_tags
-from bioshareX.utils import test_path, paths_contain, path_contains
-from jsonfield import JSONField
-import datetime
-from guardian.shortcuts import get_users_with_perms, get_objects_for_group
-from guardian.models import UserObjectPermissionBase, GroupObjectPermissionBase
-import subprocess
-from django.utils import timezone
-from django.contrib.postgres.fields.array import ArrayField
 import re
+import subprocess
+
+from django.conf import settings
+from django.contrib.auth.models import Group, User
+from django.contrib.postgres.fields.array import ArrayField
+from django.db import models
+from django.db.models import Q
+from django.db.models.signals import post_delete, post_save, pre_save
+from django.dispatch import receiver
 from django.urls.base import reverse
+from django.utils import timezone
+from django.utils.html import strip_tags
+from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
+from jsonfield import JSONField
+
+from bioshareX.utils import path_contains, paths_contain, test_path
+
 
 def pkgen():
-    import string, random
+    import random
+    import string
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for x in range(15))
 
 class ShareStats(models.Model):
@@ -31,8 +32,10 @@ class ShareStats(models.Model):
         from bioshareX.utils import sizeof_fmt
         return sizeof_fmt(self.bytes)
     def update_stats(self):
-        from bioshareX.utils import get_share_stats
         from django.utils import timezone
+
+        from bioshareX.utils import get_share_stats
+
         #         if self.updated is None:
         stats = get_share_stats(self.share)
 #         self.num_files = stats['files']
@@ -272,13 +275,13 @@ class Share(models.Model):
         if os.path.islink(path):
             os.unlink(path)
     def create_archive_stream(self,items,subdir=None):
+        from os.path import isdir, isfile
+
         import zipstream
         from django.http.response import StreamingHttpResponse
-    
-    
+
+        from bioshareX.utils import get_total_size, zipdir
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
-        from bioshareX.utils import zipdir, get_total_size
-        from os.path import isfile, isdir
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
         if not os.path.exists(path):
             raise Exception('Invalid subdirectory provided')
@@ -316,7 +319,8 @@ def share_post_save(sender, **kwargs):
         os.umask(settings.UMASK)
         instance = kwargs['instance']
         path = instance.get_path()
-        import pwd, grp
+        import grp
+        import pwd
         if not os.path.exists(path):
             if instance.link_to_path:
                 instance.create_link()

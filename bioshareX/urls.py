@@ -1,8 +1,10 @@
-from django.conf.urls import  url, include
-from bioshareX import views as bioshare_views#, jsutils
-from bioshareX.api import views as api_views
-from bioshareX import file_views
+from django.conf.urls import include, url
 from rest_framework import routers
+
+from bioshareX import file_views
+from bioshareX import views as bioshare_views  # , jsutils
+from bioshareX.api import views as api_views
+
 # from bioshareX.api.views import GroupViewSet, MessageViewSet
 router = routers.DefaultRouter()
 router.register(r'groups', api_views.GroupViewSet,'Group')

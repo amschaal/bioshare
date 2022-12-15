@@ -1,6 +1,8 @@
-from bioshareX.models import Share
-from guardian.shortcuts import get_objects_for_user
 from django.conf import settings
+from guardian.shortcuts import get_objects_for_user
+
+from bioshareX.models import Share
+
 def user_contexts(request):
         if request.user.is_authenticated and not request.is_ajax():
             recent_shares = Share.objects.filter(owner=request.user).order_by('-created')[:5]
