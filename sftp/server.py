@@ -142,7 +142,7 @@ def log_event(method):
     """
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
-        string_args = u':'.join([arg for arg in args if isinstance(arg, basestring)])
+        string_args = u':'.join([arg for arg in args if isinstance(arg, str)])
         msg = u'%s:%%s:%s:%s' % (method.__name__, self.user, string_args)
         try:
             response = method(self, *args, **kwargs)

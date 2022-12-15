@@ -49,7 +49,7 @@ class ShareForm(forms.ModelForm):
             else: #Check against regeexes
                 self.fp = FilePath.objects.get(path=parent_path)
                 if not self.fp.is_valid(path):
-                    raise forms.ValidationError('Path not allowed.  Must match begin with {} and match one of the expressions: {}'.format(fp.path,', '.join(['"'+r+'"' for r in self.fp.regexes])))
+                    raise forms.ValidationError('Path not allowed.  Must match begin with {} and match one of the expressions: {}'.format(self.fp.path,', '.join(['"'+r+'"' for r in self.fp.regexes])))
             if not paths_contain(settings.LINK_TO_DIRECTORIES,path):
                 raise forms.ValidationError('Path not whitelisted.  Contact the site admin if you believe this to be an error.')
             if not os.path.isdir(path):
