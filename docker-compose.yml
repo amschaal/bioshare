@@ -17,6 +17,8 @@ services:
       - internal-network
     ports:
       - "9000:8000"
+      - "2200:2200"
+      - "22:22"
     depends_on:
       - db
   db:
