@@ -15,16 +15,17 @@ class Command(BaseCommand):
     logger = None
     requires_system_checks = False
     def get_flags(self,args):
-        parser = argparse.ArgumentParser(description='Parse rsync command')
-        parser.add_argument('-z', action="store_true", default=False)
-        parser.add_argument('-t', action="store_true", default=False)
-        parser.add_argument('-v', action="store_true", default=False)
-        parser.add_argument('-r', action="store_true", default=False)
-        parser.add_argument('-c', action="store_true", default=False) #allow user to use checksums
-        parser.add_argument('-e')
-        parsed = parser.parse_known_args(args)
-        flags =  ''.join([flag for flag in 'vrztc' if getattr(parsed[0],flag)])
-        return '-%se.iLsf'%flags
+        # Collect all the short flags into one group
+        args_re = re.compile(r"\-(\w+)")
+        flags = ''
+        for arg in args:
+            m = args_re.match(arg)
+            if m:
+                flags += m.group(1)
+        
+        allowed = 'vtzqcirt'
+        filtered = ''.join([c for c in flags if c in allowed])
+        return '-L'+filtered
     def add_arguments(self, parser):
         parser.add_argument('user')
     def log(self,message,level='info'):
@@ -50,15 +51,17 @@ class Command(BaseCommand):
             else:
                 path = share.get_path()
             return {'share':share,'path':path}
-        except WrapperException, e:
+        except WrapperException as e:
             raise e
-        except Exception, e:
+        except Exception as e:
             raise Exception('analyze_path: Bad path: %s, %s' % (path,str(e)))
     def handle_rsync(self, parts):
         self.log('handle rsync')
         flags = self.get_flags(parts)
+        self.log('flags')
+        self.log(flags)
         if 'z' in flags:
-            print >> sys.stderr, '\n*** Use of -z is deprecated, and can actually hurt performance! ***\n'
+            print('\n*** Use of -z is deprecated, and can actually hurt performance! ***\n',file=sys.stderr)
         try:
             paths_data = [self.analyze_path(path) for path in parts[parts.index('.')+1:]]
             paths = [path_data['path'] for path_data in paths_data]
@@ -88,14 +91,17 @@ class Command(BaseCommand):
 #             else:
             self.log('running rsync command: %s' % ', '.join(command))
             os.execvp('rsync', command)
-        except Exception, e:
-            print >> sys.stderr, 'handle_rsync exception: %s' % str(e)
+        except Exception as e:
+            print('handle_rsync exception: %s' % str(e),file=sys.stderr)
             self.log('handle_rsync exception: %s' % str(e))
     def handle(self, *args, **options):
-        os.umask(0002)
+        with open('/tmp/rsync.log', 'a') as f:
+            f.write('Testing?\n')
+        print('hello there',file=sys.stderr)
+        os.umask(0o002)
         self.user = User.objects.get(username=options['user'])
         self.ORIGINAL_COMMAND = os.environ['SSH_ORIGINAL_COMMAND']
-        
+        print('command '+  os.environ['SSH_ORIGINAL_COMMAND'],file=sys.stderr)
         RSYNC_LOGFILE = get_setting('RSYNC_LOGFILE',None)
         if RSYNC_LOGFILE:
             self.logger = logging.getLogger('bioshare')
@@ -115,6 +121,6 @@ class Command(BaseCommand):
                 self.handle_rsync(parts)
             else:
                 self.log( 'Unsupported command: %s' % parts[0])
-        except Exception, e:
+        except Exception as e:
             self.log('Bad or missing parameter "SSH_ORIGINAL_COMMAND"')
             
