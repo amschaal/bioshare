@@ -116,7 +116,7 @@ class SSHKeyForm(forms.Form):
         return_code = subprocess.call(['ssh-keygen','-l','-f',file.temporary_file_path()])
         if return_code == 1:
             raise forms.ValidationError("Not a valid SSH RSA key!")
-        contents = file.read()
+        contents = file.read().decode('utf-8')
         if contents[:7] != 'ssh-rsa':
             raise forms.ValidationError("Only ssh-rsa keys are accepted")
         if len(SSHKey.objects.filter(key__contains=SSHKey.extract_key(contents))) != 0:

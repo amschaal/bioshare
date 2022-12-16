@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from bioshareX.models import Share
-import os, re, logging, argparse
+import os, re, logging
 from bioshareX.utils import get_setting, test_path
 from django.contrib.auth.models import User
 import sys
@@ -56,10 +56,7 @@ class Command(BaseCommand):
         except Exception as e:
             raise Exception('analyze_path: Bad path: %s, %s' % (path,str(e)))
     def handle_rsync(self, parts):
-        self.log('handle rsync')
         flags = self.get_flags(parts)
-        self.log('flags')
-        self.log(flags)
         if 'z' in flags:
             print('\n*** Use of -z is deprecated, and can actually hurt performance! ***\n',file=sys.stderr)
         try:
@@ -84,20 +81,12 @@ class Command(BaseCommand):
                     share.updated = timezone.now()
                     share.save()
                 command = ['rsync', '--server', flags, '.'] + paths
-    #             command = parts[:4]+paths
-#             if TEST:
-#                 logger.info('running rsync command: %s' % ', '.join(command))
-#                 print command
-#             else:
             self.log('running rsync command: %s' % ', '.join(command))
             os.execvp('rsync', command)
         except Exception as e:
             print('handle_rsync exception: %s' % str(e),file=sys.stderr)
             self.log('handle_rsync exception: %s' % str(e))
     def handle(self, *args, **options):
-        with open('/tmp/rsync.log', 'a') as f:
-            f.write('Testing?\n')
-        print('hello there',file=sys.stderr)
         os.umask(0o002)
         self.user = User.objects.get(username=options['user'])
         self.ORIGINAL_COMMAND = os.environ['SSH_ORIGINAL_COMMAND']
@@ -111,12 +100,10 @@ class Command(BaseCommand):
             self.logger.addHandler(hdlr) 
             self.logger.setLevel(logging.INFO)
         self.log('user: %s' % options['user'])
-        self.log('command: %s' % self.ORIGINAL_COMMAND)
+        self.log('SSH_ORIGINAL_COMMAND: %s' % self.ORIGINAL_COMMAND)
         try:
             import shlex
             parts = shlex.split(self.ORIGINAL_COMMAND)
-            self.log('SSH_ORIGINAL_COMMAND: '+self.ORIGINAL_COMMAND)
-            self.log('SPLIT: '+', '.join(parts))
             if parts[0] == 'rsync':
                 self.handle_rsync(parts)
             else:
