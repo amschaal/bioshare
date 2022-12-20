@@ -9,7 +9,7 @@ import paramiko
 from paramiko import SFTPServer, SFTPServerInterface
 from paramiko.sftp import SFTP_OK, SFTP_OP_UNSUPPORTED
 from paramiko.common import o666
-from bioshareX.models import Share
+from bioshareX.models import Share, ShareLog
 from paramiko.sftp_handle import SFTPHandle
 from bioshareX.utils import paths_contain
 from django.conf import settings
@@ -284,7 +284,12 @@ class SFTPInterface (SFTPServerInterface):
         current_date = timezone.now()
         if not previous_date or (current_date-previous_date).seconds > SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS:
             self.modified_date[share.id] = current_date
-            Share.objects.filter(id=share.id,updated__lt=current_date).update(updated=current_date) 
+            Share.objects.filter(id=share.id,updated__lt=current_date).update(updated=current_date)
+    def _get_subpath(self, path): # takes /<share_id>/subpath
+        parts = path.split(os.path.sep)
+        return os.path.sep.join(parts[2:])
+    def _create_log(self, path, action, text): # takes /<share_id>/subpath for path
+        ShareLog.create(share=self._get_share(path),user=self.user,action=action,paths=[self._get_subpath(path)], text=text)
     def _get_bioshare_path_permissions(self,path):
         share = self._get_share(path)
         self.shares_accessed.add(share.id)
@@ -429,6 +434,7 @@ class SFTPInterface (SFTPServerInterface):
         try:
             os.remove(real_path)
             self._path_modified(path)
+            self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP delete')
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
@@ -440,6 +446,9 @@ class SFTPInterface (SFTPServerInterface):
         try:
             os.rename(oldpath, newpath)
             self._path_modified(oldpath)
+            old = os.path.basename(oldpath)
+            new = os.path.basename(newpath)
+            self._create_log(oldpath, ShareLog.ACTION_RENAMED, 'SFTP renamed {} to {}'.format(old, new))
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
@@ -452,6 +461,7 @@ class SFTPInterface (SFTPServerInterface):
             self._path_modified(path)
             if attr is not None:
                 SFTPServer.set_file_attr(real_path, attr)
+            self._create_log(path, ShareLog.ACTION_FOLDER_CREATED, 'SFTP folder created')
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
@@ -462,6 +472,7 @@ class SFTPInterface (SFTPServerInterface):
         try:
             os.rmdir(real_path)
             self._path_modified(path)
+            self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP directory deleted')
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
