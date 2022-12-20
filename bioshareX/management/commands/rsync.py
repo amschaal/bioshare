@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from bioshareX.models import Share
+from bioshareX.models import Share, ShareLog
 import os, re, logging
 from bioshareX.utils import get_setting, test_path
 from django.contrib.auth.models import User
@@ -50,7 +50,7 @@ class Command(BaseCommand):
                 path = join(share.get_path(),  match.group('subpath'))
             else:
                 path = share.get_path()
-            return {'share':share,'path':path}
+            return {'share':share,'path':path,'subpath':'/'+matches.get('subpath','')}
         except WrapperException as e:
             raise e
         except Exception as e:
@@ -81,6 +81,7 @@ class Command(BaseCommand):
                     share.updated = timezone.now()
                     share.save()
                 command = ['rsync', '--server', flags, '.'] + paths
+                ShareLog.create(share=share,user=self.user,action=ShareLog.ACTION_RSYNC,paths=[path_data['subpath'] for path_data in paths_data], text=self.ORIGINAL_COMMAND)
             self.log('running rsync command: %s' % ', '.join(command))
             os.execvp('rsync', command)
         except Exception as e:
