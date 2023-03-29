@@ -12,6 +12,7 @@ from django.http.response import HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls.base import reverse
 from django.views.decorators.cache import never_cache
+from django.db import transaction
 from guardian.decorators import permission_required
 from guardian.shortcuts import assign_perm
 from rest_framework.renderers import JSONRenderer
@@ -158,20 +159,21 @@ def create_share(request,group_id=None):
     group = None if not group_id else Group.objects.get(id=group_id)
     if request.method == 'POST':
         form = ShareForm(request.user,request.POST)
-        if form.is_valid():
-            share = form.save(commit=False)
-            if not getattr(share, 'owner',None):
-                share.owner=request.user
-            try:
-                share.save()
-                share.set_tags(form.cleaned_data['tags'].split(','))
-            except Exception as e:
-                share.delete()
-                return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':str(e)})
-            if group:
-                assign_perm(Share.PERMISSION_VIEW,group,share)
-                assign_perm(Share.PERMISSION_DOWNLOAD,group,share)
-            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
+        with transaction.atomic():
+            if form.is_valid():
+                share = form.save(commit=False)
+                if not getattr(share, 'owner',None):
+                    share.owner=request.user
+                try:
+                    share.save()
+                    share.set_tags(form.cleaned_data['tags'].split(','))
+                except Exception as e:
+                    share.delete()
+                    return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':str(e)})
+                if group:
+                    assign_perm(Share.PERMISSION_VIEW,group,share)
+                    assign_perm(Share.PERMISSION_DOWNLOAD,group,share)
+                return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
     else:
         form = ShareForm(request.user)
     return render(request, 'share/new_share.html', {'form': form,'group':group})
