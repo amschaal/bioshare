@@ -180,6 +180,9 @@ class Share(models.Model):
         if self.link_to_path and add_trailing_slash:
             return os.path.join(self.link_to_path, '')
         return None
+    def get_subshare_link_path(self):
+        if self.parent:
+            return os.path.join(self.parent.get_path(), self.sub_directory)
     def get_zfs_path(self):
         if not getattr(settings,'ZFS_BASE',False) or not self.filesystem.type == Filesystem.TYPE_ZFS:
             return None
