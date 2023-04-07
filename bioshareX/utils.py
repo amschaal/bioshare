@@ -357,3 +357,20 @@ def find_symlink(path): #pretty crude check to make sure the path is not and doe
     elif os.path.isdir(path):
         output = subprocess.check_output(['find', path, '-type', 'l', '-ls'])
         return bool(output)
+
+def find_symlinks(path):
+    symlinks = {}
+    for p in subprocess.check_output(['find', path, '-type', 'l']).decode().split('\n'):
+        if p and os.path.islink(p):
+            symlinks[p] = os.path.realpath(p)
+    return symlinks
+
+def search_illegal_symlinks(path, checked=set()):
+    symlinks = find_symlinks(path)
+    for link, target in symlinks.items():
+        if target in checked and (os.path.isdir(target) or os.path.islink(target)):
+            raise Exception('Circular symlink found, {} -> {}'.format(link, target))
+        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
+            raise Exception('Illegal symlink encountered, {} -> {}'.format(link, path))
+        checked.add(target)
+        search_illegal_symlinks(target, checked) # Doing this depth first.  Maybe consider doing breadth first.
