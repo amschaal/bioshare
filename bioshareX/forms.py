@@ -139,6 +139,35 @@ class RenameForm(forms.Form):
     from_name = forms.RegexField(regex=r'^[^/]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'},widget=forms.HiddenInput())
     to_name = forms.RegexField(regex=r'^[\w\d\ \-_\.]+$',error_messages={'invalid':'Only letters, numbers, periods, and spaces are allowed'})
 
+class SymlinkForm(forms.Form):
+    def __init__(self, user, *args, **kwargs):
+        self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        super(SymlinkForm, self).__init__(*args, **kwargs)
+    name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
+    target = forms.CharField()
+    def clean_target(self):
+        path = self.cleaned_data['target']
+        file_paths = [fp.path for fp in self.file_paths]
+        if path == '' or not path:
+            path = None
+        if path:
+            try:
+                test_path(path, allow_absolute=True)
+            except:
+                raise forms.ValidationError('Bad path: "%s"'%path)
+            parent_path = paths_contain(file_paths,path,get_path=True)
+            if not parent_path:
+                raise forms.ValidationError('Path not allowed.')#  Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths]))
+            else: #Check against regeexes
+                self.fp = FilePath.objects.get(path=parent_path)
+                if not self.fp.is_valid(path):
+                    raise forms.ValidationError('Path not allowed.  Must match begin with {} and match one of the expressions: {}'.format(self.fp.path,', '.join(['"'+r+'"' for r in self.fp.regexes])))
+            if not paths_contain(settings.LINK_TO_DIRECTORIES,path):
+                raise forms.ValidationError('Path not whitelisted.  Contact the site admin if you believe this to be an error.')
+            if not os.path.isdir(path):
+                raise forms.ValidationError('Path: Directory "%s" does not exist!!!!'%path)
+        return path
+
 class RegistrationForm(forms.Form):
     """
     Form for registering a new user account.
