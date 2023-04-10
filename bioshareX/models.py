@@ -412,6 +412,8 @@ class SSHKey(models.Model):
 class ShareLog(models.Model):
     ACTION_FILE_ADDED = 'File Added'
     ACTION_FOLDER_CREATED = 'Folder Created'
+    ACTION_LINK_CREATED = 'Link Created'
+    ACTION_LINK_DELETED = 'Link Deleted'
     ACTION_DELETED = 'File(s)/Folder(s) Deleted'
     ACTION_MOVED = 'File(s)/Folder(s) Moved'
     ACTION_RENAMED = 'File/Folder Renamed'

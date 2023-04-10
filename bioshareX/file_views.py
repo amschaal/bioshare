@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from bioshareX.file_utils import get_lines, get_num_lines, istext
-from bioshareX.forms import FolderForm, RenameForm, json_form_validate
+from bioshareX.forms import FolderForm, RenameForm, SymlinkForm, json_form_validate
 from bioshareX.models import Share, ShareLog
 from bioshareX.utils import (JSONDecorator, find_symlink, json_error,
                              json_response, md5sum, safe_path_decorator,
@@ -63,7 +63,24 @@ def create_folder(request, share, subdir=None):
         return json_response(data)
     else:
         return json_error([error for name, error in form.errors.items()])
-    
+
+@safe_path_decorator(path_param='subdir')
+@share_access_decorator(['write_to_share'])
+def create_symlink(request, share, subdir=None):
+    form = SymlinkForm(request.user, request.POST)
+    data = json_form_validate(form)
+    if form.is_valid():
+        if subdir:
+            link_path = os.path.join(share.get_path(),subdir,form.cleaned_data['name'])
+        else:
+            link_path = os.path.join(share.get_path(),form.cleaned_data['name'])
+        os.symlink(form.cleaned_data['target'], link_path)
+        # (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': form.cleaned_data['target']}]
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
+        return json_response(data)
+    else:
+        return json_error([error for name, error in form.errors.items()])
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])
