@@ -343,6 +343,8 @@ def list_share_dir(share,subdir=None,ajax=False):
         else:
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
             dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
+            if entry.is_symlink():
+                dir['target'] = os.readlink(entry.path)
             directories[os.path.realpath(entry.path)]=dir
     return (file_list,directories)
 

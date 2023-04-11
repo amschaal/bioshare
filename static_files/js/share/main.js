@@ -252,6 +252,23 @@ function create_folder(){
 		return false;
 }
 
+function create_link(){
+	BC.ajax_form_submit('#new-link-form',{
+		'success':function(data){
+			$.each(data.objects,function(index,obj){
+				var html = BC.run_template('directory-template',obj);
+				//var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
+				var row = $(html).prependTo('#file-table');
+				filetable._fnAddTr(row[0]);
+				$.bootstrapGrowl('"'+obj.name+'" link created',{type:'info',delay: 3000});
+			});
+			$('#new-link').modal('hide');
+			toggle_table_visibility();
+		}
+	});
+	return false;
+}
+
 function open_rename_form(){
 	var row = $(this).closest('tr');
 //	$('#edit-metadata-form [name=notes]').val(row.attr('data-notes'));
@@ -413,8 +430,10 @@ $(function () {
         }
     });
     $('#create-folder').click(create_folder);
+	$('#create-link').click(create_link);
     $('#rename-button').click(modify_name);
     $('#new-folder-form').submit(create_folder);
+	$('#new-link-form').submit(create_link);
     $('#open-move-modal').click(open_move_modal);
     $('#move-button').click(function(){
     	if(confirm('Are you sure you want to move these files/folders?'))
