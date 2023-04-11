@@ -75,12 +75,23 @@ def create_symlink(request, share, subdir=None):
         else:
             link_path = os.path.join(share.get_path(),form.cleaned_data['name'])
         os.symlink(form.cleaned_data['target'], link_path)
-        # (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
+        (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(link_path)
         data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': form.cleaned_data['target']}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
         return json_response(data)
     else:
         return json_error([error for name, error in form.errors.items()])
+
+@safe_path_decorator(path_param='subpath')
+@share_access_decorator(['write_to_share'])
+def unlink(request, share, subpath):
+    path = os.path.join(share.get_path(), subpath)
+    if os.path.islink(path):
+        os.unlink(path)
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_DELETED,paths=subpath)
+        return json_response({})
+    else:
+        return json_error(messages=['No symlink at path specified.'])
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])
