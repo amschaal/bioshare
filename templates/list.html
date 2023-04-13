@@ -161,7 +161,7 @@
 				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i>{% endif %}{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i>{% endif%}
 				{% if "admin" in share_perms %}
 					{% if dir.share %}
-					{% else %}
+					{% elif not dir.target %}
 						<a href="{% url 'create_subshare' share=share.id subdir=subdir|default_if_none:""|add:dir.name|add:'/' %}" ><i class="fam-group-add" data-toggle="tooltip" title="Make this folder it's own share"></i></a> 
 					{% endif %}
 					{% if dir.target %}
