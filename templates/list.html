@@ -140,9 +140,13 @@
 			</td>
 			<td>directory</td>
 			<td class="name" {% if dir.metadata.notes %}data-toggle="tooltip" title="{{dir.metadata.notes}}"{% endif %}>
+				
 				<i class="fam-folder"></i>
 				{% if dir.share %}<a href="{% url 'list_directory' dir.share.slug_or_id %}"><i class="fam-group pull-right" data-toggle="tooltip" title="Shared as '{{dir.share.name}}'" data-action="preview"></i></a>{% endif %}
 				<a href="{{dir.name}}">{{ dir.name }}</a>
+				{% if dir.target %}
+				<i class="fam-link" title="{{dir.target}}"></i>
+				{% endif %}
 			</td>
 			<td class="tags">
 				{% if dir.metadata.tags %}{% for tag in dir.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}
@@ -159,7 +163,11 @@
 					{% if dir.share %}
 					
 					{% else %}
-						<a href="{% url 'create_subshare' share=share.id subdir=subdir|default_if_none:""|add:dir.name|add:'/'%}" ><i class="fam-group-add" data-toggle="tooltip" title="Make this folder it's own share"></i></a>
+						<a href="{% url 'create_subshare' share=share.id subdir=subdir|default_if_none:""|add:dir.name|add:'/' %}" ><i class="fam-group-add" data-toggle="tooltip" title="Make this folder it's own share"></i></a> 
+						{% if dir.target %}
+						<a href="{% url 'unlink' share=share.id subpath=subdir|default_if_none:""|add:dir.name %}" ><i class="fam-delete" title="Unlink this directory"></i></a>
+						<a href="#" data-action="unlink">unlink</a>
+						{% endif %}
 					{% endif %}	
 				{% endif %}
 			</td>

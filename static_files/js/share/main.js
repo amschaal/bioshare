@@ -269,6 +269,31 @@ function create_link(){
 	return false;
 }
 
+function unlink(){
+	var row = $(this).closest('tr');
+	var path = subpath ? subpath + row.attr('data-id') : row.attr('data-id');
+	// var el = $('<span>Calculating...</span>').replaceAll(this);
+	console.log('el',el);
+	BC.ajax(
+			{
+				'url':'/bioshare/unlink/'+share+'/'+path,
+				'success':function(data){
+						console.log('unlink',data);
+//						$.bootstrapGrowl("File: "+data.path+"<br>MD5: "+data.md5sum,{type:'success',delay: 10000});
+						// $(el).replaceWith('<span class="md5sum">'+data.md5sum+'</span>');
+						row.addClass('error').addClass('deleted');
+						setTimeout(function(){
+								$('#file-table tr.deleted').fadeOut({
+									'duration':500,
+									'complete':function(){filetable.fnDeleteRow($(this)[0]);toggle_table_visibility();}
+										});
+								}
+							,500);
+				}
+			}
+		);
+}
+
 function open_rename_form(){
 	var row = $(this).closest('tr');
 //	$('#edit-metadata-form [name=notes]').val(row.attr('data-notes'));
@@ -390,6 +415,7 @@ $(function () {
 	$(document).on('click','[data-action="preview"]',preview_share_action);
 	$(document).on('click','[data-action="calculate-md5"]',calculate_md5);
 	$(document).on('click','[data-action="modify-name"]',open_rename_form);
+	$(document).on('click','[data-action="unlink"]',unlink);
 	
 	toggle_table_visibility();
 	BC.load_templates()
