@@ -28,6 +28,20 @@ Handlebars.registerHelper('list_tags', function(tags) {
 </tr>
 </script>
 
+<script id="link-template" type="text/x-handlebars-template">
+	<tr class="directory link" data-id="{{name}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
+	<td><input class="action-check" type="checkbox"/></td>
+	<td>directory</td>
+	<td class="name" {{#if metadata.notes}}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-folder-link" title="{{target}}"></i><a href="{{name}}">{{ name }}</a></td>
+	<td class="tags">{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
+	<td></td>
+	<td></td>
+	<td></td>
+	<td>{{ modified }}</td>
+	<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i><i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i><a href="#" data-action="unlink" title="Unlink this directory"><i class="fam-delete" ></i></a></td>
+	</tr>
+</script>
+
 <script id="file-template" type="text/x-handlebars-template">
 <tr class="file" data-id="{{name}}" data-bytes="{{bytes}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
 <td><input class="action-check" type="checkbox"/></td>
