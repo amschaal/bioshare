@@ -373,6 +373,6 @@ def search_illegal_symlinks(path, checked=set()):
         if target in checked and (os.path.isdir(target) or os.path.islink(target)):
             raise Exception('Circular symlink found, {} -> {}'.format(link, target))
         if not paths_contain(settings.DIRECTORY_WHITELIST, target):
-            raise Exception('Illegal symlink encountered, {} -> {}'.format(link, path))
+            raise Exception('Illegal symlink encountered, {} -> {}'.format(link, target))
         checked.add(target)
         search_illegal_symlinks(target, checked) # Doing this depth first.  Maybe consider doing breadth first.

@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group, User
 from django.utils.translation import ugettext_lazy as _
 
 from bioshareX.models import FilePath, GroupProfile, Share, SSHKey
-from bioshareX.utils import paths_contain, test_path
+from bioshareX.utils import paths_contain, search_illegal_symlinks, test_path
 
 
 class ShareForm(forms.ModelForm):
@@ -165,7 +165,11 @@ class SymlinkForm(forms.Form):
             if not paths_contain(settings.LINK_TO_DIRECTORIES,path):
                 raise forms.ValidationError('Path not whitelisted.  Contact the site admin if you believe this to be an error.')
             if not os.path.isdir(path):
-                raise forms.ValidationError('Path: Directory "%s" does not exist!!!!'%path)
+                raise forms.ValidationError('Path: Directory "%s" does not exist'%path)
+            try:
+                search_illegal_symlinks(path) #recursively check for illegal paths
+            except Exception as e:
+                raise forms.ValidationError(str(e))
         return path
 
 class RegistrationForm(forms.Form):
