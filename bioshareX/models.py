@@ -92,6 +92,7 @@ class Share(models.Model):
     real_path = models.CharField(max_length=200,blank=True,null=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
     path_exists = models.BooleanField(default=True)
+    illegal_path_found = models.DateTimeField(null=True)
     last_data_access = models.DateTimeField(null=True)
     PERMISSION_VIEW = 'view_share_files'
     PERMISSION_DELETE = 'delete_share_files'
