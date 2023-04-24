@@ -472,6 +472,10 @@ def user_permission_codes(self):
     return [p.codename for p in self.user_permissions.all()]
 User.permissions = user_permission_codes
 
+def can_link(self):
+    return self.has_perm('bioshareX.link_to_path') and self.file_paths.exists()
+User.can_link = property(can_link)
+
 Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']
 

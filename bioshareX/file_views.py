@@ -10,6 +10,7 @@ from os.path import join
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+from django.contrib.auth.decorators import permission_required
 
 from bioshareX.file_utils import get_lines, get_num_lines, istext
 from bioshareX.forms import FolderForm, RenameForm, SymlinkForm, json_form_validate
@@ -64,6 +65,7 @@ def create_folder(request, share, subdir=None):
     else:
         return json_error([error for name, error in form.errors.items()])
 
+@permission_required('bioshareX.link_to_path', raise_exception=True)
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])
 def create_symlink(request, share, subdir=None):
@@ -82,6 +84,7 @@ def create_symlink(request, share, subdir=None):
     else:
         return json_error([error for name, error in form.errors.items()])
 
+@permission_required('bioshareX.link_to_path', raise_exception=True)
 @safe_path_decorator(path_param='subpath')
 @share_access_decorator(['write_to_share'])
 def unlink(request, share, subpath):
