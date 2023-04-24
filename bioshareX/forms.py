@@ -21,7 +21,7 @@ class ShareForm(forms.ModelForm):
         self.fields['owner'].required = False
         if not user.is_superuser:
             self.fields.pop('owner',None)
-        if self.file_paths.count() == 0 or not user.has_perm('bioshareX.link_to_path'):
+        if not user.can_link:
             self.fields.pop('link_to_path',None)
         else:
             self.fields['link_to_path'].help_text = 'Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths])

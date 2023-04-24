@@ -15,7 +15,7 @@ from django.utils.html import strip_tags
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from jsonfield import JSONField
 
-from bioshareX.utils import path_contains, paths_contain, test_path
+from bioshareX.utils import find_symlink, path_contains, paths_contain, test_path
 
 
 def pkgen():
@@ -269,6 +269,9 @@ class Share(models.Model):
             test_path(self.link_to_path,allow_absolute=True)
             if not paths_contain(settings.LINK_TO_DIRECTORIES,self.link_to_path):
                 raise Exception('Path not allowed.')
+    @property
+    def contains_symlinks(self):
+        return find_symlink(self.get_path())
     def create_link(self):
         os.umask(settings.UMASK)
         self.check_link_path()
