@@ -1,9 +1,21 @@
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from bioshareX.models import Share
 import os
-
 from bioshareX.utils import search_illegal_symlinks
+from django.core.mail import send_mail
+
+
+
+def email_admin(share, message):
+    send_mail(
+    'Illegal path for share {} found'.format(share.id),
+    'Share {}:{} has an illegal path: {}'.format(share.id, share.name, message),
+    settings.DEFAULT_FROM_EMAIL,
+    [a[1] for a in settings.ADMINS],
+    fail_silently=False,
+)
 
 class Command(BaseCommand):
     help = 'Check that share paths exist'
@@ -23,3 +35,4 @@ class Command(BaseCommand):
                 except Exception as e:
                     share.illegal_path_found = timezone.now()
                     share.save()
+                    email_admin(share, str(e))
