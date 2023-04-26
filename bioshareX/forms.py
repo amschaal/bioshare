@@ -142,12 +142,15 @@ class RenameForm(forms.Form):
 class SymlinkForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        self.user = user
         super(SymlinkForm, self).__init__(*args, **kwargs)
     name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
     target = forms.CharField()
     def clean_target(self):
         path = self.cleaned_data['target']
         file_paths = [fp.path for fp in self.file_paths]
+        if not self.user.can_link:
+            raise forms.ValidationError('User is not allowed to symlink')
         if path == '' or not path:
             path = None
         if path:

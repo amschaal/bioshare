@@ -15,7 +15,7 @@ from django.utils.html import strip_tags
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from jsonfield import JSONField
 
-from bioshareX.utils import find_symlink, path_contains, paths_contain, test_path
+from bioshareX.utils import find_symlink, path_contains, paths_contain, search_illegal_symlinks, test_path
 
 
 def pkgen():
@@ -84,6 +84,7 @@ class Share(models.Model):
     name = models.CharField(max_length=125)
     secure = models.BooleanField(default=True)
     read_only = models.BooleanField(default=False)
+    locked = models.BooleanField(default=False)
     notes = models.TextField(null=True,blank=True)
     tags = models.ManyToManyField('Tag')
     link_to_path = models.CharField(max_length=200,blank=True,null=True)
@@ -92,8 +93,10 @@ class Share(models.Model):
     real_path = models.CharField(max_length=200,blank=True,null=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
     path_exists = models.BooleanField(default=True)
+    symlinks_found = models.DateTimeField(null=True)
     illegal_path_found = models.DateTimeField(null=True)
     last_data_access = models.DateTimeField(null=True)
+    meta = models.JSONField(default=dict)
     PERMISSION_VIEW = 'view_share_files'
     PERMISSION_DELETE = 'delete_share_files'
     PERMISSION_DOWNLOAD = 'download_share_files'
@@ -272,6 +275,18 @@ class Share(models.Model):
     @property
     def contains_symlinks(self):
         return find_symlink(self.get_path())
+    def check_symlinks(self):
+        if self.link_to_path or self.contains_symlinks:
+            self.symlinks_found = timezone.now()
+            try:
+                search_illegal_symlinks(self.get_path())
+            except:
+                self.illegal_path_found = timezone.now()
+                self.locked = True
+        else:
+            self.symlinks_found = None
+            self.illegal_path_found = False
+        self.save()
     def create_link(self):
         os.umask(settings.UMASK)
         self.check_link_path()
@@ -476,7 +491,7 @@ def user_permission_codes(self):
 User.permissions = user_permission_codes
 
 def can_link(self):
-    return self.has_perm('bioshareX.link_to_path') and self.file_paths.exists()
+    return settings.ENABLE_SYMLINKS and self.has_perm('bioshareX.link_to_path') and self.file_paths.exists()
 User.can_link = property(can_link)
 
 Group._meta.permissions += (('manage_group', 'Manage group'),)
