@@ -286,13 +286,13 @@ class Share(models.Model):
                     self.symlinks_found = timezone.now()
                     try:
                         search_illegal_symlinks(self.get_path())
+                        self.illegal_path_found = None
                     except Exception as e:
                         self.illegal_path_found = timezone.now()
                         self.locked = True
                         message = str(e)
                 else:
                     self.symlinks_found = None
-                    self.illegal_path_found = None
         self.last_checked = timezone.now()
         self.save()
         return message

@@ -68,6 +68,9 @@ class Command(BaseCommand):
                     user_permissions = share.get_user_permissions(self.user)
                     if Share.PERMISSION_DOWNLOAD not in user_permissions:
                         raise WrapperException('User %s cannot read from share %s' % (self.user.username,share.id))
+                    message = share.check_paths(True)
+                    if share.illegal_path_found:
+                        raise WrapperException('Illegal path found for share %s, rsync terminated. %s' % (share.id, message))  
                     share.last_data_access = timezone.now()
                     share.save()
                 command = ['rsync', '--server', '--sender', flags, '.'] + paths
@@ -78,8 +81,11 @@ class Command(BaseCommand):
                     for perm in [Share.PERMISSION_WRITE,Share.PERMISSION_DELETE]:
                         if perm not in user_permissions:
                             raise WrapperException('User %s cannot write to share %s' % (self.user.username,share.id))
+                    share.check_paths(True)
                     if share.contains_symlinks:
                         raise WrapperException('Share %s contains symlinks and is not writable' % (share.id))
+                    if share.illegal_path_found:
+                        raise WrapperException('Illegal path found for share %s, rsync terminated.' % (share.id))
                     share.updated = timezone.now()
                     share.save()
                 command = ['rsync', '--server', flags, '.'] + paths
