@@ -95,6 +95,7 @@ class Share(models.Model):
     path_exists = models.BooleanField(default=True)
     symlinks_found = models.DateTimeField(null=True)
     illegal_path_found = models.DateTimeField(null=True)
+    last_checked = models.DateTimeField(null=True)
     last_data_access = models.DateTimeField(null=True)
     meta = models.JSONField(default=dict)
     PERMISSION_VIEW = 'view_share_files'
@@ -275,18 +276,26 @@ class Share(models.Model):
     @property
     def contains_symlinks(self):
         return find_symlink(self.get_path())
-    def check_symlinks(self):
-        if self.link_to_path or self.contains_symlinks:
-            self.symlinks_found = timezone.now()
-            try:
-                search_illegal_symlinks(self.get_path())
-            except:
-                self.illegal_path_found = timezone.now()
-                self.locked = True
-        else:
-            self.symlinks_found = None
-            self.illegal_path_found = False
+    def check_paths(self, check_symlinks=True):
+        message = None
+        self.path_exists = self.check_path()
+        if self.path_exists:
+            self.real_path = os.path.realpath(self.get_path())
+            if check_symlinks:
+                if self.link_to_path or self.contains_symlinks:
+                    self.symlinks_found = timezone.now()
+                    try:
+                        search_illegal_symlinks(self.get_path())
+                    except Exception as e:
+                        self.illegal_path_found = timezone.now()
+                        self.locked = True
+                        message = str(e)
+                else:
+                    self.symlinks_found = None
+                    self.illegal_path_found = None
+        self.last_checked = timezone.now()
         self.save()
+        return message
     def create_link(self):
         os.umask(settings.UMASK)
         self.check_link_path()

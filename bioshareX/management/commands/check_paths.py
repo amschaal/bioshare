@@ -5,7 +5,7 @@ from bioshareX.models import Share
 import os
 from bioshareX.utils import search_illegal_symlinks
 from django.core.mail import send_mail
-
+from django.db.models import Q
 
 
 def email_admin(share, message):
@@ -18,21 +18,14 @@ def email_admin(share, message):
 )
 
 class Command(BaseCommand):
-    help = 'Check that share paths exist'
+    help = 'Check that share paths exist, look for illegal symlinks'
 
     def handle(self, *args, **options):
         self.stdout.write('Checking share paths...')
-        for share in Share.objects.all():
-            share.path_exists = share.check_path()
-            share.real_path = os.path.realpath(share.get_path())
-            share.save()
-            if not share.path_exists:
-                ... 
-                # print("Path '%s' does not exist for share: '%s'" % (share.get_path(),share.name))
-            else:
-                try:
-                    search_illegal_symlinks(share.real_path)
-                except Exception as e:
-                    share.illegal_path_found = timezone.now()
-                    share.save()
-                    email_admin(share, str(e))
+        # This is relying on the app to keep track of whether symlinks exist in a share, otherwise should check all shares each time
+        for share in Share.objects.filter(Q(symlinks_found__isnull=False)|Q(link_to_path__isnull=False)):
+            message = share.check_paths(check_symlinks=True)
+            if share.illegal_path_found:
+                email_admin(share, message)
+        for share in Share.objects.exclude(Q(symlinks_found__isnull=False)|Q(link_to_path__isnull=False)):
+            share.check_paths(check_symlinks=False)
