@@ -423,6 +423,7 @@ $(function () {
     $('#fileupload').fileupload({
         url: upload_file_url,
         dataType: 'json',
+		error: BC.on_ajax_error,
         done: function (e, data) {
             $.each(data.result.files, function (index, file) {
             	var old = $('#file-table tr[data-id="'+file.name+'"]');

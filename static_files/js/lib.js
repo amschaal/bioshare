@@ -70,7 +70,7 @@ BC.ajax=function(options){
 			type:"POST"
 	}
 	var options = $.extend({},defaults,options);
-	$.ajax(options);
+	$.ajax(options).error(BC.on_ajax_error);
 }
 BC.replace = function(str,dict){
 	for(var key in dict){

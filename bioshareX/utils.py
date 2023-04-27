@@ -114,14 +114,16 @@ class safe_path_decorator(object):
                     except Share.DoesNotExist:
                         return render(args[0],'errors/message.html', {'message':'No share with that ID exists.'},status=500)
                 if not paths_contain(settings.DIRECTORY_WHITELIST,share.get_realpath()):
-                    raise Exception('Share has an invalid root path: %s'%share.get_realpath())
+                    return json_error(messages=['Share has an invalid root path: %s'%share.get_realpath()])
+                    # raise Exception('Share has an invalid root path: %s'%share.get_realpath())
             path = kwargs.get(self.path_param,None)
             if path is not None:
                 test_path(path)
                 if share:
                     full_path = os.path.join(share.get_path(),path)
                     if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
-                        raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
+                        return json_error(messages=['Illegal path encountered, %s, %s'%(share.get_path(),path)])
+                        # raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
                     if self.write:
                         real_path = os.path.realpath(full_path)
                         if not real_path.startswith(share.get_path()):
