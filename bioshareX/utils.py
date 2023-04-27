@@ -90,13 +90,14 @@ class share_access_decorator(object):
 
 class safe_path_decorator(object):
 
-    def __init__(self, share_param='share',path_param='subpath'):
+    def __init__(self, share_param='share',path_param='subpath', write=False):
         """
         If there are decorator arguments, the function
         to be decorated is not passed to the constructor!
         """
         self.share_param  = share_param
         self.path_param  = path_param
+        self.write = write
     def __call__(self, f):
         """
         If there are decorator arguments, __call__() is only called
@@ -121,6 +122,11 @@ class safe_path_decorator(object):
                     full_path = os.path.join(share.get_path(),path)
                     if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
                         raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
+                    if self.write:
+                        real_path = os.path.realpath(full_path)
+                        if not real_path.startswith(share.get_path()):
+                            return json_error(messages=['Write is not allowed for symlinked files and directories.  Encountered path: {}'.format(real_path)])
+                            # raise Exception('Write is not allowed for symlinked files and directories.  Encountered path: {}'.format(real_path))
             return f(*args,**kwargs)
         return wrapped_f
 

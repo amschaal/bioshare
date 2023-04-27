@@ -29,7 +29,7 @@ def clean_filename(filename):
     filename = re.sub(settings.UNDERSCORE_REGEX,'_', filename)
     filename = re.sub(settings.STRIP_REGEX,'', filename)
     return filename
-@safe_path_decorator(path_param='subdir')
+@safe_path_decorator(path_param='subdir', write=True)
 @share_access_decorator(['write_to_share'])
 def upload_file(request, share, subdir=None):
 
@@ -51,7 +51,7 @@ def upload_file(request, share, subdir=None):
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FILE_ADDED,paths=[clean_filename(file.name) for file in request.FILES.values()],subdir=subdir)
     return json_response(data)
 
-@safe_path_decorator(path_param='subdir')
+@safe_path_decorator(path_param='subdir', write=True)
 @share_access_decorator(['write_to_share'])
 def create_folder(request, share, subdir=None):
     form = FolderForm(request.POST)
@@ -66,7 +66,7 @@ def create_folder(request, share, subdir=None):
         return json_error([error for name, error in form.errors.items()])
 
 @permission_required('bioshareX.link_to_path', raise_exception=True)
-@safe_path_decorator(path_param='subdir')
+@safe_path_decorator(path_param='subdir', write=True)
 @share_access_decorator(['write_to_share'])
 def create_symlink(request, share, subdir=None):
     form = SymlinkForm(request.user, request.POST)
@@ -86,7 +86,7 @@ def create_symlink(request, share, subdir=None):
         return json_error([error for name, error in form.errors.items()])
 
 @permission_required('bioshareX.link_to_path', raise_exception=True)
-@safe_path_decorator(path_param='subpath')
+@safe_path_decorator(path_param='subpath', write=True)
 @share_access_decorator(['write_to_share'])
 def unlink(request, share, subpath):
     path = os.path.join(share.get_path(), subpath)
@@ -98,7 +98,7 @@ def unlink(request, share, subpath):
     else:
         return json_error(messages=['No symlink at path specified.'])
 
-@safe_path_decorator(path_param='subdir')
+@safe_path_decorator(path_param='subdir', write=True)
 @share_access_decorator(['write_to_share'])
 def modify_name(request, share, subdir=None):
     import os
@@ -117,7 +117,7 @@ def modify_name(request, share, subdir=None):
     return json_response(data)
 
 
-@safe_path_decorator(path_param='subdir')
+@safe_path_decorator(path_param='subdir', write=True)
 @share_access_decorator(['delete_share_files'])
 @JSONDecorator
 def delete_paths(request, share, subdir=None, json={}):
@@ -135,7 +135,7 @@ def delete_paths(request, share, subdir=None, json={}):
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_DELETED,paths=json['selection'],subdir=subdir)
     return json_response(response)
 
-@safe_path_decorator(path_param='subdir')
+@safe_path_decorator(path_param='subdir', write=True)
 @share_access_decorator(['delete_share_files'])
 @JSONDecorator
 def move_paths(request, share, subdir=None, json={}):
