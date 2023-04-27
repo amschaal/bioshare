@@ -80,6 +80,7 @@ def create_symlink(request, share, subdir=None):
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(link_path)
         data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': form.cleaned_data['target']}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
+        share.check_paths(True)
         return json_response(data)
     else:
         return json_error([error for name, error in form.errors.items()])
@@ -92,6 +93,7 @@ def unlink(request, share, subpath):
     if os.path.islink(path):
         os.unlink(path)
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_DELETED,paths=subpath)
+        share.check_paths(True)
         return json_response({})
     else:
         return json_error(messages=['No symlink at path specified.'])

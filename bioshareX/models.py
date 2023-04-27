@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from jsonfield import JSONField
+from bioshareX.exceptions import IllegalPathException
 
 from bioshareX.utils import find_symlink, path_contains, paths_contain, search_illegal_symlinks, test_path
 
@@ -287,12 +288,14 @@ class Share(models.Model):
                     try:
                         search_illegal_symlinks(self.get_path())
                         self.illegal_path_found = None
-                    except Exception as e:
+                        # self.locked = False
+                    except IllegalPathException as e:
                         self.illegal_path_found = timezone.now()
                         self.locked = True
                         message = str(e)
                 else:
                     self.symlinks_found = None
+                    self.illegal_path_found = None
         self.last_checked = timezone.now()
         self.save()
         return message

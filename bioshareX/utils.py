@@ -12,6 +12,7 @@ from django.template import Context, Template
 from django.urls.base import reverse
 from rest_framework import status
 from scandir import scandir
+from bioshareX.exceptions import IllegalPathException
 
 from bioshareX.file_utils import istext
 
@@ -370,9 +371,10 @@ def find_symlinks(path):
 def search_illegal_symlinks(path, checked=set()):
     symlinks = find_symlinks(path)
     for link, target in symlinks.items():
-        if target in checked and (os.path.isdir(target) or os.path.islink(target)):
-            raise Exception('Circular symlink found, {} -> {}'.format(link, target))
+        # Fix circular symlink check
+        # if target in checked and (os.path.isdir(target) or os.path.islink(target)):
+        #     raise IllegalPathException('Circular symlink found, {} -> {}'.format(link, target))
         if not paths_contain(settings.DIRECTORY_WHITELIST, target):
-            raise Exception('Illegal symlink encountered, {} -> {}'.format(link, target))
+            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
         checked.add(target)
         search_illegal_symlinks(target, checked) # Doing this depth first.  Maybe consider doing breadth first.
