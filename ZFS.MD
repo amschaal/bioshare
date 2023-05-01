@@ -17,6 +17,18 @@ In the above example, it is worth checking the inputs to the commands running as
 
 When running zfs create or mount as sudo, ownership may also be wrong, so in the create script, it might be necessary to chown the newly mounted directory as bioshare:bioshare.
 
-If using apache and ZFS, there is one more potential gotcha.  If mounting a filesystem from apache, as is done when using zfs create/mount, that mount point may be made in a different namespace.  It will initially work for apache until restart, but won't work on the system, which is important for a variety of reasons such as use by the SFTP server or rsync.  This can be avoided by setting "PrivateTmp=false" in systemd for the apache service.  On Ubuntu, this can be found in this file (you'll need to restart systemd to take effect):
-
+If using apache and ZFS, there is one more potential gotcha.  If mounting a filesystem from apache, as is done when using zfs create/mount, that mount point may be made in a different namespace.  It will initially work for apache until restart, but won't work on the system, which is important for a variety of reasons such as use by the SFTP server or rsync.  This can be avoided by setting "PrivateTmp=false" in systemd for the apache service.  On Ubuntu, this can be found in this file:
+```
 /etc/systemd/system/multi-user.target.wants/apache2.service
+```
+To avoid having changes lost during system updates, etc, the setting should actually be overriden using:
+```
+systemctl edit apache2.service
+```
+and adding the following lines:
+
+```
+[Service]
+PrivateTmp=false
+```
+You'll need to restart systemd and apache afterward.
