@@ -124,11 +124,11 @@ class safe_path_decorator(object):
                     if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
                         return json_error(messages=['Illegal path encountered, %s, %s'%(share.get_path(),path)])
                         # raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
-                    if self.write:
-                        real_path = os.path.realpath(full_path)
-                        if not real_path.startswith(share.get_path()):
-                            return json_error(messages=['Write is not allowed for symlinked files and directories.  Encountered path: {}'.format(real_path)])
-                            # raise Exception('Write is not allowed for symlinked files and directories.  Encountered path: {}'.format(real_path))
+            if self.write:
+                real_path = share.is_realpath(path)
+                if not real_path:
+                    return json_error(messages=['Write is not allowed for symlinked files and directories.'])
+                    # raise Exception('Write is not allowed for symlinked files and directories.  Encountered path: {}'.format(real_path))
             return f(*args,**kwargs)
         return wrapped_f
 

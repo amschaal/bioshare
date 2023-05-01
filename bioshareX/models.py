@@ -274,6 +274,11 @@ class Share(models.Model):
             test_path(self.link_to_path,allow_absolute=True)
             if not paths_contain(settings.LINK_TO_DIRECTORIES,self.link_to_path):
                 raise Exception('Path not allowed.')
+    def is_realpath(self, subpath=None):
+        path = self.get_path()
+        if subpath:
+            path = os.path.join(path,subpath)
+        return path == os.path.realpath(path)
     @property
     def contains_symlinks(self):
         return find_symlink(self.get_path())
