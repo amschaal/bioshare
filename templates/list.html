@@ -60,6 +60,21 @@
 {% if share.link_to_path and share.filepath and share.filepath.show_path %}
 <br><b>System path:</b> {{share.get_link_path}}{% if subdir %}{{subdir}} <i class="fam-help" title="If you have access to the cluster, data may be available at this path."></i>{% endif %}
 {% endif %}
+{% if "write_to_share" in share_perms  %}
+	{% if not is_realpath %}
+	<br><b>Linked</b>: This directory is linked, and all write and delete operations are disabled.
+	{% endif %}
+	{% if share.symlinks_found or not is_realpath %}
+	<br><b>As this share contains symlinks, all write operations are disabled for SFTP and rsync.</b>
+	{% endif %}
+{% endif %}
+<!--
+<br>Locked: {{share.locked}}
+<br>Last checked: {{share.last_checked}}
+<br>Symlinks found: {{share.symlinks_found}}
+<br>Illegal path found: {{share.illegal_path_found}}
+<br>Is realpath: {{is_realpath}}
+-->
 </div>
 
 
@@ -107,8 +122,10 @@
 	  </div>
 
 	    <a href="#new-folder" role="button" class="btn btn-success" data-toggle="modal"><i class="icon-plus icon-white"></i>Folder</a>
+		{% if user.can_link %}
 		<a href="#new-link" role="button" class="btn btn-success" data-toggle="modal"><i class="icon-plus icon-white"></i>Link</a>
-	    <a id="open-move-modal" role="button" class="btn btn-success">Move</a>
+	    {% endif %}
+		<a id="open-move-modal" role="button" class="btn btn-success">Move</a>
 	    {% if "delete_share_files" in share_perms %}
 	    <a role="button" class="btn btn-danger" id="delete-button">Delete</a>
 	    {% endif %}
@@ -164,7 +181,7 @@
 					{% elif not dir.target %}
 						<a href="{% url 'create_subshare' share=share.id subdir=subdir|default_if_none:""|add:dir.name|add:'/' %}" ><i class="fam-group-add" data-toggle="tooltip" title="Make this folder it's own share"></i></a> 
 					{% endif %}
-					{% if dir.target %}
+					{% if dir.target and user.can_link %}
 						<a href="#" data-action="unlink" title="Unlink this directory"><i class="fam-delete" ></i></a>
 					{% endif %}	
 				{% endif %}
@@ -320,6 +337,9 @@
     <h3>SFTP connection information</h3>
   </div>
   <div class="modal-body">
+	{% if share.symlinks_found or not is_realpath %}
+		<h3>Please note that writing and deleting operations are disabled for SFTP for shares containing symlinks</h3>
+	{% endif %}
 	<b>Protocol:</b> SFTP<br>
 	<b>Host:</b> sftp://{{HOST}}<br>
 	<b>Port:</b> {{SFTP_PORT}}<br>
@@ -351,9 +371,13 @@
     <h3>Rsync upload</h3>
   </div>
   <div class="modal-body">
-  <p>Rsync requires first <a href="{% url 'list_ssh_keys'%}">uploading your SSH public key</a>.</p>
-    <b id="rsync-upload-command" style="word-wrap: break-word;"></b>
-  </div>
+	{% if share.symlinks_found or not is_realpath %}
+		Rsyncing to Bioshare is disabled for shares containing symlinks.
+	{% else %}
+		<p>Rsync requires first <a href="{% url 'list_ssh_keys'%}">uploading your SSH public key</a>.</p>
+		<b id="rsync-upload-command" style="word-wrap: break-word;"></b>
+	{% endif %}
+</div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
   </div>

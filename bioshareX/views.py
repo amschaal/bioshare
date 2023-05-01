@@ -128,8 +128,10 @@ def list_directory(request,share,subdir=None):
     readme = None
     is_realpath = share.is_realpath(subdir)
     if not is_realpath: # Don't allow any write operations if it isn't a real directory under the share root
-        share_perms.remove(Share.PERMISSION_DELETE)
-        share_perms.remove(Share.PERMISSION_WRITE)
+        if Share.PERMISSION_DELETE in share_perms:
+            share_perms.remove(Share.PERMISSION_DELETE)
+        if Share.PERMISSION_WRITE in share_perms:
+            share_perms.remove(Share.PERMISSION_WRITE)
     #The following block is for markdown rendering
     if os.path.isfile(os.path.join(PATH,'README.md')):
         import markdown
