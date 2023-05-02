@@ -277,6 +277,7 @@ class Share(models.Model):
     def is_realpath(self, subpath=None):
         path = self.get_path()
         if subpath:
+            subpath = subpath.rstrip(os.path.sep)
             path = os.path.join(path,subpath)
         return path == os.path.realpath(path)
     @property
@@ -318,7 +319,6 @@ class Share(models.Model):
 
         import zipstream
         from django.http.response import StreamingHttpResponse
-
         from bioshareX.utils import get_total_size, zipdir
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
@@ -326,9 +326,9 @@ class Share(models.Model):
             raise Exception('Invalid subdirectory provided')
         share_path = self.get_path()
         z = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_DEFLATED)
-#         total_size = get_total_size([os.path.join(path,item) for item in items])
-#         if total_size > ZIPFILE_SIZE_LIMIT_BYTES:
-#             raise Exception("%d bytes is above bioshare's limit for creating zipfiles, please use rsync or wget instead" % (total_size))
+        total_size = get_total_size([os.path.join(path,item) for item in items])
+        if total_size > ZIPFILE_SIZE_LIMIT_BYTES:
+            raise Exception("%d bytes is above bioshare's limit for creating zipfiles, please use rsync or wget instead" % (total_size))
         for item in items:
             item_path = os.path.join(path,item)
             if not os.path.exists(item_path):
@@ -338,7 +338,6 @@ class Share(models.Model):
                 z.write(item_path,arcname=item_name)
             elif isdir(item_path):
                 zipdir(share_path,item_path,z)
-        
         from datetime import datetime
         zip_name = 'archive_'+datetime.now().strftime('%Y_%m_%d__%H_%M_%S')+'.zip'
         response = StreamingHttpResponse(z, content_type='application/zip')

@@ -295,6 +295,11 @@ class SFTPInterface (SFTPServerInterface):
         self.shares_accessed.add(share.id)
         permissions = share.get_user_permissions(self.user)
 #         print permissions
+        if not self.is_realpath(path): # Don't allow any write operations if it isn't a real directory under the share root
+            if Share.PERMISSION_DELETE in permissions:
+                permissions.remove(Share.PERMISSION_DELETE)
+            if Share.PERMISSION_WRITE in permissions:
+                permissions.remove(Share.PERMISSION_WRITE)
         return permissions
     def _get_path_permissions(self,path):
         permissions = self._get_bioshare_path_permissions(path)
@@ -317,6 +322,11 @@ class SFTPInterface (SFTPServerInterface):
         return realpath
 #         print self.ROOT + self.canonicalize(path)
 #         return self.ROOT + self.canonicalize(path)
+    def is_realpath(self, path):
+        parts = path.split(os.path.sep)
+        share = self._get_share(path)
+        # print('is_realpath', share.is_realpath(os.path.sep.join(parts[2:])), os.path.sep.join(parts[2:]))
+        return share.is_realpath(os.path.sep.join(parts[2:]))
     @sftp_response
     def list_shares(self):
 #         print "LIST SHARES"
