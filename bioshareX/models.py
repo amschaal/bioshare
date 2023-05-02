@@ -290,9 +290,9 @@ class Share(models.Model):
             raise Exception('Invalid subdirectory provided')
         share_path = self.get_path()
         z = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_DEFLATED)
-#         total_size = get_total_size([os.path.join(path,item) for item in items])
-#         if total_size > ZIPFILE_SIZE_LIMIT_BYTES:
-#             raise Exception("%d bytes is above bioshare's limit for creating zipfiles, please use rsync or wget instead" % (total_size))
+        total_size = get_total_size([os.path.join(path,item) for item in items])
+        if total_size > ZIPFILE_SIZE_LIMIT_BYTES:
+            raise Exception("%d bytes is above bioshare's limit for creating zipfiles, please use rsync or wget instead" % (total_size))
         for item in items:
             item_path = os.path.join(path,item)
             if not os.path.exists(item_path):
