@@ -290,3 +290,8 @@ def search_files(request):
 def view_messages(request):
     return render(request, 'account/messages.html', {})
 
+def locked(request,share):
+    share = Share.get_by_slug_or_id(share)
+    if not share.locked:
+        return redirect('list_directory', share=share.id)
+    return render(request,'share/locked.html', {"share":share})

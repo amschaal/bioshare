@@ -43,6 +43,7 @@ urlpatterns = [
     url(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':False},name='delete_share'),
     url(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':True},name='confirm_delete_share'),
     url(r'^search/files/?$', bioshare_views.search_files, name='search_files'),
+    url(r'^locked/(?P<share>[-\w]+)/$', bioshare_views.locked, name='locked')
     # url(r'^jsurls.js$', jsutils.jsurls, {}, 'jsurls'), # @todo: replace this
 ]
 

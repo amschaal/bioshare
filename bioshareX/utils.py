@@ -70,6 +70,11 @@ class share_access_decorator(object):
             kwargs[self.share_param]=share
             request = args[0]
             user_permissions = share.get_user_permissions(request.user)
+            if share.locked:
+                if request.is_ajax():
+                    return json_error(['This share has been locked.  Please contact the web admin.'])
+                else:
+                    return redirect('locked', share=share.id)
             for perm in self.perms:
                 if not share.secure and perm in ['view_share_files','download_share_files']:
                     continue

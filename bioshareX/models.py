@@ -150,6 +150,8 @@ class Share(models.Model):
         group_perms = [{'group':{'name':group.name,'id':group.id},'permissions':permissions} for group, permissions in groups.items()]
         return {'user_perms':user_perms,'group_perms':group_perms}
     def get_user_permissions(self,user,user_specific=False):
+        if self.locked:
+            return []
         if user_specific:
             from bioshareX.utils import fetchall
             perms = [uop.permission.codename for uop in ShareUserObjectPermission.objects.filter(user=user,content_object=self).select_related('permission')]
