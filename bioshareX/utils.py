@@ -391,3 +391,22 @@ def search_illegal_symlinks(path, checked=set()):
             raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
         checked.add(target)
         search_illegal_symlinks(target, checked) # Doing this depth first.  Maybe consider doing breadth first.
+
+def get_all_symlinks(path):
+    symlinks = [] # {path, target, illegal, depth}
+    queue = [{'path': path, 'depth': 0}]
+    visited = set()
+    while queue:
+        current = queue.pop(0)
+        path = current['path']
+        realpath = os.path.realpath(path)
+        illegal = not paths_contain(settings.DIRECTORY_WHITELIST, realpath)
+        if path in visited:
+            continue
+        if os.path.islink(path):
+            symlinks.append({'path': path, 'target': realpath, 'illegal': illegal, 'depth': current['depth']})
+        if not illegal:
+            for p in subprocess.check_output(['find', os.path.realpath(current['path']), '-type', 'l']).decode().split('\n'):
+                queue.append({'path': p, 'depth': current['depth']+1})
+        visited.add(path)
+    return symlinks
