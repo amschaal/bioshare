@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Share Locked{% endblock %}
+
+{% block content %}
+  <h3>
+    Share "{{share.name}}" with ID "{{share.id}}" has been locked.  Please contact the server administrator.
+  </h3>
+  {% if user.is_superuser %}
+  <div class="alert alert-danger">
+    <br>Locked: {{share.locked}}
+    <br>Last checked: {{share.last_checked}}
+    <br>Symlinks found: {{share.symlinks_found}}
+    <br>Illegal path found: {{share.illegal_path_found}}{% if message %} - {{message}} {% endif %}
+    <br>Symlinks:
+      <ul>
+      {% for source, dest in symlinks.items %}
+        <li>{{source}} -> {{dest}}</li>
+      {% endfor %}
+      </ul>
+  </div>
+  {% endif %}
+{% endblock %}
