@@ -392,21 +392,27 @@ def search_illegal_symlinks(path, checked=set()):
         checked.add(target)
         search_illegal_symlinks(target, checked) # Doing this depth first.  Maybe consider doing breadth first.
 
-def get_all_symlinks(path):
+def get_all_symlinks(path, max_depth=1):
     symlinks = [] # {path, target, illegal, depth}
     queue = [{'path': path, 'depth': 0}]
     visited = set()
     while queue:
         current = queue.pop(0)
         path = current['path']
+        depth = current['depth']
         realpath = os.path.realpath(path)
-        illegal = not paths_contain(settings.DIRECTORY_WHITELIST, realpath)
+        if not paths_contain(settings.DIRECTORY_WHITELIST, realpath):
+            warning = 'Illegal path'
+        elif depth > max_depth:
+            warning = 'Link is deeper than maximum depth of {}'.format(max_depth)
+        else:
+            warning = None
         if path in visited:
             continue
         if os.path.islink(path):
-            symlinks.append({'path': path, 'target': realpath, 'illegal': illegal, 'depth': current['depth']})
-        if not illegal:
+            symlinks.append({'path': path, 'target': realpath, 'warning': warning, 'depth': depth})
+        if not warning:
             for p in subprocess.check_output(['find', os.path.realpath(current['path']), '-type', 'l']).decode().split('\n'):
-                queue.append({'path': p, 'depth': current['depth']+1})
+                queue.append({'path': p, 'depth': depth+1})
         visited.add(path)
     return symlinks
