@@ -394,25 +394,39 @@ def search_illegal_symlinks(path, checked=set()):
 
 def get_all_symlinks(path, max_depth=1):
     symlinks = [] # {path, target, illegal, depth}
-    queue = [{'path': path, 'depth': 0}]
-    visited = set()
+    queue = [{'path': path, 'depth': 0, 'previous': set()}]
     while queue:
         current = queue.pop(0)
         path = current['path']
         depth = current['depth']
+        previous = current['previous'].copy()
         realpath = os.path.realpath(path)
+        warning = []
+        if realpath in previous:# and os.path.islink(path):
+            warning.append('Symlink recursion found')
         if not paths_contain(settings.DIRECTORY_WHITELIST, realpath):
-            warning = 'Illegal path'
-        elif depth > max_depth:
-            warning = 'Link is deeper than maximum depth of {}'.format(max_depth)
-        else:
-            warning = None
-        if path in visited:
-            continue
+            warning.append('Illegal path')
+        if depth > max_depth:
+            warning.append('Link is deeper than maximum depth of {}'.format(max_depth))
         if os.path.islink(path):
-            symlinks.append({'path': path, 'target': realpath, 'warning': warning, 'depth': depth})
-        if not warning:
+            symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning), 'depth': depth})
+        if not warning and realpath not in previous:
+            previous.add(realpath)
             for p in subprocess.check_output(['find', os.path.realpath(current['path']), '-type', 'l']).decode().split('\n'):
-                queue.append({'path': p, 'depth': depth+1})
-        visited.add(path)
+                queue.append({'path': p, 'depth': depth+1, 'previous': previous})
     return symlinks
+
+def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):
+    checked = checked.copy()
+    checked.add(path)
+    depth += 1
+    if depth > max_depth:
+        return IllegalPathException('Symlink depth exceeded maximum depth of {}'.format(max_depth))
+    symlinks = find_symlinks(path)
+    for link, target in symlinks.items():
+        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
+            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
+        if target in checked:
+            raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
+        checked.add(target)
+        check_symlinks_dfs(target, checked, depth=depth, max_depth=max_depth)

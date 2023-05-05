@@ -16,7 +16,7 @@ from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from jsonfield import JSONField
 from bioshareX.exceptions import IllegalPathException
 
-from bioshareX.utils import find_symlink, path_contains, paths_contain, search_illegal_symlinks, test_path
+from bioshareX.utils import check_symlinks_dfs, find_symlink, path_contains, paths_contain, test_path
 
 
 def pkgen():
@@ -294,7 +294,7 @@ class Share(models.Model):
                 if self.link_to_path or self.contains_symlinks:
                     self.symlinks_found = timezone.now()
                     try:
-                        search_illegal_symlinks(self.get_path())
+                        check_symlinks_dfs(self.get_path())
                         self.illegal_path_found = None
                         # self.locked = False
                     except IllegalPathException as e:

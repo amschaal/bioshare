@@ -22,7 +22,7 @@ from bioshareX.forms import (FolderForm, GroupForm, GroupProfileForm,
                              MetaDataForm, PasswordChangeForm, RenameForm,
                              ShareForm, SSHKeyForm, SubShareForm, SymlinkForm)
 from bioshareX.models import GroupProfile, Share, ShareStats, SSHKey
-from bioshareX.utils import (find, find_symlinks, get_all_symlinks, get_setting, json_response, list_share_dir,
+from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, json_response, list_share_dir,
                              safe_path_decorator, share_access_decorator,
                              sizeof_fmt)
 
@@ -295,8 +295,7 @@ def locked(request, share):
     if not share.locked:
         return redirect('list_directory', share=share.id)
     if request.user.is_superuser:
-        # message = share.check_paths(check_symlinks=True)
-        message = None
+        message = share.check_paths(check_symlinks=True)
         symlinks = get_all_symlinks(share.get_path())
         return render(request,'share/locked.html', {"share":share, "symlinks": symlinks, "message": message})
     else:    
