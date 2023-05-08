@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load static %}
+{% load compress %}
 
 {% block title %}Share Locked{% endblock %}
 
@@ -20,5 +22,14 @@
         {% endfor %}
       </table>
   </div>
+  {% include 'share/logs.html' %}
   {% endif %}
 {% endblock %}
+{% block scripts %}
+{{block.super}}
+{% compress js %}
+<script src="{% static "js/services/ng-table-services.js" %}"></script>
+<script src="{% static "js/controllers/share-controller.js" %}"></script>
+{% endcompress %}
+{% endblock%}
+

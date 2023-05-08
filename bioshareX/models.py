@@ -298,9 +298,11 @@ class Share(models.Model):
                         self.illegal_path_found = None
                         # self.locked = False
                     except IllegalPathException as e:
+                        message = str(e)
+                        if not self.illegal_path_found:
+                            ShareLog.create(share=self,action=ShareLog.ACTION_ERROR, text='Illegal path exception: {}'.format(message))
                         self.illegal_path_found = timezone.now()
                         self.locked = True
-                        message = str(e)
                 else:
                     self.symlinks_found = None
                     self.illegal_path_found = None
@@ -455,6 +457,7 @@ class ShareLog(models.Model):
     ACTION_MOVED = 'File(s)/Folder(s) Moved'
     ACTION_RENAMED = 'File/Folder Renamed'
     ACTION_RSYNC = 'Files rsynced'
+    ACTION_ERROR = 'Error'
     ACTION_PERMISSIONS_UPDATED = 'Permissions updated'
     share = models.ForeignKey(Share, related_name="logs", on_delete=models.CASCADE)
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT)
