@@ -21,6 +21,9 @@
           <tr><td>{{link.path}}</td><td>{% if link.warning %}<b><i class="icon-warning-sign"></i>{{link.target}}</b>{% else %}{{link.target}}{% endif %}</td><td>{{link.depth}}</td><td>{{link.warning}}</td></tr>
         {% endfor %}
       </table>
+      {% if not share.illegal_path_found %}
+        <a class="btn btn-danger" href="{% url 'unlock' share=share.id %}">Unlock</a>
+      {% endif %}
   </div>
   {% include 'share/logs.html' %}
   {% endif %}

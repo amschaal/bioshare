@@ -300,3 +300,15 @@ def locked(request, share):
         return render(request,'share/locked.html', {"share":share, "symlinks": symlinks, "message": message})
     else:    
         return render(request,'share/locked.html', {"share":share})
+
+def unlock(request, share):
+    share = Share.get_by_slug_or_id(share)
+    if not request.user.is_superuser:
+        raise PermissionError('Only super users may unlock shares')
+    share.check_paths(check_symlinks=True)
+    if not share.illegal_path_found:
+        share.locked = False
+        share.save()
+        return redirect('list_directory', share=share.id)
+    else:
+        return redirect('locked', share=share.id)
