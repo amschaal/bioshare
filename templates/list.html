@@ -128,7 +128,7 @@
 	    <a role="button" class="btn btn-danger" id="delete-button">Delete</a>
 	    {% endif %}
 	  {% endif %}
-	  {% if "admin" in share_perms and subdir and not subshare%}
+	  {% if "admin" in share_perms and subdir and not subshare and is_realpath%}
 	    <a class="btn btn-warning" href="{% url 'create_subshare' share=share.id subdir=subdir%}"><i class="fam-user-add"></i>Share folder</a>
       {% endif %}
       {% if "write_to_share" in share_perms %}

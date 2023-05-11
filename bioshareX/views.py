@@ -187,6 +187,8 @@ def create_share(request,group_id=None):
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['admin'])
 def create_subshare(request,share,subdir):
+    if not share.is_realpath(subdir):
+        raise PermissionError('Linked directories are not eligible to become subshares. {} {}'.format(share.get_path(),subdir))
     path = os.path.join(share.get_path(),subdir)
     if not os.path.exists(path):
         return render(request,'index.html', {"message": "Unable to create share.  The specified path does not exist."})
