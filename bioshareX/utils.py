@@ -127,6 +127,7 @@ class safe_path_decorator(object):
                 if share:
                     full_path = os.path.join(share.get_path(),path)
                     if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
+                        share.check_paths()
                         return json_error(messages=['Illegal path encountered, %s, %s'%(share.get_path(),path)])
                         # raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
             if self.write:

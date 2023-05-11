@@ -299,7 +299,7 @@ class Share(models.Model):
                         # self.locked = False
                     except IllegalPathException as e:
                         message = str(e)
-                        if not self.illegal_path_found:
+                        if not self.locked:
                             ShareLog.create(share=self,action=ShareLog.ACTION_ERROR, text='Illegal path exception: {}'.format(message))
                         self.illegal_path_found = timezone.now()
                         self.locked = True

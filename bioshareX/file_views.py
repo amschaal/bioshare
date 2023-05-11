@@ -88,7 +88,7 @@ def create_symlink(request, share, subdir=None):
 
 @permission_required('bioshareX.link_to_path', raise_exception=True)
 @share_access_decorator(['write_to_share'])
-@safe_path_decorator(path_param='subpath', write=True)
+@safe_path_decorator(path_param='subpath')
 def unlink(request, share, subpath):
     path = os.path.join(share.get_path(), subpath)
     if os.path.islink(path):

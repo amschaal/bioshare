@@ -277,7 +277,14 @@ class SFTPInterface (SFTPServerInterface):
             print('no share exists')
             print(path)
             raise PermissionDenied("Share does not exist: %s"%path[1])
-        return self.shares[parts[1]]
+        share = self.shares[parts[1]]
+        if not hasattr(share,'_sftp_initialized'):
+            if share.symlinks_found:
+                share.check_paths()
+            setattr(share,'_sftp_initialized', True)
+        if share.locked:
+            raise PermissionDenied('Share is locked.  Contact the application administrator.')
+        return share
     def _path_modified(self,path):
         share = self._get_share(path)
         previous_date = self.modified_date.get(share.id,None)
@@ -318,6 +325,7 @@ class SFTPInterface (SFTPServerInterface):
         share = self._get_share(path)
         realpath = os.path.realpath(os.path.join(share.get_realpath(),os.path.sep.join(parts[2:])))
         if not paths_contain(settings.DIRECTORY_WHITELIST,realpath):
+            share.check_paths()
             raise PermissionDenied("Encountered a path outside the whitelist")
         return realpath
 #         print self.ROOT + self.canonicalize(path)
