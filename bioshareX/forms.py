@@ -141,12 +141,9 @@ class FolderForm(forms.Form):
 class RenameForm(forms.Form):
     from_name = forms.RegexField(regex=r'^[^/]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'},widget=forms.HiddenInput())
     to_name = forms.RegexField(regex=r'^[\w\d\ \-_\.]+$',error_messages={'invalid':'Only letters, numbers, periods, and spaces are allowed'})
-<<<<<<< HEAD
     def clean_to_name(self):
         to_name = self.cleaned_data['to_name']
         return to_name.strip()
-    
-=======
 
 class SymlinkForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
@@ -184,7 +181,6 @@ class SymlinkForm(forms.Form):
                 raise forms.ValidationError(str(e))
         return path
 
->>>>>>> 6f40618fd1a8aae66c52276be32be08bb8586876
 class RegistrationForm(forms.Form):
     """
     Form for registering a new user account.
