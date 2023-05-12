@@ -10,9 +10,10 @@ from os.path import join
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+from django.contrib.auth.decorators import permission_required
 
 from bioshareX.file_utils import get_lines, get_num_lines, istext
-from bioshareX.forms import FolderForm, RenameForm, json_form_validate
+from bioshareX.forms import FolderForm, RenameForm, SymlinkForm, json_form_validate
 from bioshareX.models import Share, ShareLog
 from bioshareX.utils import (JSONDecorator, find_symlink, json_error,
                              json_response, md5sum, safe_path_decorator,
@@ -28,8 +29,9 @@ def clean_filename(filename):
     filename = re.sub(settings.UNDERSCORE_REGEX,'_', filename)
     filename = re.sub(settings.STRIP_REGEX,'', filename)
     return filename
-@safe_path_decorator(path_param='subdir')
+
 @share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subdir', write=True)
 def upload_file(request, share, subdir=None):
 
     os.umask(settings.UMASK)
@@ -50,8 +52,8 @@ def upload_file(request, share, subdir=None):
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FILE_ADDED,paths=[clean_filename(file.name) for file in request.FILES.values()],subdir=subdir)
     return json_response(data)
 
-@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subdir', write=True)
 def create_folder(request, share, subdir=None):
     form = FolderForm(request.POST)
     data = json_form_validate(form)
@@ -63,10 +65,42 @@ def create_folder(request, share, subdir=None):
         return json_response(data)
     else:
         return json_error([error for name, error in form.errors.items()])
-    
 
-@safe_path_decorator(path_param='subdir')
+@permission_required('bioshareX.link_to_path', raise_exception=True)
 @share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subdir', write=True)
+def create_symlink(request, share, subdir=None):
+    form = SymlinkForm(request.user, request.POST)
+    data = json_form_validate(form)
+    if form.is_valid():
+        if subdir:
+            link_path = os.path.join(share.get_path(),subdir,form.cleaned_data['name'])
+        else:
+            link_path = os.path.join(share.get_path(),form.cleaned_data['name'])
+        os.symlink(form.cleaned_data['target'], link_path)
+        (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(link_path)
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': form.cleaned_data['target']}]
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
+        share.check_paths(True)
+        return json_response(data)
+    else:
+        return json_error([error for name, error in form.errors.items()])
+
+@permission_required('bioshareX.link_to_path', raise_exception=True)
+@share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subpath')
+def unlink(request, share, subpath):
+    path = os.path.join(share.get_path(), subpath)
+    if os.path.islink(path):
+        os.unlink(path)
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_DELETED,paths=subpath)
+        share.check_paths(True)
+        return json_response({})
+    else:
+        return json_error(messages=['No symlink at path specified.'])
+
+@share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subdir', write=True)
 def modify_name(request, share, subdir=None):
     import os
     form = RenameForm(request.POST)
@@ -84,8 +118,8 @@ def modify_name(request, share, subdir=None):
     return json_response(data)
 
 
-@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['delete_share_files'])
+@safe_path_decorator(path_param='subdir', write=True)
 @JSONDecorator
 def delete_paths(request, share, subdir=None, json={}):
     response={'deleted':[],'failed':[]}
@@ -102,8 +136,8 @@ def delete_paths(request, share, subdir=None, json={}):
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_DELETED,paths=json['selection'],subdir=subdir)
     return json_response(response)
 
-@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['delete_share_files'])
+@safe_path_decorator(path_param='subdir', write=True)
 @JSONDecorator
 def move_paths(request, share, subdir=None, json={}):
     response={'moved':[],'failed':[]}
@@ -121,8 +155,8 @@ def move_paths(request, share, subdir=None, json={}):
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_MOVED,text=text,paths=json['selection'],subdir=subdir)
     return json_response(response)
 
-@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['download_share_files'])
+@safe_path_decorator(path_param='subdir')
 # @JSONDecorator
 def download_archive_stream(request, share, subdir=None):
 #     try:
@@ -141,8 +175,8 @@ def download_archive_stream(request, share, subdir=None):
     except Exception as e:
         return json_error([str(e)])
 
-@safe_path_decorator()    
 @share_access_decorator(['download_share_files'])
+@safe_path_decorator()    
 def download_file(request, share, subpath=None):
     from sendfile import sendfile
     share.last_data_access = timezone.now()
@@ -151,9 +185,8 @@ def download_file(request, share, subpath=None):
     response={'path':file_path}
     return sendfile(request, os.path.realpath(file_path))
 
-
-@safe_path_decorator()    
 @share_access_decorator(['download_share_files'])
+@safe_path_decorator()    
 def preview_file(request, share, subpath):
     from_line = int(request.GET.get('from',1))
     num_lines = int(request.GET.get('for',100))
@@ -182,8 +215,8 @@ def get_directories(request, share):
     return json_response(response)
 #     return sendfile(request, os.path.realpath(file_path))
 
-@safe_path_decorator()    
 @share_access_decorator([Share.PERMISSION_VIEW])
+@safe_path_decorator()    
 def get_md5sum(request, share, subpath):
     file_path = os.path.join(share.get_path(),subpath)
     try:

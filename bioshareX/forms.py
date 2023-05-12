@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group, User
 from django.utils.translation import ugettext_lazy as _
 
 from bioshareX.models import FilePath, GroupProfile, Share, SSHKey
-from bioshareX.utils import paths_contain, test_path
+from bioshareX.utils import paths_contain, search_illegal_symlinks, test_path
 
 
 class ShareForm(forms.ModelForm):
@@ -21,7 +21,7 @@ class ShareForm(forms.ModelForm):
         self.fields['owner'].required = False
         if not user.is_superuser:
             self.fields.pop('owner',None)
-        if self.file_paths.count() == 0:#user.has_perm('bioshareX.link_to_path'):
+        if not user.can_link:
             self.fields.pop('link_to_path',None)
         else:
             self.fields['link_to_path'].help_text = 'Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths])
@@ -138,6 +138,42 @@ class FolderForm(forms.Form):
 class RenameForm(forms.Form):
     from_name = forms.RegexField(regex=r'^[^/]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'},widget=forms.HiddenInput())
     to_name = forms.RegexField(regex=r'^[\w\d\ \-_\.]+$',error_messages={'invalid':'Only letters, numbers, periods, and spaces are allowed'})
+
+class SymlinkForm(forms.Form):
+    def __init__(self, user, *args, **kwargs):
+        self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        self.user = user
+        super(SymlinkForm, self).__init__(*args, **kwargs)
+    name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
+    target = forms.CharField()
+    def clean_target(self):
+        path = self.cleaned_data['target']
+        file_paths = [fp.path for fp in self.file_paths]
+        if not self.user.can_link:
+            raise forms.ValidationError('User is not allowed to symlink')
+        if path == '' or not path:
+            path = None
+        if path:
+            try:
+                test_path(path, allow_absolute=True)
+            except:
+                raise forms.ValidationError('Bad path: "%s"'%path)
+            parent_path = paths_contain(file_paths,path,get_path=True)
+            if not parent_path:
+                raise forms.ValidationError('Path not allowed.')#  Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths]))
+            else: #Check against regeexes
+                self.fp = FilePath.objects.get(path=parent_path)
+                if not self.fp.is_valid(path):
+                    raise forms.ValidationError('Path not allowed.  Must match begin with {} and match one of the expressions: {}'.format(self.fp.path,', '.join(['"'+r+'"' for r in self.fp.regexes])))
+            if not paths_contain(settings.LINK_TO_DIRECTORIES,path):
+                raise forms.ValidationError('Path not whitelisted.  Contact the site admin if you believe this to be an error.')
+            if not os.path.isdir(path):
+                raise forms.ValidationError('Path: Directory "%s" does not exist'%path)
+            try:
+                search_illegal_symlinks(path) #recursively check for illegal paths
+            except Exception as e:
+                raise forms.ValidationError(str(e))
+        return path
 
 class RegistrationForm(forms.Form):
     """

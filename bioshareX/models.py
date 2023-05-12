@@ -14,8 +14,9 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from jsonfield import JSONField
+from bioshareX.exceptions import IllegalPathException
 
-from bioshareX.utils import path_contains, paths_contain, test_path
+from bioshareX.utils import check_symlinks_dfs, find_symlink, path_contains, paths_contain, test_path
 
 
 def pkgen():
@@ -84,6 +85,7 @@ class Share(models.Model):
     name = models.CharField(max_length=125)
     secure = models.BooleanField(default=True)
     read_only = models.BooleanField(default=False)
+    locked = models.BooleanField(default=False)
     notes = models.TextField(null=True,blank=True)
     tags = models.ManyToManyField('Tag')
     link_to_path = models.CharField(max_length=200,blank=True,null=True)
@@ -92,7 +94,11 @@ class Share(models.Model):
     real_path = models.CharField(max_length=200,blank=True,null=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
     path_exists = models.BooleanField(default=True)
+    symlinks_found = models.DateTimeField(null=True)
+    illegal_path_found = models.DateTimeField(null=True)
+    last_checked = models.DateTimeField(null=True)
     last_data_access = models.DateTimeField(null=True)
+    meta = models.JSONField(default=dict)
     PERMISSION_VIEW = 'view_share_files'
     PERMISSION_DELETE = 'delete_share_files'
     PERMISSION_DOWNLOAD = 'download_share_files'
@@ -144,6 +150,8 @@ class Share(models.Model):
         group_perms = [{'group':{'name':group.name,'id':group.id},'permissions':permissions} for group, permissions in groups.items()]
         return {'user_perms':user_perms,'group_perms':group_perms}
     def get_user_permissions(self,user,user_specific=False):
+        if self.locked:
+            return []
         if user_specific:
             from bioshareX.utils import fetchall
             perms = [uop.permission.codename for uop in ShareUserObjectPermission.objects.filter(user=user,content_object=self).select_related('permission')]
@@ -268,6 +276,39 @@ class Share(models.Model):
             test_path(self.link_to_path,allow_absolute=True)
             if not paths_contain(settings.LINK_TO_DIRECTORIES,self.link_to_path):
                 raise Exception('Path not allowed.')
+    def is_realpath(self, subpath=None):
+        path = self.get_path()
+        if subpath:
+            subpath = subpath.rstrip(os.path.sep)
+            path = os.path.join(path,subpath)
+        return path == os.path.realpath(path)
+    @property
+    def contains_symlinks(self):
+        return find_symlink(self.get_path())
+    def check_paths(self, check_symlinks=True):
+        message = None
+        self.path_exists = self.check_path()
+        if self.path_exists:
+            self.real_path = os.path.realpath(self.get_path())
+            if check_symlinks:
+                if self.link_to_path or self.contains_symlinks:
+                    self.symlinks_found = timezone.now()
+                    try:
+                        check_symlinks_dfs(self.get_path())
+                        self.illegal_path_found = None
+                        # self.locked = False
+                    except IllegalPathException as e:
+                        message = str(e)
+                        if not self.locked:
+                            ShareLog.create(share=self,action=ShareLog.ACTION_ERROR, text='Illegal path exception: {}'.format(message))
+                        self.illegal_path_found = timezone.now()
+                        self.locked = True
+                else:
+                    self.symlinks_found = None
+                    self.illegal_path_found = None
+        self.last_checked = timezone.now()
+        self.save()
+        return message
     def create_link(self):
         os.umask(settings.UMASK)
         self.check_link_path()
@@ -282,7 +323,6 @@ class Share(models.Model):
 
         import zipstream
         from django.http.response import StreamingHttpResponse
-
         from bioshareX.utils import get_total_size, zipdir
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
@@ -302,7 +342,6 @@ class Share(models.Model):
                 z.write(item_path,arcname=item_name)
             elif isdir(item_path):
                 zipdir(share_path,item_path,z)
-        
         from datetime import datetime
         zip_name = 'archive_'+datetime.now().strftime('%Y_%m_%d__%H_%M_%S')+'.zip'
         response = StreamingHttpResponse(z, content_type='application/zip')
@@ -412,10 +451,13 @@ class SSHKey(models.Model):
 class ShareLog(models.Model):
     ACTION_FILE_ADDED = 'File Added'
     ACTION_FOLDER_CREATED = 'Folder Created'
+    ACTION_LINK_CREATED = 'Link Created'
+    ACTION_LINK_DELETED = 'Link Deleted'
     ACTION_DELETED = 'File(s)/Folder(s) Deleted'
     ACTION_MOVED = 'File(s)/Folder(s) Moved'
     ACTION_RENAMED = 'File/Folder Renamed'
     ACTION_RSYNC = 'Files rsynced'
+    ACTION_ERROR = 'Error'
     ACTION_PERMISSIONS_UPDATED = 'Permissions updated'
     share = models.ForeignKey(Share, related_name="logs", on_delete=models.CASCADE)
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT)
@@ -468,6 +510,10 @@ Group.shares = property(group_shares)
 def user_permission_codes(self):
     return [p.codename for p in self.user_permissions.all()]
 User.permissions = user_permission_codes
+
+def can_link(self):
+    return settings.ENABLE_SYMLINKS and self.has_perm('bioshareX.link_to_path') and self.file_paths.exists()
+User.can_link = property(can_link)
 
 Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']

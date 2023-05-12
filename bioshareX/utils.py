@@ -12,6 +12,7 @@ from django.template import Context, Template
 from django.urls.base import reverse
 from rest_framework import status
 from scandir import scandir
+from bioshareX.exceptions import IllegalPathException
 
 from bioshareX.file_utils import istext
 
@@ -69,6 +70,11 @@ class share_access_decorator(object):
             kwargs[self.share_param]=share
             request = args[0]
             user_permissions = share.get_user_permissions(request.user)
+            if share.locked:
+                if request.is_ajax():
+                    return json_error(['This share has been locked.  Please contact the web admin.'])
+                else:
+                    return redirect('locked', share=share.id)
             for perm in self.perms:
                 if not share.secure and perm in ['view_share_files','download_share_files']:
                     continue
@@ -89,13 +95,14 @@ class share_access_decorator(object):
 
 class safe_path_decorator(object):
 
-    def __init__(self, share_param='share',path_param='subpath'):
+    def __init__(self, share_param='share',path_param='subpath', write=False):
         """
         If there are decorator arguments, the function
         to be decorated is not passed to the constructor!
         """
         self.share_param  = share_param
         self.path_param  = path_param
+        self.write = write
     def __call__(self, f):
         """
         If there are decorator arguments, __call__() is only called
@@ -112,14 +119,22 @@ class safe_path_decorator(object):
                     except Share.DoesNotExist:
                         return render(args[0],'errors/message.html', {'message':'No share with that ID exists.'},status=500)
                 if not paths_contain(settings.DIRECTORY_WHITELIST,share.get_realpath()):
-                    raise Exception('Share has an invalid root path: %s'%share.get_realpath())
+                    return json_error(messages=['Share has an invalid root path: %s'%share.get_realpath()])
+                    # raise Exception('Share has an invalid root path: %s'%share.get_realpath())
             path = kwargs.get(self.path_param,None)
             if path is not None:
                 test_path(path)
                 if share:
                     full_path = os.path.join(share.get_path(),path)
                     if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
-                        raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
+                        share.check_paths()
+                        return json_error(messages=['Illegal path encountered, %s, %s'%(share.get_path(),path)])
+                        # raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
+            if self.write:
+                real_path = share.is_realpath(path)
+                if not real_path:
+                    return json_error(messages=['Write is not allowed for symlinked files and directories.'])
+                    # raise Exception('Write is not allowed for symlinked files and directories.  Encountered path: {}'.format(real_path))
             return f(*args,**kwargs)
         return wrapped_f
 
@@ -343,6 +358,8 @@ def list_share_dir(share,subdir=None,ajax=False):
         else:
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
             dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
+            if entry.is_symlink():
+                dir['target'] = os.readlink(entry.path)
             directories[os.path.realpath(entry.path)]=dir
     return (file_list,directories)
 
@@ -357,3 +374,60 @@ def find_symlink(path): #pretty crude check to make sure the path is not and doe
     elif os.path.isdir(path):
         output = subprocess.check_output(['find', path, '-type', 'l', '-ls'])
         return bool(output)
+
+def find_symlinks(path):
+    symlinks = {}
+    for p in subprocess.check_output(['find', path, '-type', 'l']).decode().split('\n'):
+        if p and os.path.islink(p):
+            symlinks[p] = os.path.realpath(p)
+    return symlinks
+
+def search_illegal_symlinks(path, checked=set()):
+    symlinks = find_symlinks(path)
+    for link, target in symlinks.items():
+        # Fix circular symlink check
+        # if target in checked and (os.path.isdir(target) or os.path.islink(target)):
+        #     raise IllegalPathException('Circular symlink found, {} -> {}'.format(link, target))
+        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
+            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
+        checked.add(target)
+        search_illegal_symlinks(target, checked) # Doing this depth first.  Maybe consider doing breadth first.
+
+def get_all_symlinks(path, max_depth=1):
+    symlinks = [] # {path, target, illegal, depth}
+    queue = [{'path': path, 'depth': 0, 'previous': set()}]
+    while queue:
+        current = queue.pop(0)
+        path = current['path']
+        depth = current['depth']
+        previous = current['previous'].copy()
+        realpath = os.path.realpath(path)
+        warning = []
+        if realpath in previous:# and os.path.islink(path):
+            warning.append('Symlink recursion found')
+        if not paths_contain(settings.DIRECTORY_WHITELIST, realpath):
+            warning.append('Illegal path')
+        if depth > max_depth:
+            warning.append('Link is deeper than maximum depth of {}'.format(max_depth))
+        if os.path.islink(path):
+            symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning), 'depth': depth})
+        if not warning and realpath not in previous:
+            previous.add(realpath)
+            for p in subprocess.check_output(['find', os.path.realpath(current['path']), '-type', 'l']).decode().split('\n'):
+                queue.append({'path': p, 'depth': depth+1, 'previous': previous})
+    return symlinks
+
+def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):
+    checked = checked.copy()
+    checked.add(path)
+    depth += 1
+    if depth > max_depth:
+        return IllegalPathException('Symlink depth exceeded maximum depth of {}'.format(max_depth))
+    symlinks = find_symlinks(path)
+    for link, target in symlinks.items():
+        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
+            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
+        if target in checked:
+            raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
+        checked.add(target)
+        check_symlinks_dfs(target, checked, depth=depth, max_depth=max_depth)

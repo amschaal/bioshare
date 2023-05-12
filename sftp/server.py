@@ -277,7 +277,14 @@ class SFTPInterface (SFTPServerInterface):
             print('no share exists')
             print(path)
             raise PermissionDenied("Share does not exist: %s"%path[1])
-        return self.shares[parts[1]]
+        share = self.shares[parts[1]]
+        if not hasattr(share,'_sftp_initialized'):
+            if share.symlinks_found:
+                share.check_paths()
+            setattr(share,'_sftp_initialized', True)
+        if share.locked:
+            raise PermissionDenied('Share is locked.  Contact the application administrator.')
+        return share
     def _path_modified(self,path):
         share = self._get_share(path)
         previous_date = self.modified_date.get(share.id,None)
@@ -295,6 +302,11 @@ class SFTPInterface (SFTPServerInterface):
         self.shares_accessed.add(share.id)
         permissions = share.get_user_permissions(self.user)
 #         print permissions
+        if not self.is_realpath(path): # Don't allow any write operations if it isn't a real directory under the share root
+            if Share.PERMISSION_DELETE in permissions:
+                permissions.remove(Share.PERMISSION_DELETE)
+            if Share.PERMISSION_WRITE in permissions:
+                permissions.remove(Share.PERMISSION_WRITE)
         return permissions
     def _get_path_permissions(self,path):
         permissions = self._get_bioshare_path_permissions(path)
@@ -313,10 +325,16 @@ class SFTPInterface (SFTPServerInterface):
         share = self._get_share(path)
         realpath = os.path.realpath(os.path.join(share.get_realpath(),os.path.sep.join(parts[2:])))
         if not paths_contain(settings.DIRECTORY_WHITELIST,realpath):
+            share.check_paths()
             raise PermissionDenied("Encountered a path outside the whitelist")
         return realpath
 #         print self.ROOT + self.canonicalize(path)
 #         return self.ROOT + self.canonicalize(path)
+    def is_realpath(self, path):
+        parts = path.split(os.path.sep)
+        share = self._get_share(path)
+        # print('is_realpath', share.is_realpath(os.path.sep.join(parts[2:])), os.path.sep.join(parts[2:]))
+        return share.is_realpath(os.path.sep.join(parts[2:]))
     @sftp_response
     def list_shares(self):
 #         print "LIST SHARES"

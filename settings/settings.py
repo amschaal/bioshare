@@ -222,6 +222,8 @@ STRIP_REGEX = r'[^\w\.\- \*^]+'
 UNDERSCORE_REGEX = r'[ ]+'
 MD5SUM_COMMAND = 'md5sum'
 
+ENABLE_SYMLINKS = False
+
 ZFS_CREATE_COMMAND =  ['zfs','create']
 ZFS_DESTROY_COMMAND =  ['zfs','destroy']
 
