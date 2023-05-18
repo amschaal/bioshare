@@ -58,7 +58,10 @@ def create_folder(request, share, subdir=None):
     form = FolderForm(request.POST)
     data = json_form_validate(form)
     if form.is_valid():
-        folder_path = share.create_folder(form.cleaned_data['name'],subdir)
+        try:
+            folder_path = share.create_folder(form.cleaned_data['name'],subdir)
+        except Exception as e:
+            return json_error([str(e)])
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
         data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FOLDER_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)

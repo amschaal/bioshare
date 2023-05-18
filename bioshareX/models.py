@@ -219,6 +219,8 @@ class Share(models.Model):
             folder_path = os.path.join(path,name)
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
+            else:
+                raise IllegalPathException('Unable to create directory, path already exists.')
         return folder_path
     def delete_path(self,subpath):
         import shutil
@@ -251,6 +253,8 @@ class Share(models.Model):
         if destination_subpath.count('..') != 0:
             return False
         destination_path = os.path.join(self.get_path(),destination_subpath)
+        if destination_path != os.path.realpath(destination_path):
+            return False
         item_path = os.path.join(self.get_path(),item_subpath)
         if os.path.exists(destination_path):
             shutil.move(item_path,destination_path)
