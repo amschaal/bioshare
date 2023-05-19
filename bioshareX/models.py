@@ -16,7 +16,7 @@ from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from jsonfield import JSONField
 from bioshareX.exceptions import IllegalPathException
 
-from bioshareX.utils import check_symlinks_dfs, find_symlink, path_contains, paths_contain, test_path
+from bioshareX.utils import check_symlinks_dfs, find_symlink, is_realpath, path_contains, paths_contain, test_path
 
 
 def pkgen():
@@ -281,11 +281,7 @@ class Share(models.Model):
             if not paths_contain(settings.LINK_TO_DIRECTORIES,self.link_to_path):
                 raise Exception('Path not allowed.')
     def is_realpath(self, subpath=None):
-        path = self.get_path()
-        if subpath:
-            subpath = subpath.rstrip(os.path.sep)
-            path = os.path.join(path,subpath)
-        return path == os.path.realpath(path)
+        return is_realpath(self.get_path(), subpath)
     @property
     def contains_symlinks(self):
         return find_symlink(self.get_path())

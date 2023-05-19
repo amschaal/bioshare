@@ -181,7 +181,7 @@
 					{% elif not dir.target and is_realpath%}
 						<a href="{% url 'create_subshare' share=share.id subdir=subdir|default_if_none:""|add:dir.name|add:'/' %}" ><i class="fam-group-add" data-toggle="tooltip" title="Make this folder it's own share"></i></a> 
 					{% endif %}
-					{% if dir.target and user.can_link %}
+					{% if dir.target and user.can_link and "write_to_share" in share_perms and is_realpath%}
 						<a href="#" data-action="unlink" title="Unlink this directory"><i class="fam-delete" ></i></a>
 					{% endif %}	
 				{% endif %}

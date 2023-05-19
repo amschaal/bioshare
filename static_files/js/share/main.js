@@ -443,6 +443,9 @@ $(function () {
             		$.bootstrapGrowl('Successfully uploaded '+file.name,{type:'success',delay: 3000});
             	}
             });
+			$.each(data.result.errors, function (index, error) {
+				$.bootstrapGrowl(error,{type:'error',delay: 10000});
+            });
             $('#progress').hide();
             toggle_table_visibility();
         },
