@@ -24,8 +24,11 @@ class Command(BaseCommand):
         self.stdout.write('Checking share paths...')
         # This is relying on the app to keep track of whether symlinks exist in a share, otherwise should check all shares each time
         for share in Share.objects.filter(Q(symlinks_found__isnull=False)|Q(link_to_path__isnull=False)):
-            message = share.check_paths(check_symlinks=True)
-            if share.illegal_path_found:
-                email_admin(share, message)
-        for share in Share.objects.exclude(Q(symlinks_found__isnull=False)|Q(link_to_path__isnull=False)):
-            share.check_paths(check_symlinks=False)
+            try:
+                message = share.check_paths(check_symlinks=True)
+                if share.illegal_path_found:
+                    email_admin(share, message)
+            except Exception as e:
+                self.stdout.write('Exception while checking share {}-{} at path {}: {}'.format(share.id, share.name, share.get_path(), str(e)))
+        # for share in Share.objects.exclude(Q(symlinks_found__isnull=False)|Q(link_to_path__isnull=False)):
+        #     share.check_paths(check_symlinks=False)
