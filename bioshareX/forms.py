@@ -16,7 +16,10 @@ class ShareForm(forms.ModelForm):
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
-        self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        if user.is_authenticated:
+            self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        else:
+            self.file_paths = []
         self.fields['filesystem'].queryset = user.filesystems
         self.fields['owner'].required = False
         if not user.is_superuser:
@@ -147,7 +150,10 @@ class RenameForm(forms.Form):
 
 class SymlinkForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
-        self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        if user.is_authenticated:
+            self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        else:
+            self.file_paths = []
         self.user = user
         super(SymlinkForm, self).__init__(*args, **kwargs)
     name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
