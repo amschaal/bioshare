@@ -75,7 +75,7 @@ def list_shares(request,group_id=None):
         total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
     else:
         total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
-    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":'bad_paths' in request.GET,"group":group})
+    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":'bad_paths' in request.GET,"locked":'locked' in request.GET,"group":group})
 
 def forbidden(request):
     # View code here...

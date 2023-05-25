@@ -8,6 +8,7 @@ def user_contexts(request):
             recent_shares = Share.objects.filter(owner=request.user).order_by('-created')[:5]
             shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files',klass=Share).exclude(owner=request.user).order_by('-created')[:5]
             bad_share_path = get_objects_for_user(request.user, 'bioshareX.view_share_files',klass=Share).filter(path_exists=False).order_by('-created')
+            locked_shares = get_objects_for_user(request.user, 'bioshareX.view_share_files',klass=Share).filter(locked=True).order_by('-created')
         else:
             recent_shares = []
             shared_with_me = []
@@ -16,6 +17,7 @@ def user_contexts(request):
             'my_recent_shares':recent_shares,
             'shared_with_me':shared_with_me,
             'bad_share_path':bad_share_path,
+            'locked_shares':locked_shares,
             'SITE_URL':settings.SITE_URL
         }
 

@@ -96,6 +96,9 @@
               {% if bad_share_path.count != 0 %}
               	<a href="{% url 'home' %}?bad_paths" class="error"><i class="icon-warning-sign"></i> {{bad_share_path.count}} bad shares</a>
               {% endif %}
+              {% if locked_shares.count != 0 %}
+              	<a href="{% url 'home' %}?locked" class="error"><i class="icon-lock"></i> {{locked_shares.count}} locked shares</a>
+              {% endif %}
               {% if my_recent_shares|length != 0 %}
               <li class="nav-header">My Latest Shares</li>
               {% for share in my_recent_shares %}

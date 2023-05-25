@@ -21,7 +21,9 @@
 <h2>Shares</h2>
 {% endif %}
 
-
+{% if locked %}
+<h3>The following shares are locked. View <a href="{% url 'home' %}">all shares.</a></h3>
+{% endif %}
 {% if bad_paths %}
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
@@ -31,7 +33,7 @@
 	{% endif %}
 {% endif %}
 
- <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false',{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})" ng-cloak>
+ <div ng-controller="SharesController" ng-init="init({ {% if locked %}locked:'true',{% endif %}{% if bad_paths %}path_exists:'false',{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})" ng-cloak>
 	    {% verbatim %}
 	    <h4>Fields</h4>
             <div style="margin-bottom: 20px">
