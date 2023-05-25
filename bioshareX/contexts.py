@@ -13,6 +13,7 @@ def user_contexts(request):
             recent_shares = []
             shared_with_me = []
             bad_share_path = [] 
+            locked_shares = []
         return {
             'my_recent_shares':recent_shares,
             'shared_with_me':shared_with_me,
