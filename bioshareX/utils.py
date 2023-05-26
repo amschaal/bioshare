@@ -189,6 +189,18 @@ def paths_contain(paths,child_path, get_path=False):
             return path if get_path else True
     return False
 
+def paths_contain_new(paths,child_path, get_paths=False):
+    matching = []
+    for path in paths:
+        if path_contains(path, child_path):
+            if not get_paths:
+                return True
+            matching.append(path)
+    if not get_paths or len(matching) == 0:
+        return False
+    else:
+        return matching
+
 def json_response(dict):
     import json
 
@@ -427,10 +439,11 @@ def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):
     for link, target in symlinks.items():
         if not paths_contain(settings.DIRECTORY_WHITELIST, target):
             raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
-        if target in checked:
+        if target in checked and os.path.isdir(target):
             raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
         checked.add(target)
-        check_symlinks_dfs(target, checked, depth=depth, max_depth=max_depth)
+        if os.path.isdir(target):
+            check_symlinks_dfs(target, checked, depth=depth, max_depth=max_depth)
 
 def is_realpath(path, subpath=None):
     if subpath:
