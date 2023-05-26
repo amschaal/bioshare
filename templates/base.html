@@ -93,10 +93,11 @@
             <ul class="nav nav-list">
               <li class="nav-header">Search Shares</li>
               <li><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off" placeholder="Search by share name"></li>
-              <li class="nav-header">Search Files</li>
-              <li><form class="input-append" action="{% url 'search_files' %}"><input  type="text" name="query" placeholder="eg: *.fasta"><button style="margin-bottom:10px" class="btn btn-primary">Search</button></form></li>
               {% if bad_share_path.count != 0 %}
               	<a href="{% url 'home' %}?bad_paths" class="error"><i class="icon-warning-sign"></i> {{bad_share_path.count}} bad shares</a>
+              {% endif %}
+              {% if locked_shares.count != 0 %}
+              	<a href="{% url 'home' %}?locked" class="error"><i class="icon-lock"></i> {{locked_shares.count}} locked shares</a>
               {% endif %}
               {% if my_recent_shares|length != 0 %}
               <li class="nav-header">My Latest Shares</li>

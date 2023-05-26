@@ -11,16 +11,19 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth.decorators import permission_required
+from bioshareX.exceptions import IllegalPathException
 
 from bioshareX.file_utils import get_lines, get_num_lines, istext
 from bioshareX.forms import FolderForm, RenameForm, SymlinkForm, json_form_validate
 from bioshareX.models import Share, ShareLog
-from bioshareX.utils import (JSONDecorator, find_symlink, json_error,
+from bioshareX.utils import (JSONDecorator, find_symlink, is_realpath, json_error,
                              json_response, md5sum, safe_path_decorator,
                              share_access_decorator, sizeof_fmt, test_path)
 
 
 def handle_uploaded_file(path,file):
+    if not is_realpath(path):
+        raise IllegalPathException('Files cannot be uploaded to symlinked paths.')
     with open(path, 'wb+') as destination:
         for chunk in file.chunks():
             destination.write(chunk)
@@ -38,18 +41,21 @@ def upload_file(request, share, subdir=None):
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
-    data = {'share':share.id,'subdir':subdir,'files':[]}#{key:val for key,val in request.POST.items()}
+    data = {'share':share.id,'subdir':subdir,'files':[], 'errors':[]}#{key:val for key,val in request.POST.items()}
     for name,file in request.FILES.items():
-        filename = clean_filename(file.name)
-        FILE_PATH = join(PATH,filename)
-        handle_uploaded_file(FILE_PATH,file)
-        subpath = filename if subdir is None else subdir + filename
-        url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
-        (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
-        data['files'].append({'name':filename,'extension':filename.split('.').pop() if '.' in filename else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'isText':istext(FILE_PATH)}) 
+        try:
+            filename = clean_filename(file.name)
+            FILE_PATH = join(PATH,filename)
+            handle_uploaded_file(FILE_PATH,file)
+            subpath = filename if subdir is None else subdir + filename
+            url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
+            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
+            data['files'].append({'name':filename,'extension':filename.split('.').pop() if '.' in filename else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'isText':istext(FILE_PATH)}) 
+        except Exception as e:
+            data['errors'].append('Unable to upload file: "{}". Exception: "{}"'.format(filename, str(e))) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
-    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FILE_ADDED,paths=[clean_filename(file.name) for file in request.FILES.values()],subdir=subdir)
+    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FILE_ADDED,paths=[clean_filename(file['name']) for file in data['files']],subdir=subdir)
     return json_response(data)
 
 @share_access_decorator(['write_to_share'])
@@ -58,7 +64,10 @@ def create_folder(request, share, subdir=None):
     form = FolderForm(request.POST)
     data = json_form_validate(form)
     if form.is_valid():
-        folder_path = share.create_folder(form.cleaned_data['name'],subdir)
+        try:
+            folder_path = share.create_folder(form.cleaned_data['name'],subdir)
+        except Exception as e:
+            return json_error([str(e)])
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
         data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FOLDER_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)

@@ -67,7 +67,7 @@ class ShareSerializer(serializers.ModelSerializer):
 #         return [g.name for g in get_groups_with_perms(obj,attach_perms=False)]
     class Meta:
         model = Share
-        fields = ('id','url','users','groups','stats','tags','owner','slug','created','updated','name','secure','read_only','notes','path_exists')
+        fields = ('id','url','users','groups','stats','tags','owner','slug','created','updated','name','secure','read_only','notes','path_exists','locked')
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:

@@ -16,7 +16,10 @@ class ShareForm(forms.ModelForm):
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
-        self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        if user.is_authenticated:
+            self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        else:
+            self.file_paths = []
         self.fields['filesystem'].queryset = user.filesystems
         self.fields['owner'].required = False
         if not user.is_superuser:
@@ -134,14 +137,23 @@ class UploadFileForm(forms.Form):
 
 class FolderForm(forms.Form):
     name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
-
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        return name.strip()
+    
 class RenameForm(forms.Form):
     from_name = forms.RegexField(regex=r'^[^/]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'},widget=forms.HiddenInput())
     to_name = forms.RegexField(regex=r'^[\w\d\ \-_\.]+$',error_messages={'invalid':'Only letters, numbers, periods, and spaces are allowed'})
+    def clean_to_name(self):
+        to_name = self.cleaned_data['to_name']
+        return to_name.strip()
 
 class SymlinkForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
-        self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        if user.is_authenticated:
+            self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        else:
+            self.file_paths = []
         self.user = user
         super(SymlinkForm, self).__init__(*args, **kwargs)
     name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})

@@ -444,3 +444,9 @@ def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):
         checked.add(target)
         if os.path.isdir(target):
             check_symlinks_dfs(target, checked, depth=depth, max_depth=max_depth)
+
+def is_realpath(path, subpath=None):
+    if subpath:
+        path = os.path.join(path,subpath)
+    path = path.rstrip(os.path.sep)
+    return path == os.path.realpath(path)
