@@ -441,7 +441,7 @@ def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):
             raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
         if target in checked and os.path.isdir(target):
             raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
-        checked.add(target)
+        # checked.add(target) # This actually passes sibling directories through recursive check, which is not technically recursion
         if os.path.isdir(target):
             check_symlinks_dfs(target, checked, depth=depth, max_depth=max_depth)
 
@@ -450,3 +450,28 @@ def is_realpath(path, subpath=None):
         path = os.path.join(path,subpath)
     path = path.rstrip(os.path.sep)
     return path == os.path.realpath(path)
+
+
+# Testing new version which checks for duplicate directories as well as recursion
+def check_symlinks_dfs_test(path, checked=set(), depth=0, max_depth=3, checked_all=set(), log=True):
+    tabs = '\t'*depth
+    checked = checked.copy()
+    checked.add(path)
+    checked_all.add(path)
+    depth += 1
+    if log:
+        print('{}{}'.format(tabs, path))
+        print('{}checked: {}'.format(tabs, checked))
+        print('{}checked_all: {}'.format(tabs, checked_all))
+    if depth > max_depth:
+        return IllegalPathException('Symlink depth exceeded maximum depth of {}'.format(max_depth))
+    symlinks = find_symlinks(path)
+    for link, target in symlinks.items():
+        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
+            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
+        if target in checked and os.path.isdir(target):
+            raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
+        if target in checked_all and os.path.isdir(target):
+            raise IllegalPathException('Duplicate directory found at: {}->{}'.format(link, target))
+        if os.path.isdir(target):
+            check_symlinks_dfs_test(target, checked, depth=depth, max_depth=max_depth, checked_all=checked_all)
