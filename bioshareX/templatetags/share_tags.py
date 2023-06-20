@@ -1,8 +1,8 @@
 from django import template
 from django.utils.safestring import mark_safe
+from django.urls.base import reverse
 # from django.template.Library import register
 register = template.Library()
-from django.core.urlresolvers import reverse
 import os
 @register.simple_tag()
 def link_full_path(*args, **kwargs):

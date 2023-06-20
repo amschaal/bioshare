@@ -8,13 +8,12 @@ Installation
 
 ### Requirements ###
 
-1. Linux (tested w/ Ubuntu 14.04) 
+1. Linux (tested w/ Ubuntu 22.04) 
 2. Apache 2.4+, mod_ssl, mod_wsgi, mod_xsendfile
-3. Python 2.7.x (virtualenv recommended)
-4. MySQL Server (tested w/ MySQL 5.5)
-5. Python & MySQL dev libraries (python-dev and libmysqlclient-dev on Ubuntu)
-6. (Optionally) ProFTPD for SFTP download support 
- 
+3. Python 3.8+ (virtualenv recommended)
+4. PostgreSQL Server
+5. Optionally, ZFS (see ZFS.md)
+
 Clone the repository:
 ~~~
 git clone https://github.com/amschaal/bioshare.git
@@ -38,7 +37,7 @@ Collect all of the static files (CSS, JS, images, ...) into the static directory
 python manage.py collectstatic
 ~~~
 
-Ensure that you've created an empty MySQL database granting full privileges to the user specified in your config.py file.  You may now run the database migrations:
+Ensure that you've created an empty PostgreSQL database granting full privileges to the user specified in your config.py file.  You may now run the database migrations:
 ~~~
 python manage.py migrate
 ~~~

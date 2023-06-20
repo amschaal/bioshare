@@ -85,3 +85,6 @@ span.tag{
 .pointer{
 	cursor: pointer;
 }
+table.dataTable.table-condensed tbody th, table.dataTable tbody td {
+	padding: 4px 5px !important;
+}

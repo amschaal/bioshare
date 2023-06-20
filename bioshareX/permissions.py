@@ -1,7 +1,6 @@
 from django.http.response import Http404
-from rest_framework.permissions import DjangoModelPermissions, SAFE_METHODS,\
-    DjangoObjectPermissions
-from django.contrib.auth.models import Group
+from rest_framework.permissions import SAFE_METHODS, DjangoObjectPermissions
+
 
 #Requires all permissions in the "perms" list.  These can be either assigned at the model level OR the object level
 class ViewObjectPermissions(DjangoObjectPermissions):

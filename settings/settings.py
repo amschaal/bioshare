@@ -6,7 +6,7 @@ import os
 CURRENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),os.pardir))
 
 # Used for rsync wrapper to choose correct python (especially when using virtualenv).  Override this in config.py if different from what is used by web server.
-if os.environ.has_key('VIRTUAL_ENV'):
+if 'VIRTUAL_ENV' in os.environ:
     PYTHON_BIN = os.path.join(os.environ['VIRTUAL_ENV'],'bin/python')
 else:
     PYTHON_BIN = sys.executable
@@ -101,14 +101,14 @@ TEMPLATES = [
                 'django.template.context_processors.static',
                 'django.template.context_processors.tz',
                 'django.contrib.messages.context_processors.messages',
-                'django.core.context_processors.request',
+                'django.template.context_processors.request',
                 'bioshareX.contexts.user_contexts',
             ],
         },
     }
 ]
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -145,6 +145,7 @@ INSTALLED_APPS = (
     'bioshareX',
     'crispy_forms',
     'guardian',
+    'django_filters',
     'rest_framework',
     'rest_framework.authtoken',
     'compressor',
@@ -194,7 +195,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ),
-    'DEFAULT_FILTER_BACKENDS': ('rest_framework_filters.backends.DjangoFilterBackend','rest_framework.filters.OrderingFilter'),
+    # 'DEFAULT_FILTER_BACKENDS': ('rest_framework_filters.backends.DjangoFilterBackend','rest_framework.filters.OrderingFilter'),
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend', 'rest_framework.filters.OrderingFilter',),
     'DEFAULT_PAGINATION_CLASS': 'bioshareX.pagination.StandardPagePagination',
     'PAGE_SIZE': 10,
     'PAGINATE_BY_PARAM': 'page_size',  # Allow client to override, using `?page_size=xxx`.
@@ -212,7 +214,7 @@ FILE_UPLOAD_HANDLERS = (
 )
 SSH_WRAPPER_SCRIPT = os.path.join(CURRENT_DIR, 'sshwrapper.py')
 
-UMASK = 0002
+UMASK = 0o002
 
 INCLUDE_REGISTER_URL = False
 
@@ -220,4 +222,9 @@ STRIP_REGEX = r'[^\w\.\- \*^]+'
 UNDERSCORE_REGEX = r'[ ]+'
 MD5SUM_COMMAND = 'md5sum'
 
-from config import *
+ENABLE_SYMLINKS = False
+
+ZFS_CREATE_COMMAND =  ['zfs','create']
+ZFS_DESTROY_COMMAND =  ['zfs','destroy']
+
+from settings.config import *

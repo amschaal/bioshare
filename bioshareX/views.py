@@ -1,28 +1,31 @@
 # Create your views here.
-from django.shortcuts import render_to_response, render, redirect
-from django.core.urlresolvers import reverse
-from django.http.response import HttpResponseRedirect, HttpResponseForbidden
-from models import Share, SSHKey, MetaData, Tag, ShareStats, ShareUserObjectPermission, ShareGroupObjectPermission
-from forms import ShareForm, FolderForm, SSHKeyForm, MetaDataForm, PasswordChangeForm, RenameForm
-from guardian.shortcuts import get_perms, get_users_with_perms, assign_perm
-#from django.utils import simplejson
+import codecs
 import json
-from bioshareX.utils import share_access_decorator, safe_path_decorator, sizeof_fmt, json_response,\
-    get_setting, list_share_dir
-from bioshareX.file_utils import istext
-from django.contrib.auth.decorators import login_required
-from guardian.shortcuts import get_objects_for_user
 import os
-from bioshareX.forms import SubShareForm, GroupForm, GroupProfileForm
-from django.contrib.auth.models import User, Group
-import operator
-from django.db.models.query_utils import Q
-from bioshareX.api.serializers import UserSerializer
-from rest_framework.renderers import JSONRenderer
 import re
-from bioshareX.models import GroupProfile
-from guardian.decorators import permission_required
+from os import listdir
+from os.path import isdir, isfile, join
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import Group
+from django.http.response import HttpResponseForbidden, HttpResponseRedirect
+from django.shortcuts import redirect, render
+from django.urls.base import reverse
 from django.views.decorators.cache import never_cache
+from django.db import transaction
+from guardian.decorators import permission_required
+from guardian.shortcuts import assign_perm
+from rest_framework.renderers import JSONRenderer
+
+from bioshareX.api.serializers import UserSerializer
+from bioshareX.forms import (FolderForm, GroupForm, GroupProfileForm,
+                             MetaDataForm, PasswordChangeForm, RenameForm,
+                             ShareForm, SSHKeyForm, SubShareForm, SymlinkForm)
+from bioshareX.models import GroupProfile, Share, ShareStats, SSHKey
+from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, json_response, list_share_dir,
+                             safe_path_decorator, share_access_decorator,
+                             sizeof_fmt)
+
 
 def index(request):
     # View code here...
@@ -71,9 +74,8 @@ def list_shares(request,group_id=None):
     if not group:
         total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
     else:
-        print group.shares
         total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
-    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":request.GET.has_key('bad_paths'),"group":group})
+    return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":'bad_paths' in request.GET,"locked":'locked' in request.GET,"group":group})
 
 def forbidden(request):
     # View code here...
@@ -91,8 +93,8 @@ def edit_share(request,share):
     if request.method == 'POST':
         form = ShareForm(request.user,request.POST,instance=share)
         if form.is_valid():
-            share = form.save(commit=False)
-            share.set_tags(form.cleaned_data['tags'].split(','))
+            share = form.save(commit=False) #gets commited in next call?
+            share.set_tags(form.cleaned_data['tags'].split(',')) 
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
     else:
         tags = ','.join([tag.name for tag in share.tags.all()])
@@ -123,13 +125,26 @@ def list_directory(request,share,subdir=None):
     shared_users = all_perms['user_perms'].keys()
     shared_groups = [g['group']['name'] for g in all_perms['group_perms']]
     emails = sorted([u.email for u in share.get_users_with_permissions()])
-    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails})
+    readme = None
+    is_realpath = share.is_realpath(subdir)
+    if not is_realpath: # Don't allow any write operations if it isn't a real directory under the share root
+        if Share.PERMISSION_DELETE in share_perms:
+            share_perms.remove(Share.PERMISSION_DELETE)
+        if Share.PERMISSION_WRITE in share_perms:
+            share_perms.remove(Share.PERMISSION_WRITE)
+    #The following block is for markdown rendering
+    if os.path.isfile(os.path.join(PATH,'README.md')):
+        import markdown
+        input_file = codecs.open(os.path.join(PATH,'README.md'), mode="r", encoding="utf-8")
+        text = input_file.read()
+        readme = markdown.markdown(text,extensions=['fenced_code','tables','nl2br'])
+        download_base = reverse('download_file',kwargs={'share':share.id,'subpath':subdir if subdir else ''})
+        readme = re.sub(r'src="(?!http)',r'src="{0}'.format(download_base),readme)
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir, "is_realpath": is_realpath,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"link_form":SymlinkForm(request.user),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails, "readme":readme})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
 def wget_listing(request,share,subdir=None):
-    from os import listdir
-    from os.path import isfile, join
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
@@ -150,20 +165,21 @@ def create_share(request,group_id=None):
     group = None if not group_id else Group.objects.get(id=group_id)
     if request.method == 'POST':
         form = ShareForm(request.user,request.POST)
-        if form.is_valid():
-            share = form.save(commit=False)
-            if not getattr(share, 'owner',None):
-                share.owner=request.user
-            try:
-                share.save()
-                share.set_tags(form.cleaned_data['tags'].split(','))
-            except Exception, e:
-                share.delete()
-                return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':e.message})
-            if group:
-                assign_perm(Share.PERMISSION_VIEW,group,share)
-                assign_perm(Share.PERMISSION_DOWNLOAD,group,share)
-            return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
+        with transaction.atomic():
+            if form.is_valid():
+                share = form.save(commit=False)
+                if not getattr(share, 'owner',None):
+                    share.owner=request.user
+                try:
+                    share.save()
+                    share.set_tags(form.cleaned_data['tags'].split(','))
+                except Exception as e:
+                    share.delete()
+                    return render(request, 'share/new_share.html', {'form': form,'group':group, 'error':str(e)})
+                if group:
+                    assign_perm(Share.PERMISSION_VIEW,group,share)
+                    assign_perm(Share.PERMISSION_DOWNLOAD,group,share)
+                return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id}))
     else:
         form = ShareForm(request.user)
     return render(request, 'share/new_share.html', {'form': form,'group':group})
@@ -171,6 +187,8 @@ def create_share(request,group_id=None):
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['admin'])
 def create_subshare(request,share,subdir):
+    if not share.is_realpath(subdir):
+        raise PermissionError('Linked directories are not eligible to become subshares. {} {}'.format(share.get_path(),subdir))
     path = os.path.join(share.get_path(),subdir)
     if not os.path.exists(path):
         return render(request,'index.html', {"message": "Unable to create share.  The specified path does not exist."})
@@ -187,9 +205,9 @@ def create_subshare(request,share,subdir):
                 subshare.read_only = True
             try:
                 subshare.save()
-            except Exception, e:
+            except Exception as e:
                 subshare.delete()
-                return render(request, 'share/new_share.html', {'form': form, 'error':e.message,'share':share,'subdir':subdir})
+                return render(request, 'share/new_share.html', {'form': form, 'error':str(e),'share':share,'subdir':subdir})
             return HttpResponseRedirect(reverse('list_directory',kwargs={'share':subshare.slug_or_id}))
     else:
         name = os.path.basename(os.path.normpath(subdir))
@@ -211,7 +229,7 @@ def update_password(request):
 
 @login_required
 def manage_groups(request):
-    context ={'user':JSONRenderer().render(UserSerializer(request.user,include_perms=True).data)}
+    context ={'user':JSONRenderer().render(UserSerializer(request.user,include_perms=True).data).decode('utf-8')}
     return render(request,'groups/groups.html',context)
 
 @login_required
@@ -228,8 +246,8 @@ def create_ssh_key(request):
 #             key = form.save(commit=False)
 #             key.user=request.user
             key.save()
+
             from settings.settings import AUTHORIZED_KEYS_FILE
-            import subprocess
 #            subprocess.check_call(['/bin/chmod','600',AUTHORIZED_KEYS_FILE])
             auth_keys = open(AUTHORIZED_KEYS_FILE, "a")
             auth_keys.write(key.create_authorized_key()+'\n')
@@ -239,13 +257,10 @@ def create_ssh_key(request):
     else:
         form = SSHKeyForm()
     return render(request, 'ssh/new_key.html', {'form': form})
-from django.contrib.auth.forms import SetPasswordForm
 
 @safe_path_decorator()
 @share_access_decorator(['view_share_files'])    
 def go_to_file_or_folder(request, share, subpath=None):
-    from os.path import isdir, isfile, join
-    import os
     path = share.get_path() if subpath is None else join(share.get_path(),subpath)
     if isdir(path):
         return HttpResponseRedirect(reverse('list_directory',kwargs={'share':share.slug_or_id,'subdir':os.path.normpath(subpath) + os.sep}))
@@ -264,7 +279,6 @@ def delete_share(request, share, confirm=False):
     
 @login_required
 def search_files(request):
-    from utils import find
     query = request.GET.get('query',None)
     results=[]
     if query:
@@ -278,3 +292,25 @@ def search_files(request):
 def view_messages(request):
     return render(request, 'account/messages.html', {})
 
+def locked(request, share):
+    share = Share.get_by_slug_or_id(share)
+    if not share.locked:
+        return redirect('list_directory', share=share.id)
+    if request.user.is_superuser:
+        message = share.check_paths(check_symlinks=True)
+        symlinks = get_all_symlinks(share.get_path())
+        return render(request,'share/locked.html', {"share":share, "symlinks": symlinks, "message": message})
+    else:    
+        return render(request,'share/locked.html', {"share":share})
+
+def unlock(request, share):
+    share = Share.get_by_slug_or_id(share)
+    if not request.user.is_superuser:
+        raise PermissionError('Only super users may unlock shares')
+    share.check_paths(check_symlinks=True)
+    if not share.illegal_path_found:
+        share.locked = False
+        share.save()
+        return redirect('list_directory', share=share.id)
+    else:
+        return redirect('locked', share=share.id)

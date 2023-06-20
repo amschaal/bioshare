@@ -59,7 +59,7 @@ SFTP_PORT = 2200
 HOST = 'server.domain.net'
 SITE_URL = 'https://server.domain.net'
 
-SFTP_SSH_PORT = 2222
+SFTP_SSH_PORT = 2200
 # Note, you can generate a new host key like this:
 # ssh-keygen -t rsa -N '' -f host_key
 SFTP_HOST_KEY = '/tmp/host_key'

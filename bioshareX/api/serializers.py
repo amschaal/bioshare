@@ -1,8 +1,10 @@
-from bioshareX.models import ShareLog, Share, Tag, ShareStats, Message
+from django.contrib.auth.models import Group, User
+from guardian.shortcuts import get_users_with_perms
 from rest_framework import serializers
-from django.contrib.auth.models import User, Group
-from django.core.urlresolvers import reverse
-from guardian.shortcuts import get_users_with_perms, get_groups_with_perms
+
+from bioshareX.models import Message, Share, ShareLog, ShareStats, Tag
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -26,20 +28,22 @@ class GroupSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = serializers.ModelSerializer.to_representation(self, instance)
         user_perms = get_users_with_perms(instance,attach_perms=True,with_group_users=False)
-#         data['permissions'] = [{'user':UserSerializer(user).data,'permissions':permissions} for user, permissions in user_perms.iteritems()]
-        perm_map = {user.id:permissions for user, permissions in user_perms.iteritems()}
+#         data['permissions'] = [{'user':UserSerializer(user).data,'permissions':permissions} for user, permissions in user_perms.items()]
+        perm_map = {user.id:permissions for user, permissions in user_perms.items()}
         for user in data['users']:
-            user['permissions'] = [] if not perm_map.has_key(user['id']) else perm_map[user['id']]
+            user['permissions'] = [] if user['id'] not in perm_map else perm_map[user['id']]
         return data
 class ShareLogSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     paths = serializers.JSONField()
     class Meta:
         model = ShareLog
+        exclude = []
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
+        exclude = []
 
 class ShareStatsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -63,7 +67,7 @@ class ShareSerializer(serializers.ModelSerializer):
 #         return [g.name for g in get_groups_with_perms(obj,attach_perms=False)]
     class Meta:
         model = Share
-        fields = ('id','url','users','groups','stats','tags','owner','slug','created','updated','name','secure','read_only','notes','path_exists')
+        fields = ('id','url','users','groups','stats','tags','owner','slug','created','updated','name','secure','read_only','notes','path_exists','locked')
 
 class MessageSerializer(serializers.ModelSerializer):
     class Meta:

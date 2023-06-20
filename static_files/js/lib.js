@@ -15,6 +15,16 @@ BC.handle_ajax_errors = function(data,message_target){
 			$.bootstrapGrowl(data.messages[i].content,{type:data.messages[i].type,delay: 10000});//type:(null, 'info', 'error', 'success')
 	}
 }
+
+BC.on_ajax_error = function (response) {
+	if (response.responseJSON)
+		BC.handle_ajax_errors(response.responseJSON);
+	else if (response.unauthenticated)
+		BC.login();
+	else
+		$.bootstrapGrowl('An unknown error occurred',{type:'error',delay: 10000});
+}
+
 BC.ajax_form_submit=function(form,options){
 	var defaults={
 			'ajax':
@@ -60,7 +70,7 @@ BC.ajax=function(options){
 			type:"POST"
 	}
 	var options = $.extend({},defaults,options);
-	$.ajax(options);
+	$.ajax(options).error(BC.on_ajax_error);
 }
 BC.replace = function(str,dict){
 	for(var key in dict){

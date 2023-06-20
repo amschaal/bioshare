@@ -1,13 +1,14 @@
+import os
+
 from django import forms
-from bioshareX.models import Share, SSHKey, GroupProfile
-from django.contrib.auth.models import User, Group
-from django.utils.translation import ugettext_lazy as _
-from django.utils.html import strip_tags
-from django.core.validators import RegexValidator
-from bioshareX.utils import test_path, paths_contain
 from django.conf import settings
-import os   
-from django.contrib.auth.forms import PasswordResetForm, AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
+from django.contrib.auth.models import Group, User
+from django.utils.translation import ugettext_lazy as _
+
+from bioshareX.models import FilePath, GroupProfile, Share, SSHKey
+from bioshareX.utils import paths_contain, search_illegal_symlinks, test_path
+
 
 class ShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
@@ -15,12 +16,18 @@ class ShareForm(forms.ModelForm):
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
     def __init__(self, user, *args, **kwargs):
         super(ShareForm, self).__init__(*args, **kwargs)
+        if user.is_authenticated:
+            self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        else:
+            self.file_paths = []
         self.fields['filesystem'].queryset = user.filesystems
         self.fields['owner'].required = False
         if not user.is_superuser:
             self.fields.pop('owner',None)
-        if not user.has_perm('bioshareX.link_to_path'):
+        if not user.can_link:
             self.fields.pop('link_to_path',None)
+        else:
+            self.fields['link_to_path'].help_text = 'Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths])
         self.the_instance = kwargs.get('instance',None)
         if self.the_instance:
             if not self.the_instance.link_to_path:
@@ -31,6 +38,7 @@ class ShareForm(forms.ModelForm):
                 self.fields.pop('read_only',None)
     def clean_link_to_path(self):
         path = self.cleaned_data['link_to_path']
+        file_paths = [fp.path for fp in self.file_paths]
         if path == '' or not path:
             path = None
         if path:
@@ -38,10 +46,17 @@ class ShareForm(forms.ModelForm):
                 test_path(path,allow_absolute=True)
             except:
                 raise forms.ValidationError('Bad path: "%s"'%path)
-            if not os.path.isdir(path):
-                raise forms.ValidationError('Path: "%s" does not exist'%path)
+            parent_path = paths_contain(file_paths,path,get_path=True)
+            if not parent_path:
+                raise forms.ValidationError('Path not allowed.')#  Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths]))
+            else: #Check against regeexes
+                self.fp = FilePath.objects.get(path=parent_path)
+                if not self.fp.is_valid(path):
+                    raise forms.ValidationError('Path not allowed.  Must match begin with {} and match one of the expressions: {}'.format(self.fp.path,', '.join(['"'+r+'"' for r in self.fp.regexes])))
             if not paths_contain(settings.LINK_TO_DIRECTORIES,path):
-                raise forms.ValidationError('Path not allowed.')
+                raise forms.ValidationError('Path not whitelisted.  Contact the site admin if you believe this to be an error.')
+            if not os.path.isdir(path):
+                raise forms.ValidationError('Path: Directory "%s" does not exist'%path)
         if self.the_instance:
             if self.the_instance.link_to_path and not path:
                 raise forms.ValidationError('It is not possible to change a linked share to a regular share.')
@@ -64,7 +79,14 @@ class ShareForm(forms.ModelForm):
         if path and not cleaned_data.get('read_only',None):
             self.add_error('read_only', forms.ValidationError('Linked shares must be read only.'))
         cleaned_data['read_only'] = True if path else self.cleaned_data['read_only']
-        return cleaned_data         
+        return cleaned_data
+    def save(self, commit=False):
+        share = super(ShareForm, self).save(commit=False)
+        if hasattr(self,'fp'):
+            share.filepath = self.fp
+        if commit:
+            share.save()
+        return share
     class Meta:
         model = Share
         fields = ('name','owner','slug', 'notes','filesystem','link_to_path','read_only')
@@ -97,7 +119,7 @@ class SSHKeyForm(forms.Form):
         return_code = subprocess.call(['ssh-keygen','-l','-f',file.temporary_file_path()])
         if return_code == 1:
             raise forms.ValidationError("Not a valid SSH RSA key!")
-        contents = file.read()
+        contents = file.read().decode('utf-8')
         if contents[:7] != 'ssh-rsa':
             raise forms.ValidationError("Only ssh-rsa keys are accepted")
         if len(SSHKey.objects.filter(key__contains=SSHKey.extract_key(contents))) != 0:
@@ -115,10 +137,55 @@ class UploadFileForm(forms.Form):
 
 class FolderForm(forms.Form):
     name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
-
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        return name.strip()
+    
 class RenameForm(forms.Form):
     from_name = forms.RegexField(regex=r'^[^/]+$',error_messages={'invalid':'Only letters, numbers, and spaces are allowed'},widget=forms.HiddenInput())
     to_name = forms.RegexField(regex=r'^[\w\d\ \-_\.]+$',error_messages={'invalid':'Only letters, numbers, periods, and spaces are allowed'})
+    def clean_to_name(self):
+        to_name = self.cleaned_data['to_name']
+        return to_name.strip()
+
+class SymlinkForm(forms.Form):
+    def __init__(self, user, *args, **kwargs):
+        if user.is_authenticated:
+            self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
+        else:
+            self.file_paths = []
+        self.user = user
+        super(SymlinkForm, self).__init__(*args, **kwargs)
+    name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
+    target = forms.CharField()
+    def clean_target(self):
+        path = self.cleaned_data['target']
+        file_paths = [fp.path for fp in self.file_paths]
+        if not self.user.can_link:
+            raise forms.ValidationError('User is not allowed to symlink')
+        if path == '' or not path:
+            path = None
+        if path:
+            try:
+                test_path(path, allow_absolute=True)
+            except:
+                raise forms.ValidationError('Bad path: "%s"'%path)
+            parent_path = paths_contain(file_paths,path,get_path=True)
+            if not parent_path:
+                raise forms.ValidationError('Path not allowed.')#  Path must start with one of the following: ' + ', '.join(['"'+fp.path+'"' for fp in self.file_paths]))
+            else: #Check against regeexes
+                self.fp = FilePath.objects.get(path=parent_path)
+                if not self.fp.is_valid(path):
+                    raise forms.ValidationError('Path not allowed.  Must match begin with {} and match one of the expressions: {}'.format(self.fp.path,', '.join(['"'+r+'"' for r in self.fp.regexes])))
+            if not paths_contain(settings.LINK_TO_DIRECTORIES,path):
+                raise forms.ValidationError('Path not whitelisted.  Contact the site admin if you believe this to be an error.')
+            if not os.path.isdir(path):
+                raise forms.ValidationError('Path: Directory "%s" does not exist'%path)
+            try:
+                search_illegal_symlinks(path) #recursively check for illegal paths
+            except Exception as e:
+                raise forms.ValidationError(str(e))
+        return path
 
 class RegistrationForm(forms.Form):
     """
@@ -181,6 +248,8 @@ class RegistrationForm(forms.Form):
         return self.cleaned_data['email']
 
 from django.template.loader import render_to_string
+
+
 def json_form_validate(form,save=False,html=True,template='ajax/crispy_form.html'):
     data={}
     if form.is_valid():
@@ -198,6 +267,7 @@ def json_form_validate(form,save=False,html=True,template='ajax/crispy_form.html
 
 
 from django.contrib import auth
+
 
 class PasswordChangeForm(auth.forms.PasswordChangeForm):
     MIN_LENGTH = 8

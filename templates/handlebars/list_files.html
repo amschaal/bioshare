@@ -1,4 +1,4 @@
-{% load templatetag_handlebars %}
+{% verbatim %}
 <script>
 Handlebars.registerHelper('join', function(arr, delimiter) {
 	var delimiter = delimiter ? delimiter : ','
@@ -14,9 +14,10 @@ Handlebars.registerHelper('list_tags', function(tags) {
 	});
 
 </script>
-{% tplhandlebars "directory-template" %}
+<script id="directory-template" type="text/x-handlebars-template">
 <tr class="directory real-directory" data-id="{{name}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
 <td><input class="action-check" type="checkbox"/></td>
+<td>directory</td>
 <td class="name" {{#if metadata.notes}}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-folder"></i><a href="{{name}}">{{ name }}</a></td>
 <td class="tags">{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td></td>
@@ -25,11 +26,26 @@ Handlebars.registerHelper('list_tags', function(tags) {
 <td>{{ modified }}</td>
 <td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i><i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i></td>
 </tr>
-{% endtplhandlebars %}
+</script>
 
-{% tplhandlebars "file-template" %}
+<script id="link-template" type="text/x-handlebars-template">
+	<tr class="directory link" data-id="{{name}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
+	<td><input class="action-check" type="checkbox"/></td>
+	<td>directory</td>
+	<td class="name" {{#if metadata.notes}}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-folder-link" title="{{target}}"></i><a href="{{name}}">{{ name }}</a></td>
+	<td class="tags">{{#if metadata.tags}}{{{list_tags metadata.tags}}}{{/if}}</td>
+	<td></td>
+	<td></td>
+	<td></td>
+	<td>{{ modified }}</td>
+	<td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i><i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i><a href="#" data-action="unlink" title="Unlink this directory"><i class="fam-delete" ></i></a></td>
+	</tr>
+</script>
+
+<script id="file-template" type="text/x-handlebars-template">
 <tr class="file" data-id="{{name}}" data-bytes="{{bytes}}" data-notes="{{metadata.notes}}" data-tags="{{{join metadata.tags }}}">
 <td><input class="action-check" type="checkbox"/></td>
+<td>file</td>
 <td class="name" {{#if metadata.notes }}data-toggle="tooltip" title="{{metadata.notes}}"{{/if}}><i class="fam-page-white"></i>{{#if download }}<a href="{{url}}">{{ name }}</a>{{else}}{{ name }}{{/if}}</td>
 <td class="tags">{{#if metadata.tags }}{{{list_tags metadata.tags}}}{{/if}}</td>
 <td>{{ extension }}</td>
@@ -38,8 +54,9 @@ Handlebars.registerHelper('list_tags', function(tags) {
 <td>{{ modified }}</td>
 <td><i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata"></i>{{#if download }}{{#if isText }}<i class="fam-eye" data-toggle="tooltop" title="Preview contents" data-action="preview"></i>{{/if}}{{/if}}<i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name"></i></td>
 </tr>
-{% endtplhandlebars %}
+</script>
 
-{% tplhandlebars "tags-template" %}
+<script id="tags-template" type="text/x-handlebars-template">
 {{{list_tags this}}}
-{% endtplhandlebars %}
+</script>
+{% endverbatim %}
