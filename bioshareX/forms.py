@@ -22,6 +22,11 @@ class ShareForm(forms.ModelForm):
             self.file_paths = []
         self.fields['filesystem'].queryset = user.filesystems
         self.fields['owner'].required = False
+        if not self.initial.get('filesystem'):
+            if user.filesystems.count() == 1:
+                self.initial['filesystem'] = user.filesystems.first()
+            elif getattr(settings, 'DEFAULT_FILESYSTEM_ID', None):
+                self.initial['filesystem'] = user.filesystems.filter(id=getattr(settings, 'DEFAULT_FILESYSTEM_ID')).first()
         if not user.is_superuser:
             self.fields.pop('owner',None)
         if not user.can_link:

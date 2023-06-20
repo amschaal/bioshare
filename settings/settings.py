@@ -209,6 +209,8 @@ REST_FRAMEWORK = {
 
 ANONYMOUS_USER_ID = -1 #Guardian
 
+DEFAULT_FILESYSTEM_ID = None #Replace with integer filesystem id
+
 FILE_UPLOAD_HANDLERS = (
     "django.core.files.uploadhandler.TemporaryFileUploadHandler",
 )
