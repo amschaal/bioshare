@@ -1,9 +1,9 @@
 version: '3.9'
 
 services:
-  app:
+  bioshare:
     build: .
-    hostname: app
+    hostname: bioshare
     # command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     volumes:
       - .:/usr/src/app 
@@ -14,6 +14,7 @@ services:
     env_file:
       - ./.env.dev
     networks:
+      - shared-network
       - internal-network
     ports:
       - "9000:8000"
@@ -33,5 +34,8 @@ services:
 volumes:
   postgres_data:
   data_volume:
+#   internal-network:
 networks:
   internal-network:
+  shared-network: #for communicating with other docker application APIs used by plugins.  First run: docker network create shared-network
+    external: true
