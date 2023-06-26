@@ -363,15 +363,28 @@ def list_share_dir(share,subdir=None,ajax=False):
     for entry in scandir(PATH):
         subpath= entry.name if subdir is None else os.path.join(subdir,entry.name)
         metadata = metadatas[subpath] if subpath in metadatas else {}
-        if entry.is_file():
+        if entry.is_symlink():
+            try:
+                if entry.is_file():
+                    (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                    file = {'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True, 'target': os.readlink(entry.path)}
+                    file_list.append(file)  
+                else:
+                    (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                    dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': os.readlink(entry.path)}
+                    directories[os.path.realpath(entry.path)]=dir
+            except OSError as e:
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat(follow_symlinks=False)
+                file_list.append({'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata, 'target': os.readlink(entry.path), 'error': True})
+        elif entry.is_file():
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
             file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
             file_list.append(file)
-        else:
+        else: #directory
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
             dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
-            if entry.is_symlink():
-                dir['target'] = os.readlink(entry.path)
+            # if entry.is_symlink():
+            #     dir['target'] = os.readlink(entry.path)
             directories[os.path.realpath(entry.path)]=dir
     return (file_list,directories)
 

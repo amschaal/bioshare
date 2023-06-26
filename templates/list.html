@@ -195,7 +195,18 @@
 			</td>
 			<td>file</td>
 			<td class="name" {% if file.metadata.notes %}data-toggle="tooltip" title="{{file.metadata.notes}}"{% endif %}>
-				<i class="fam-page-white"></i>{% if "download_share_files" in share_perms %}<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>{% else %}{{ file.name }}{% endif %}<td class="tags">{% if file.metadata.tags %}{% for tag in file.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}
+				{% if file.target %}
+					<i class="fam-link" title="{{file.target}}"></i>
+				{% endif %}
+					<i class="fam-page-white"></i>
+				{% if file.error %}
+					<span class="error" title="Symlink error">{{ file.name }}</span>
+				{% elif "download_share_files" in share_perms %}
+					<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>
+				{% else %}
+					{{ file.name }}
+				{% endif %}
+			<td class="tags">{% if file.metadata.tags %}{% for tag in file.metadata.tags.all%}{{tag.to_html|safe}}{%endfor%}{% endif %}
 			</td>
 			<td>{% if file.extension %}{{ file.extension }}{% endif %}</td>
 			<td>{{ file.size }}</td>
