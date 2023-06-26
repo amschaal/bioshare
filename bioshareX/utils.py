@@ -363,6 +363,7 @@ def list_share_dir(share,subdir=None,ajax=False):
     for entry in scandir(PATH):
         subpath= entry.name if subdir is None else os.path.join(subdir,entry.name)
         metadata = metadatas[subpath] if subpath in metadatas else {}
+        
         if entry.is_symlink():
             try:
                 if entry.is_file():
@@ -427,7 +428,10 @@ def get_all_symlinks(path, max_depth=1):
         depth = current['depth']
         previous = current['previous'].copy()
         realpath = os.path.realpath(path)
+        exists = os.path.exists(realpath)
         warning = []
+        if not exists:
+            warning.append('Target {} does not exist'.format(realpath))
         if realpath in previous:# and os.path.islink(path):
             warning.append('Symlink recursion found')
         if not paths_contain(settings.DIRECTORY_WHITELIST, realpath):
@@ -438,8 +442,9 @@ def get_all_symlinks(path, max_depth=1):
             symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning), 'depth': depth})
         if not warning and realpath not in previous:
             previous.add(realpath)
-            for p in subprocess.check_output(['find', os.path.realpath(current['path']), '-type', 'l']).decode().split('\n'):
-                queue.append({'path': p, 'depth': depth+1, 'previous': previous})
+            if exists:
+                for p in subprocess.check_output(['find', realpath, '-type', 'l']).decode().split('\n'):
+                    queue.append({'path': p, 'depth': depth+1, 'previous': previous})
     return symlinks
 
 def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):
