@@ -7,7 +7,7 @@ from django.contrib.auth.models import Group, User
 from django.utils.translation import ugettext_lazy as _
 
 from bioshareX.models import FilePath, GroupProfile, Share, SSHKey
-from bioshareX.utils import paths_contain, search_illegal_symlinks, test_path
+from bioshareX.utils import check_symlinks_dfs, paths_contain, search_illegal_symlinks, test_path
 
 
 class ShareForm(forms.ModelForm):
@@ -15,13 +15,17 @@ class ShareForm(forms.ModelForm):
     notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:\(\),;\\\/]+$',label='Description',error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}),required=False)
     tags = forms.RegexField(regex=r'^[\w\d\s,]+$',required=False,error_messages={'invalid':'Only use comma delimited alphanumeric tags'},widget=forms.Textarea(attrs={'rows':3,'cols':80,'placeholder':"seperate tags by commas, eg: important, chimpanzee"}))
     def __init__(self, user, *args, **kwargs):
+        require_filesystem = kwargs.pop('require_filesystem', True)
         super(ShareForm, self).__init__(*args, **kwargs)
         if user.is_authenticated:
             self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
         else:
             self.file_paths = []
         self.fields['filesystem'].queryset = user.filesystems
+        self.fields['filesystem'].required = require_filesystem
         self.fields['owner'].required = False
+        if not self.initial.get('filesystem'):
+            self.initial['filesystem'] = self.get_default_filesystem()
         if not user.is_superuser:
             self.fields.pop('owner',None)
         if not user.can_link:
@@ -70,6 +74,18 @@ class ShareForm(forms.ModelForm):
             if share and self.instance and share.id != self.instance.id:
                 self.add_error('slug', forms.ValidationError('This URL already exists.  Please try another.'))
         return slug
+    def clean_filesystem(self):
+        filesystem = self.cleaned_data.get('filesystem',None)
+        if not filesystem:
+            filesystem = self.get_default_filesystem()
+        if not filesystem:
+            self.add_error('filesystem', forms.ValidationError('Filesystem field is required.'))
+        return filesystem
+    def get_default_filesystem(self):
+        if self.fields['filesystem'].queryset.count() == 1:
+            return self.fields['filesystem'].queryset.first()
+        elif getattr(settings, 'DEFAULT_FILESYSTEM_ID', None):
+            return self.fields['filesystem'].queryset.filter(id=getattr(settings, 'DEFAULT_FILESYSTEM_ID')).first()
     def clean(self):
         cleaned_data = super(ShareForm, self).clean()
         if self.the_instance:
@@ -182,7 +198,7 @@ class SymlinkForm(forms.Form):
             if not os.path.isdir(path):
                 raise forms.ValidationError('Path: Directory "%s" does not exist'%path)
             try:
-                search_illegal_symlinks(path) #recursively check for illegal paths
+                check_symlinks_dfs(path)# search_illegal_symlinks(path) #recursively check for illegal paths
             except Exception as e:
                 raise forms.ValidationError(str(e))
         return path

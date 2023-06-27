@@ -108,7 +108,7 @@ def edit_share(request,share):
 def list_directory(request,share,subdir=None):
     if not share.check_path(subdir=subdir):
         return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
-    files,directories = list_share_dir(share,subdir=subdir,ajax=request.is_ajax())
+    files,directories,errors = list_share_dir(share,subdir=subdir,ajax=request.is_ajax())
     if request.is_ajax():
         return json_response({'files':files,'directories':directories.values()})
     #Find any shares that point at this directory
@@ -140,7 +140,7 @@ def list_directory(request,share,subdir=None):
         readme = markdown.markdown(text,extensions=['fenced_code','tables','nl2br'])
         download_base = reverse('download_file',kwargs={'share':share.id,'subpath':subdir if subdir else ''})
         readme = re.sub(r'src="(?!http)',r'src="{0}'.format(download_base),readme)
-    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"path":PATH,"share":share,"subshare":subshare,"subdir": subdir, "is_realpath": is_realpath,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"link_form":SymlinkForm(request.user),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails, "readme":readme})
+    return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"errors":errors,"path":PATH,"share":share,"subshare":subshare,"subdir": subdir, "is_realpath": is_realpath,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"link_form":SymlinkForm(request.user),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails, "readme":readme})
 
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])

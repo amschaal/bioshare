@@ -259,7 +259,7 @@ Optional: "link_to_path", "read_only"
 @api_view(['POST'])
 @permission_required('bioshareX.add_share', return_403=True)
 def create_share(request):
-    form = ShareForm(request.user,request.data)
+    form = ShareForm(request.user,request.data, require_filesystem=False)
     if form.is_valid():
         share = form.save(commit=False)
         share.owner=request.user

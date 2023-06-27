@@ -356,6 +356,7 @@ def list_share_dir(share,subdir=None,ajax=False):
         PATH = os.path.join(PATH,subdir)
     file_list=[]
     directories={}
+    errors = []
     regex = r'^%s[^/]+/?' % '' if subdir is None else re.escape(os.path.normpath(subdir))+'/'
     metadatas = {}
     for md in MetaData.objects.prefetch_related('tags').filter(share=share,subpath__regex=regex):
@@ -363,17 +364,25 @@ def list_share_dir(share,subdir=None,ajax=False):
     for entry in scandir(PATH):
         subpath= entry.name if subdir is None else os.path.join(subdir,entry.name)
         metadata = metadatas[subpath] if subpath in metadatas else {}
-        if entry.is_file():
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
-            file_list.append(file)
-        else:
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
-            if entry.is_symlink():
-                dir['target'] = os.readlink(entry.path)
-            directories[os.path.realpath(entry.path)]=dir
-    return (file_list,directories)
+        
+        try:
+            if entry.is_file():
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
+                if entry.is_symlink():
+                    file['target'] = os.readlink(entry.path)
+                file_list.append(file)
+            else: #directory
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
+                if entry.is_symlink():
+                    dir['target'] = os.readlink(entry.path)
+                directories[os.path.realpath(entry.path)]=dir
+        except OSError as e:
+            # (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat(follow_symlinks=False)
+            errors.append({'name':entry.name, 'is_file': entry.is_file(), 'is_dir': entry.is_dir(), 'extension':entry.name.split('.').pop() if '.' in entry.name else None,'metadata':metadata, 'target': os.readlink(entry.path), 'error': str(e)})
+
+    return (file_list,directories,errors)
 
 def md5sum(path):
     output = subprocess.check_output([settings.MD5SUM_COMMAND,path]).decode('utf-8') #Much more efficient than reading file contents into python and using hashlib
@@ -414,7 +423,10 @@ def get_all_symlinks(path, max_depth=1):
         depth = current['depth']
         previous = current['previous'].copy()
         realpath = os.path.realpath(path)
+        exists = os.path.exists(realpath)
         warning = []
+        if not exists:
+            warning.append('Target {} does not exist'.format(realpath))
         if realpath in previous:# and os.path.islink(path):
             warning.append('Symlink recursion found')
         if not paths_contain(settings.DIRECTORY_WHITELIST, realpath):
@@ -425,8 +437,9 @@ def get_all_symlinks(path, max_depth=1):
             symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning), 'depth': depth})
         if not warning and realpath not in previous:
             previous.add(realpath)
-            for p in subprocess.check_output(['find', os.path.realpath(current['path']), '-type', 'l']).decode().split('\n'):
-                queue.append({'path': p, 'depth': depth+1, 'previous': previous})
+            if exists:
+                for p in subprocess.check_output(['find', realpath, '-type', 'l']).decode().split('\n'):
+                    queue.append({'path': p, 'depth': depth+1, 'previous': previous})
     return symlinks
 
 def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):

@@ -16,7 +16,7 @@ RUN touch /home/bioshare/.ssh/authorized_keys
 RUN chown -R bioshare /home/bioshare
 # Set up key for rsync
 RUN ssh-keygen -t rsa -N '' -f host_key
-
+RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
@@ -26,7 +26,7 @@ RUN ln -s /data/static
 COPY ./startup.sh /tmp
 RUN chmod 555 /tmp/startup.sh
 COPY . .
-EXPOSE 8000
+EXPOSE 9999
 ENTRYPOINT [ "/tmp/startup.sh" ] 
 # CMD ['gunicorn', 'dnaorder.wsgi:application', '--bind', '0.0.0.0:8000']
 # CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
