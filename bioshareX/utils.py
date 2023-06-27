@@ -356,6 +356,7 @@ def list_share_dir(share,subdir=None,ajax=False):
         PATH = os.path.join(PATH,subdir)
     file_list=[]
     directories={}
+    errors = []
     regex = r'^%s[^/]+/?' % '' if subdir is None else re.escape(os.path.normpath(subdir))+'/'
     metadatas = {}
     for md in MetaData.objects.prefetch_related('tags').filter(share=share,subpath__regex=regex):
@@ -364,30 +365,24 @@ def list_share_dir(share,subdir=None,ajax=False):
         subpath= entry.name if subdir is None else os.path.join(subdir,entry.name)
         metadata = metadatas[subpath] if subpath in metadatas else {}
         
-        if entry.is_symlink():
-            try:
-                if entry.is_file():
-                    (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-                    file = {'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True, 'target': os.readlink(entry.path)}
-                    file_list.append(file)  
-                else:
-                    (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-                    dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': os.readlink(entry.path)}
-                    directories[os.path.realpath(entry.path)]=dir
-            except OSError as e:
-                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat(follow_symlinks=False)
-                file_list.append({'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata, 'target': os.readlink(entry.path), 'error': True})
-        elif entry.is_file():
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
-            file_list.append(file)
-        else: #directory
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
-            # if entry.is_symlink():
-            #     dir['target'] = os.readlink(entry.path)
-            directories[os.path.realpath(entry.path)]=dir
-    return (file_list,directories)
+        try:
+            if entry.is_file():
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
+                if entry.is_symlink():
+                    file['target'] = os.readlink(entry.path)
+                file_list.append(file)
+            else: #directory
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
+                if entry.is_symlink():
+                    dir['target'] = os.readlink(entry.path)
+                directories[os.path.realpath(entry.path)]=dir
+        except OSError as e:
+            # (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat(follow_symlinks=False)
+            errors.append({'name':entry.name, 'is_file': entry.is_file(), 'is_dir': entry.is_dir(), 'extension':entry.name.split('.').pop() if '.' in entry.name else None,'metadata':metadata, 'target': os.readlink(entry.path), 'error': str(e)})
+
+    return (file_list,directories,errors)
 
 def md5sum(path):
     output = subprocess.check_output([settings.MD5SUM_COMMAND,path]).decode('utf-8') #Much more efficient than reading file contents into python and using hashlib
