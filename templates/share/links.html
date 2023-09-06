@@ -1,28 +1,56 @@
 {% extends "base.html" %}
 {% load static %}
 {% load compress %}
-
 {% block title %}Share links{% endblock %}
+{% block head %}
+{{block.super}}
+<link rel="stylesheet" type="text/css" href="{% static "lib/datatables/datatables.min.css" %}"/>
+{% endblock %}
 {% block content %}
-  <h3>{{share.name}} ({{share.id}}) Symlinks</h3>
+  <h2><a href="{% url 'list_directory' share.id %}">{{share.name}} ({{share.id}})</a> Symlinks</h2>
   <div class="alert alert-warning">
-    <br>Last checked: {{share.last_checked}}
+    Last checked: {{share.last_checked}}
     <br>Symlinks found: {{share.symlinks_found}}
     {% if share.illegal_path_found %}
     <br>Illegal path found: {{share.illegal_path_found}}{% if message %} - {{message}} {% endif %}
     {% endif %}
-    <h4>Symlinks</h4>
-      <table class="table">
-        <tr><th>Source</th><th>Destination</th><th>Depth</th><th>Warning</th></tr>
-        {% for link in symlinks %}
-          <tr><td>{{link.path}}</td><td>{% if link.warning %}<b><i class="icon-warning-sign"></i>{{link.target}}</b>{% else %}{{link.target}}{% endif %}</td><td>{{link.depth}}</td><td>{{link.warning}}</td></tr>
-        {% endfor %}
-      </table>
   </div>
+    <h3>Symlinks</h3>
+      <table class="table table-striped table-condensed" id="link-table">
+        <thead><tr><th>Source</th><th>Destination</th><th>Depth</th><th>Warning</th></tr></thead>
+        <tbody>
+        {% for link in symlinks %}
+          <tr><td>{{link.path}}</td><td>{% if link.warning %}<b><i class="icon-warning-sign"></i>{{link.target}}</b>{% else %}{{link.target}}{% endif %}</td><td>{{link.depth}}</td><td class="error">{{link.warning}}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+  <h3>Logs</h3>
   {% include 'share/logs.html' %}
 {% endblock %}
 {% block scripts %}
+<script type="text/javascript" src="{% static "lib/datatables/datatables.min.js" %}"></script>
 {{block.super}}
+<script>
+  /* Table initialisation */
+  $(document).ready(function() {
+    var filetable = $('#link-table').dataTable( {
+      "bPaginate": false,
+      "oLanguage": {
+        "sLengthMenu": "_MENU_ records per page"
+      },
+      "aoColumns": [
+                      {bSortable: true},
+                      {bSortable: true},
+                      {bSortable: true},
+                      {bSortable: true}
+                  ],
+      "oLanguage": {
+             "sSearch": "Filter:"
+           }
+    } );
+    filetable.fnSort([[0,"asc"]]);
+  } );
+</script>
 {% compress js %}
 <script src="{% static "js/services/ng-table-services.js" %}"></script>
 <script src="{% static "js/controllers/share-controller.js" %}"></script>

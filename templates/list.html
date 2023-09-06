@@ -22,7 +22,7 @@
 	{% if owner or user.is_superuser %}
 		<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete Share</a>
 		<a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3"><i class="icon-edit icon-white"></i> Edit</a>
-		<a href="{% url 'view_links' share.id %}" class="btn btn-primary pull-right margin-3"><i class=""></i> View Links</a>
+		<a href="{% url 'view_links' share.id %}" class="btn btn-primary pull-right margin-3"><i class="icon-info-sign icon-white"></i> View Links</a>
 	{% endif %}
 	{% if "admin" in share_perms %}
 		<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary pull-right margin-3"><i class="icon-lock icon-white"></i> Permissions</a>
