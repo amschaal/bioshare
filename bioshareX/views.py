@@ -314,3 +314,11 @@ def unlock(request, share):
         return redirect('list_directory', share=share.id)
     else:
         return redirect('locked', share=share.id)
+
+@share_access_decorator(['admin'])
+def view_links(request, share):
+    if share.owner != request.user and not request.user.is_superuser:
+        return redirect('list_directory', share=share.id)
+    message = share.check_paths(check_symlinks=True)
+    symlinks = get_all_symlinks(share.get_path())
+    return render(request,'share/links.html', {"share":share, "symlinks": symlinks, "message": message})
