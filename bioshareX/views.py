@@ -295,13 +295,16 @@ def view_messages(request):
 def locked(request, share):
     share = Share.get_by_slug_or_id(share)
     if not share.locked:
-        return redirect('list_directory', share=share.id)
-    if request.user.is_superuser:
+        if request.user == share.owner or request.user.is_superuser:
+            return redirect('view_links', share=share.id)
+        else:
+            return redirect('list_directory', share=share.id)
+    if request.user.is_superuser or request.user == share.owner:
         message = share.check_paths(check_symlinks=True)
         symlinks = get_all_symlinks(share.get_path())
-        return render(request,'share/locked.html', {"share":share, "symlinks": symlinks, "message": message})
-    else:    
-        return render(request,'share/locked.html', {"share":share})
+        return render(request,'share/links.html', {"share":share, "symlinks": symlinks, "message": message,  "title": "Share locked"})
+    else:
+        return render(request,'share/links.html', {"share":share, "title": "Share locked"})
 
 def unlock(request, share):
     share = Share.get_by_slug_or_id(share)
@@ -321,4 +324,4 @@ def view_links(request, share):
         return redirect('list_directory', share=share.id)
     message = share.check_paths(check_symlinks=True)
     symlinks = get_all_symlinks(share.get_path())
-    return render(request,'share/links.html', {"share":share, "symlinks": symlinks, "message": message})
+    return render(request,'share/links.html', {"share":share, "symlinks": symlinks, "message": message, "title": "View share links"})
