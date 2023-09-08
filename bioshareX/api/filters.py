@@ -41,4 +41,11 @@ class ActiveMessageFilter(filters.BaseFilterBackend):
         active = view.request.query_params.get('active',None)
         if not active:
             return queryset
-        return queryset.filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=request.user.id)        
+        return queryset.filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=request.user.id)
+
+class ContainsSymlinkFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        contains_symlink = view.request.query_params.get('contains_symlinks','false')
+        if contains_symlink.lower() not in ['true', True]:
+            return queryset
+        return queryset.filter(Q(symlinks_found__isnull=False)|Q(link_to_path__isnull=False))
