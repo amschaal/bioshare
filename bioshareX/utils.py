@@ -425,17 +425,18 @@ def get_all_symlinks(path, max_depth=1):
         realpath = os.path.realpath(path)
         exists = os.path.exists(realpath)
         warning = []
+        error = []
         if not exists:
             warning.append('Target {} does not exist'.format(realpath))
         if realpath in previous:# and os.path.islink(path):
-            warning.append('Symlink recursion found')
+            error.append('Symlink recursion found')
         if not paths_contain(settings.DIRECTORY_WHITELIST, realpath):
-            warning.append('Illegal path')
+            error.append('Illegal path')
         if depth > max_depth:
-            warning.append('Link is deeper than maximum depth of {}'.format(max_depth))
+            error.append('Link is deeper than maximum depth of {}'.format(max_depth))
         if os.path.islink(path):
-            symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning), 'depth': depth})
-        if not warning and realpath not in previous:
+            symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning), 'error': ', '.join(error), 'depth': depth})
+        if not warning and not error and realpath not in previous:
             previous.add(realpath)
             if exists:
                 for p in subprocess.check_output(['find', realpath, '-type', 'l']).decode().split('\n'):
