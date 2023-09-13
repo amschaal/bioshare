@@ -16,7 +16,7 @@ from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from jsonfield import JSONField
 from bioshareX.exceptions import IllegalPathException
 
-from bioshareX.utils import check_symlinks_dfs, find_symlink, is_realpath, path_contains, paths_contain, test_path
+from bioshareX.utils import check_symlinks_dfs, find_symlink, is_realpath, path_contains, paths_contain, test_path, get_all_symlinks
 
 
 def pkgen():
@@ -285,7 +285,7 @@ class Share(models.Model):
     @property
     def contains_symlinks(self):
         return find_symlink(self.get_path())
-    def check_paths(self, check_symlinks=True):
+    def check_paths_old(self, check_symlinks=True):
         message = None
         self.path_exists = self.check_path()
         if self.path_exists:
@@ -309,6 +309,25 @@ class Share(models.Model):
         self.last_checked = timezone.now()
         self.save()
         return message
+    def check_paths(self, check_symlinks=True):
+        self.path_exists = self.check_path()
+        if self.path_exists:
+            self.real_path = os.path.realpath(self.get_path())
+            if check_symlinks:
+                self.meta['symlinks'] = get_all_symlinks(self.get_path())
+                if self.link_to_path or len(self.meta['symlinks']) > 0:
+                    self.symlinks_found = timezone.now()
+                    self.illegal_path_found = None
+                    for link in self.meta['symlinks']:
+                        if link['error']:
+                            self.illegal_path_found = timezone.now()
+                            self.locked = True
+                            break
+                else:
+                    self.symlinks_found = None
+                    self.illegal_path_found = None
+        self.last_checked = timezone.now()
+        self.save()
     def create_link(self):
         os.umask(settings.UMASK)
         self.check_link_path()

@@ -19,7 +19,7 @@ from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
-from bioshareX.api.filters import (ActiveMessageFilter, GroupShareFilter,
+from bioshareX.api.filters import (ActiveMessageFilter, ContainsSymlinkFilter, GroupShareFilter,
                                    ShareTagFilter, UserShareFilter)
 from bioshareX.api.serializers import (GroupSerializer, MessageSerializer,
                                        ShareLogSerializer, ShareSerializer,
@@ -304,7 +304,7 @@ class ShareLogList(generics.ListAPIView):
 class ShareViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareSerializer
     permission_classes = (IsAuthenticated,)
-    filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter]
+    filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter, ContainsSymlinkFilter]
     filterset_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains'],'path_exists':['exact'],'locked':['exact']}
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
