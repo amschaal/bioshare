@@ -68,9 +68,9 @@ class Command(BaseCommand):
                     user_permissions = share.get_user_permissions(self.user)
                     if Share.PERMISSION_DOWNLOAD not in user_permissions:
                         raise WrapperException('User %s cannot read from share %s' % (self.user.username,share.id))
-                    message = share.check_paths(True)
+                    share.check_paths(True)
                     if share.illegal_path_found:
-                        raise WrapperException('Illegal path found for share %s, rsync terminated. %s' % (share.id, message))  
+                        raise WrapperException('Illegal path found for share %s, rsync terminated.' % (share.id))  
                     share.last_data_access = timezone.now()
                     share.save()
                 command = ['rsync', '--server', '--sender', flags, '.'] + paths

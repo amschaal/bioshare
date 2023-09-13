@@ -435,7 +435,7 @@ def get_all_symlinks(path, max_depth=1):
         if depth > max_depth:
             error.append('Link is deeper than maximum depth of {}'.format(max_depth))
         if os.path.islink(path):
-            symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning), 'error': ', '.join(error), 'depth': depth})
+            symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning) if warning else None, 'error': ', '.join(error) if error else None, 'depth': depth})
         if not warning and not error and realpath not in previous:
             previous.add(realpath)
             if exists:
