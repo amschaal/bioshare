@@ -61,7 +61,7 @@ class SymlinkTargetFilter(filters.BaseFilterBackend):
 
 class SymlinkWarningFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
-        if not view.request.query_params.get('has_symlink_warning'):
+        if view.request.query_params.get('has_symlink_warning', 'false').lower() != 'true':
             return queryset
         query = gen_sql_filter_json_array(Share, "meta->'symlinks'", 'warning', 'not null')
         return queryset.filter(id__in=query)

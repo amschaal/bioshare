@@ -41,11 +41,20 @@
 		          <input type="checkbox" ng-model-options="{ getterSetter: true }" ng-model="cols[col]"/> {{col}}
 		        </label>
 		      </div>
-			<h4>Filters</h4>
-			<div style="margin-bottom: 20px">
-				<label class="checkbox-inline" ng-repeat="(filter,label) in filter_labels" ng-click="setFilter(filter, filters[filter]);saveState()">
-				<input type="checkbox" ng-model-options="{ getterSetter: true }" ng-model="filters[filter]"/> {{filter_labels[filter]}}
+			<h4>
+				<a class="pointer" ng-if="!show_filters" ng-click="toggleFilters()">Show</a>
+				<a class="pointer" ng-if="show_filters" ng-click="toggleFilters()">Hide</a>
+				Filters
+			</h4>
+			<div style="margin-bottom: 20px" ng-show="show_filters">
+				<!-- <label class="checkbox-inline" ng-repeat="(filter,label) in filter_labels" ng-click="setFilter(filter, filters[filter]);saveState()"> -->
+				<label class="checkbox-inline" ng-repeat="(filter,label) in filter_labels">
+					<input type="checkbox" ng-model-options="{ getterSetter: true }" ng-model="filters[filter]"/> {{filter_labels[filter]}}
 				</label>
+				<label title="Only show shares containing symlinks with a target containing a string.">Symlink target contains 
+					<input ng-model="filters['symlink_target']"/>
+				</label>
+				<button class="btn" ng-click="setAllFilters();">Update</button>
 			</div>
 	     <table ng-table="tableParams" class="limit-col-width table table-bordered table-striped table-condensed">
 	      <tr ng-repeat="row in $data track by row.id">
