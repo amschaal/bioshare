@@ -41,10 +41,14 @@
 		          <input type="checkbox" ng-model-options="{ getterSetter: true }" ng-model="cols[col]"/> {{col}}
 		        </label>
 		      </div>
+			{% endverbatim %}
+			{% if user.share_set.all.count > 0 %}
+			<!-- If a user owns any shares, give them the advanced filters -->
+			{% verbatim %}
 			<h4>
 				<a class="pointer" ng-if="!show_filters" ng-click="toggleFilters()">Show</a>
 				<a class="pointer" ng-if="show_filters" ng-click="toggleFilters()">Hide</a>
-				Filters
+				Advanced Filters
 			</h4>
 			<div style="margin-bottom: 20px" ng-show="show_filters">
 				<!-- <label class="checkbox-inline" ng-repeat="(filter,label) in filter_labels" ng-click="setFilter(filter, filters[filter]);saveState()"> -->
@@ -56,6 +60,9 @@
 				</label>
 				<button class="btn" ng-click="setAllFilters();">Update</button>
 			</div>
+			{% endverbatim %}
+			{% endif %}
+			{% verbatim %}
 	     <table ng-table="tableParams" class="limit-col-width table table-bordered table-striped table-condensed">
 	      <tr ng-repeat="row in $data track by row.id">
 	        <td ng-if="cols['Share']" data-title="'Share'" filter="{name__icontains: 'text'}" sortable="'name'">
