@@ -36,9 +36,10 @@ class Command(BaseCommand):
         self.email_admins()
     def check_share(self, share):
         try:
-            message = share.check_paths(check_symlinks=True)
+            share.check_paths(check_symlinks=True)
             if share.illegal_path_found:
-                msg = 'Share {}:{} has an illegal path: {}'.format(share.id, share.name, message)
+                illegal_links = ['{}->{}: {}'.format(l['path'],l['target'],l['error']) for l in share.meta['symlinks'] if l['error']]
+                msg = 'Share {}:{} has an illegal path:\n{}\n'.format(share.id, share.name, '\n'.join(illegal_links))
                 self.stdout.write(msg)
                 self.illegal.append(msg)
         except Exception as e:

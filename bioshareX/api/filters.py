@@ -3,6 +3,7 @@ import datetime
 from django.contrib.auth.models import Group, User
 from django.db.models.query_utils import Q
 from rest_framework import filters
+from bioshareX.api.filter_utils import gen_sql_filter_json_array
 
 from bioshareX.models import Share
 
@@ -41,4 +42,26 @@ class ActiveMessageFilter(filters.BaseFilterBackend):
         active = view.request.query_params.get('active',None)
         if not active:
             return queryset
-        return queryset.filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=request.user.id)        
+        return queryset.filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=request.user.id)
+
+class ContainsSymlinkFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        contains_symlink = view.request.query_params.get('contains_symlinks','false')
+        if contains_symlink.lower() not in ['true', True]:
+            return queryset
+        return queryset.filter(Q(symlinks_found__isnull=False)|Q(link_to_path__isnull=False))
+
+class SymlinkTargetFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        symlink_target = view.request.query_params.get('symlink_target')
+        if not symlink_target:
+            return queryset
+        query = gen_sql_filter_json_array(Share, "meta->'symlinks'", 'target', 'ILIKE', symlink_target)
+        return queryset.filter(id__in=query)
+
+class SymlinkWarningFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        if view.request.query_params.get('has_symlink_warning', 'false').lower() != 'true':
+            return queryset
+        query = gen_sql_filter_json_array(Share, "meta->'symlinks'", 'warning', 'not null')
+        return queryset.filter(id__in=query)

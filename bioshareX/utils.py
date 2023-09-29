@@ -189,6 +189,18 @@ def paths_contain(paths,child_path, get_path=False):
             return path if get_path else True
     return False
 
+def paths_contain_new(paths,child_path, get_paths=False):
+    matching = []
+    for path in paths:
+        if path_contains(path, child_path):
+            if not get_paths:
+                return True
+            matching.append(path)
+    if not get_paths or len(matching) == 0:
+        return False
+    else:
+        return matching
+
 def json_response(dict):
     import json
 
@@ -344,6 +356,7 @@ def list_share_dir(share,subdir=None,ajax=False):
         PATH = os.path.join(PATH,subdir)
     file_list=[]
     directories={}
+    errors = []
     regex = r'^%s[^/]+/?' % '' if subdir is None else re.escape(os.path.normpath(subdir))+'/'
     metadatas = {}
     for md in MetaData.objects.prefetch_related('tags').filter(share=share,subpath__regex=regex):
@@ -351,17 +364,25 @@ def list_share_dir(share,subdir=None,ajax=False):
     for entry in scandir(PATH):
         subpath= entry.name if subdir is None else os.path.join(subdir,entry.name)
         metadata = metadatas[subpath] if subpath in metadatas else {}
-        if entry.is_file():
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
-            file_list.append(file)
-        else:
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
-            if entry.is_symlink():
-                dir['target'] = os.readlink(entry.path)
-            directories[os.path.realpath(entry.path)]=dir
-    return (file_list,directories)
+        
+        try:
+            if entry.is_file():
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
+                if entry.is_symlink():
+                    file['target'] = os.readlink(entry.path)
+                file_list.append(file)
+            else: #directory
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
+                if entry.is_symlink():
+                    dir['target'] = os.readlink(entry.path)
+                directories[os.path.realpath(entry.path)]=dir
+        except OSError as e:
+            # (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat(follow_symlinks=False)
+            errors.append({'name':entry.name, 'is_file': entry.is_file(), 'is_dir': entry.is_dir(), 'extension':entry.name.split('.').pop() if '.' in entry.name else None,'metadata':metadata, 'target': os.readlink(entry.path), 'error': str(e)})
+
+    return (file_list,directories,errors)
 
 def md5sum(path):
     output = subprocess.check_output([settings.MD5SUM_COMMAND,path]).decode('utf-8') #Much more efficient than reading file contents into python and using hashlib
@@ -402,19 +423,24 @@ def get_all_symlinks(path, max_depth=1):
         depth = current['depth']
         previous = current['previous'].copy()
         realpath = os.path.realpath(path)
+        exists = os.path.exists(realpath)
         warning = []
+        error = []
+        if not exists:
+            warning.append('Target {} does not exist'.format(realpath))
         if realpath in previous:# and os.path.islink(path):
-            warning.append('Symlink recursion found')
+            error.append('Symlink recursion found')
         if not paths_contain(settings.DIRECTORY_WHITELIST, realpath):
-            warning.append('Illegal path')
+            error.append('Illegal path')
         if depth > max_depth:
-            warning.append('Link is deeper than maximum depth of {}'.format(max_depth))
+            error.append('Link is deeper than maximum depth of {}'.format(max_depth))
         if os.path.islink(path):
-            symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning), 'depth': depth})
-        if not warning and realpath not in previous:
+            symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning) if warning else None, 'error': ', '.join(error) if error else None, 'depth': depth})
+        if not warning and not error and realpath not in previous:
             previous.add(realpath)
-            for p in subprocess.check_output(['find', os.path.realpath(current['path']), '-type', 'l']).decode().split('\n'):
-                queue.append({'path': p, 'depth': depth+1, 'previous': previous})
+            if exists:
+                for p in subprocess.check_output(['find', realpath, '-type', 'l']).decode().split('\n'):
+                    queue.append({'path': p, 'depth': depth+1, 'previous': previous})
     return symlinks
 
 def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):
@@ -427,13 +453,39 @@ def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):
     for link, target in symlinks.items():
         if not paths_contain(settings.DIRECTORY_WHITELIST, target):
             raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
-        if target in checked:
+        if target in checked and os.path.isdir(target):
             raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
-        checked.add(target)
-        check_symlinks_dfs(target, checked, depth=depth, max_depth=max_depth)
+        # checked.add(target) # This actually passes sibling directories through recursive check, which is not technically recursion
+        if os.path.isdir(target):
+            check_symlinks_dfs(target, checked, depth=depth, max_depth=max_depth)
 
 def is_realpath(path, subpath=None):
     if subpath:
         path = os.path.join(path,subpath)
     path = path.rstrip(os.path.sep)
     return path == os.path.realpath(path)
+
+
+# Testing new version which checks for duplicate directories as well as recursion
+def check_symlinks_dfs_test(path, checked=set(), depth=0, max_depth=3, checked_all=set(), log=True):
+    tabs = '\t'*depth
+    checked = checked.copy()
+    checked.add(path)
+    checked_all.add(path)
+    depth += 1
+    if log:
+        print('{}{}'.format(tabs, path))
+        print('{}checked: {}'.format(tabs, checked))
+        print('{}checked_all: {}'.format(tabs, checked_all))
+    if depth > max_depth:
+        return IllegalPathException('Symlink depth exceeded maximum depth of {}'.format(max_depth))
+    symlinks = find_symlinks(path)
+    for link, target in symlinks.items():
+        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
+            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
+        if target in checked and os.path.isdir(target):
+            raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
+        if target in checked_all and os.path.isdir(target):
+            raise IllegalPathException('Duplicate directory found at: {}->{}'.format(link, target))
+        if os.path.isdir(target):
+            check_symlinks_dfs_test(target, checked, depth=depth, max_depth=max_depth, checked_all=checked_all)

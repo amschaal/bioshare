@@ -19,8 +19,8 @@ from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
-from bioshareX.api.filters import (ActiveMessageFilter, GroupShareFilter,
-                                   ShareTagFilter, UserShareFilter)
+from bioshareX.api.filters import (ActiveMessageFilter, ContainsSymlinkFilter, GroupShareFilter,
+                                   ShareTagFilter, SymlinkTargetFilter, SymlinkWarningFilter, UserShareFilter)
 from bioshareX.api.serializers import (GroupSerializer, MessageSerializer,
                                        ShareLogSerializer, ShareSerializer,
                                        UserSerializer)
@@ -259,7 +259,7 @@ Optional: "link_to_path", "read_only"
 @api_view(['POST'])
 @permission_required('bioshareX.add_share', return_403=True)
 def create_share(request):
-    form = ShareForm(request.user,request.data)
+    form = ShareForm(request.user,request.data, require_filesystem=False)
     if form.is_valid():
         share = form.save(commit=False)
         share.owner=request.user
@@ -304,7 +304,7 @@ class ShareLogList(generics.ListAPIView):
 class ShareViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareSerializer
     permission_classes = (IsAuthenticated,)
-    filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter]
+    filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter, ContainsSymlinkFilter, SymlinkTargetFilter, SymlinkWarningFilter]
     filterset_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains'],'path_exists':['exact'],'locked':['exact']}
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
