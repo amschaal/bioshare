@@ -225,6 +225,8 @@ UNDERSCORE_REGEX = r'[ ]+'
 MD5SUM_COMMAND = 'md5sum'
 
 ENABLE_SYMLINKS = False
+SYMLINK_DEPTH_DEFAULT = 1 # default depth that symlinks are allowed, can be overridden
+SYMLINK_DEPTH_MAX = 3 # absolute maximum depth
 
 ZFS_CREATE_COMMAND =  ['zfs','create']
 ZFS_DESTROY_COMMAND =  ['zfs','destroy']
