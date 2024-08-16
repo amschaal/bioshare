@@ -415,6 +415,7 @@ def search_illegal_symlinks(path, checked=set()):
         search_illegal_symlinks(target, checked) # Doing this depth first.  Maybe consider doing breadth first.
 
 def get_all_symlinks(path, max_depth=1):
+    max_depth = min(max(max_depth, settings.SYMLINK_DEPTH_DEFAULT), settings.SYMLINK_DEPTH_MAX)
     symlinks = [] # {path, target, illegal, depth}
     queue = [{'path': path, 'depth': 0, 'previous': set()}]
     while queue:
@@ -443,7 +444,8 @@ def get_all_symlinks(path, max_depth=1):
                     queue.append({'path': p, 'depth': depth+1, 'previous': previous})
     return symlinks
 
-def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=3):
+def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=1):
+    max_depth = min(max(max_depth, settings.SYMLINK_DEPTH_DEFAULT), settings.SYMLINK_DEPTH_MAX)
     checked = checked.copy()
     checked.add(path)
     depth += 1
@@ -468,6 +470,7 @@ def is_realpath(path, subpath=None):
 
 # Testing new version which checks for duplicate directories as well as recursion
 def check_symlinks_dfs_test(path, checked=set(), depth=0, max_depth=3, checked_all=set(), log=True):
+    max_depth = min(max(max_depth, settings.SYMLINK_DEPTH_DEFAULT), settings.SYMLINK_DEPTH_MAX)
     tabs = '\t'*depth
     checked = checked.copy()
     checked.add(path)

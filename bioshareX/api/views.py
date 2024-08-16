@@ -136,7 +136,7 @@ def set_permissions(request,share,json=None):
 #         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
     if 'groups' in json:
         for group, permissions in json['groups'].items():
-            g = Group.objects.get(id__iexact=group)
+            g = Group.objects.get(Q(id__iexact=group)|Q(name__iexact=group.strip()))
             current_perms = get_perms(g,share)
             removed_perms = list(set(current_perms) - set(permissions))
             added_perms = list(set(permissions) - set(current_perms))
