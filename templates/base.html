@@ -1,4 +1,5 @@
 {% load static %}
+{% load cache %}
 {% load compress %}
 <!DOCTYPE html>
 <html lang="en">
@@ -88,32 +89,39 @@
 	<div class="container-fluid" id="content">
       <div class="row-fluid">
         <div class="span3">
-		{% if request.user.is_authenticated %}
+          <ul>
+            {% for share in user_shares.recent_shares %}
+              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% elif share.locked %}class="error" title="This share has been locked"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{% if share.locked %}<i class="icon-lock"></i> {% endif %}{{share.name}}</a></li>	
+              {% endfor %}
+          </ul>
+		  {% if request.user.is_authenticated %}
+        {% cache 60 sidebar request.user.username %}
           <div class="well sidebar-nav">
             <ul class="nav nav-list">
               <li class="nav-header">Search Shares</li>
               <li><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off" placeholder="Search by share name"></li>
-              {% if bad_share_path.count != 0 %}
-              	<a href="{% url 'home' %}?bad_paths" class="error"><i class="icon-warning-sign"></i> {{bad_share_path.count}} bad shares</a>
+              {% if user_shares.bad_share_path.count != 0 %}
+              	<a href="{% url 'home' %}?bad_paths" class="error"><i class="icon-warning-sign"></i> {{user_shares.bad_share_path.count}} bad shares</a>
               {% endif %}
-              {% if locked_shares.count != 0 %}
-              	<a href="{% url 'home' %}?locked" class="error"><i class="icon-lock"></i> {{locked_shares.count}} locked shares</a>
+              {% if user_shares.locked_shares.count != 0 %}
+              	<a href="{% url 'home' %}?locked" class="error"><i class="icon-lock"></i> {{user_shares.locked_shares.count}} locked shares</a>
               {% endif %}
-              {% if my_recent_shares|length != 0 %}
+              {% if user_shares.my_recent_shares|length != 0 %}
               <li class="nav-header">My Latest Shares</li>
-              {% for share in my_recent_shares %}
+              {% for share in user_shares.my_recent_shares %}
               <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% elif share.locked %}class="error" title="This share has been locked"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{% if share.locked %}<i class="icon-lock"></i> {% endif %}{{share.name}}</a></li>	
               {% endfor %}
               {% endif %}
-              {% if shared_with_me|length != 0 %}
+              {% if user_shares.shared_with_me|length != 0 %}
               <li class="nav-header">Recently shared with me</li>
-              {% for share in shared_with_me %}
+              {% for share in user_shares.shared_with_me %}
               <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% elif share.locked %}class="error" title="This share has been locked"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{% if share.locked %}<i class="icon-lock"></i> {% endif %}{{share.name}}</a></li>
               {% endfor %}
               {% endif %}
             </ul>
           </div><!--/.well -->
-          {% endif %}
+          {% endcache %}
+        {% endif %}
         </div><!--/span-->
         <div class="{% if request.user.is_authenticated %}span9{% else %}span12{%endif%}">
         	{% if request.user.is_authenticated %}
