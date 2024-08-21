@@ -272,11 +272,15 @@ def delete_share(request, share, confirm=False):
     if share.owner != request.user:
         return render(request, 'share/delete_share.html', {'message': 'Only the owner may delete the share.'})
     if confirm:
+        if share.link_to_path:
+            message = 'The share "%s" has been deleted.  The data remains available at %s.' % (share.name, share.link_to_path)
+        else:
+            message = 'The share "%s" and all its files have been deleted.'%share.name
         share.delete()
-        return render(request, 'share/delete_share.html', {'message': 'The share "%s" and all its files have been deleted.'%share.name})
+        return render(request, 'share/delete_share.html', {'message': message})
     else:
         return render(request, 'share/delete_share.html', {'share':share,'show_confirm':True})
-    
+
 @login_required
 def search_files(request):
     query = request.GET.get('query',None)
@@ -301,7 +305,7 @@ def locked(request, share):
             return redirect('list_directory', share=share.id)
     if request.user.is_superuser or request.user == share.owner:
         share.check_paths(check_symlinks=True)
-        return render(request,'share/links.html', {"share":share, "symlinks": share.meta['symlinks'],  "title": "Share locked"})
+        return render(request,'share/links.html', {"share":share, "symlinks": share.meta.get('symlinks', []),  "title": "Share locked"})
     else:
         return render(request,'share/links.html', {"share":share, "title": "Share locked"})
 
