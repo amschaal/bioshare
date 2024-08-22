@@ -121,7 +121,7 @@ def get_permissions(request,share):
 @JSONDecorator
 def update_share(request,share,json=None):
     share.secure = json['secure']
-    share.save()
+    share.save(update_fields=['secure'])
     return json_response({'status':'okay'})
 
 @api_view(['POST'])
@@ -299,7 +299,7 @@ class ShareLogList(generics.ListAPIView):
     filterset_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains'],'share':['exact']}
     def get_queryset(self):
         shares = Share.user_queryset(self.request.user,include_stats=False)
-        return ShareLog.objects.filter(share__in=shares)
+        return ShareLog.objects.filter(share__in=shares).select_related('user')
 
 class ShareViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareSerializer

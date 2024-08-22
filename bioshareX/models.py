@@ -112,7 +112,7 @@ class Share(models.Model):
         return self.slug if self.slug else self.id
     @staticmethod
     def get_by_slug_or_id(slug_or_id):
-        return Share.objects.get(Q(id=slug_or_id)|Q(slug=slug_or_id))
+        return Share.objects.select_related('filesystem', 'filepath', 'owner').get(Q(id=slug_or_id)|Q(slug=slug_or_id))
     def update_last_modified(self,commit=True):
         self.updated = timezone.now()
         if commit:
