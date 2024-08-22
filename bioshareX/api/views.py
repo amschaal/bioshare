@@ -33,6 +33,9 @@ from bioshareX.utils import (JSONDecorator, ajax_login_required, du,
                              test_path, validate_email)
 from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
 
 @ajax_login_required
 def get_user(request):
@@ -371,6 +374,10 @@ class MessageViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Message.objects.all().order_by('-created')
 #         return Message.objects.filter(active=True).filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=self.request.user.id)
+    @method_decorator(cache_page(60))
+    @method_decorator(vary_on_cookie)
+    def list(self, request):
+        return super().list(self, request)
     @action(methods=['POST','GET'], detail=True, permission_classes=[IsAuthenticated])
     def dismiss(self, request, pk=None):
         message = self.get_object()

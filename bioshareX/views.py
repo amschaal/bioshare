@@ -22,7 +22,7 @@ from bioshareX.forms import (FolderForm, GroupForm, GroupProfileForm,
                              MetaDataForm, PasswordChangeForm, RenameForm,
                              ShareForm, SSHKeyForm, SubShareForm, SymlinkForm)
 from bioshareX.models import GroupProfile, Share, ShareStats, SSHKey
-from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, json_response, list_share_dir,
+from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, get_size_used_group, get_size_used_user, json_response, list_share_dir,
                              safe_path_decorator, share_access_decorator,
                              sizeof_fmt)
 
@@ -72,9 +72,11 @@ def list_shares(request,group_id=None):
 #     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
     group = None if not group_id else Group.objects.get(id=group_id)
     if not group:
-        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
+        total_size = get_size_used_user(request.user)
+        # total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
     else:
-        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
+        total_size = get_size_used_group(request.user)
+        # total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
     return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":'bad_paths' in request.GET,"locked":'locked' in request.GET,"group":group})
 
 def forbidden(request):
