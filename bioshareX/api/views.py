@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.http.response import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
+from bioshareX.ratelimit import url_path_key
 from guardian.decorators import permission_required
 from guardian.models import UserObjectPermission
 from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
@@ -36,6 +37,8 @@ from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
+
+from django_ratelimit.decorators import ratelimit
 
 @ajax_login_required
 def get_user(request):
@@ -194,6 +197,7 @@ def set_permissions(request,share,json=None):
     data['json']=json
     return json_response(data)
 
+@ratelimit(key=url_path_key, rate='10/h')
 @share_access_decorator(['view_share_files'])
 def search_share(request,share,subdir=None):
     from bioshareX.utils import find
@@ -228,6 +232,7 @@ def edit_metadata(request, share, subpath):
         return json_response({'name':name,'notes':metadata.notes,'tags':[tag.name for tag in tags]})
     except Exception as e:
         return json_error([str(e)])
+
 @ajax_login_required
 def delete_ssh_key(request):
     try:
@@ -280,6 +285,7 @@ def create_share(request):
         return JsonResponse({'errors':form.errors},status=400)
 
 @ajax_login_required
+@ratelimit(key=url_path_key, rate='3/d')
 @share_access_decorator(['view_share_files'])
 def email_participants(request,share,subdir=None):
     try:
@@ -331,6 +337,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         for r in serializer.data:
             writer.writerow([r['id'],r['name'].encode('ascii', 'replace'),r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join([t['name'].encode('ascii', 'replace') for t in r['tags']]),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'].encode('ascii', 'replace'),r['path_exists'] ])
         return response
+
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,DjangoModelPermissions,)
