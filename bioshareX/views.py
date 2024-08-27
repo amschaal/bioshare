@@ -24,7 +24,7 @@ from bioshareX.forms import (FolderForm, GroupForm, GroupProfileForm,
                              MetaDataForm, PasswordChangeForm, RenameForm,
                              ShareForm, SSHKeyForm, SubShareForm, SymlinkForm)
 from bioshareX.models import GroupProfile, Share, ShareStats, SSHKey
-from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, get_size_used_group, get_size_used_user, json_response, list_share_dir,
+from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, get_size_used_group, get_size_used_user, json_error, json_response, list_share_dir,
                              safe_path_decorator, share_access_decorator,
                              sizeof_fmt)
 
@@ -336,4 +336,6 @@ def view_links(request, share):
     return render(request,'share/links.html', {"share":share, "symlinks": share.meta['symlinks'], "title": "View share links"})
 
 def ratelimit_exceeded(request, e):
+    if request.is_ajax():
+        return json_error({'status':'error','message':'Due to too much activity, your request has been throttled.'}, http_status=429)
     return render(request,'429.html')
