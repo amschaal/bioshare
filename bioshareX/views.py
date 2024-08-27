@@ -148,7 +148,7 @@ def list_directory(request,share,subdir=None):
         readme = re.sub(r'src="(?!http)',r'src="{0}'.format(download_base),readme)
     return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"errors":errors,"path":PATH,"share":share,"subshare":subshare,"subdir": subdir, "is_realpath": is_realpath,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"link_form":SymlinkForm(request.user),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails, "readme":readme})
 
-@ratelimit(key=url_path_key, rate='5/h')
+@ratelimit(key=url_path_key, rate='10/h')
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
 def wget_listing(request,share,subdir=None):
@@ -334,3 +334,6 @@ def view_links(request, share):
         return redirect('list_directory', share=share.id)
     share.check_paths(check_symlinks=True)
     return render(request,'share/links.html', {"share":share, "symlinks": share.meta['symlinks'], "title": "View share links"})
+
+def ratelimit_exceeded(request, e):
+    return render(request,'429.html')
