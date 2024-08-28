@@ -195,6 +195,7 @@ function edit_metadata(){
 	BC.ajax_form_submit('#edit-metadata-form',
 		{
 			'ajax':{
+				'type':'POST',
 				'url':url,
 				'data':{'tags':$('#edit-metadata-form [name=tags]').val(),'notes':$('#edit-metadata-form [name=notes]').val()}
 			},

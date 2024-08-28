@@ -77,6 +77,7 @@ def create_folder(request, share, subdir=None):
     else:
         return json_error([error for name, error in form.errors.items()])
 
+@ratelimit(key=url_path_key, rate='10/h')
 @permission_required('bioshareX.link_to_path', raise_exception=True)
 @share_access_decorator(['write_to_share'])
 @safe_path_decorator(path_param='subdir', write=True)

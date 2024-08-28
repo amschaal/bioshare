@@ -98,6 +98,7 @@ def share_with(request,share):
         return json_error([str(e)])
 
 @ajax_login_required
+@api_view(['GET'])
 def share_autocomplete(request):
     terms = [term.strip() for term in request.GET.get('query').split()]
     query = reduce(lambda q,value: q&Q(name__icontains=value), terms , Q())
@@ -108,7 +109,7 @@ def share_autocomplete(request):
     except Exception as e:
         return json_error([str(e)])
 
-
+@api_view(['GET'])
 def get_group(request):
     query = request.GET.get('query')
     try:
@@ -123,6 +124,7 @@ def get_permissions(request,share):
     data = share.get_permissions(user_specific=True)
     return json_response(data)
 
+@api_view(['POST'])
 @share_access_decorator(['admin'])
 @JSONDecorator
 def update_share(request,share,json=None):
@@ -209,6 +211,7 @@ def search_share(request,share,subdir=None):
         response = {'status':'error'}
     return json_response(response)
 
+@api_view(['POST'])
 @safe_path_decorator()
 @share_access_decorator(['write_to_share'])
 def edit_metadata(request, share, subpath):
