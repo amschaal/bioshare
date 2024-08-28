@@ -508,7 +508,6 @@ $(function () {
     			generate_rsync_strings(share,subpath);
     	}
     });
-    $('#searchButton').click(function(){search_share($('#searchBox').val())});
     $('#searchForm').submit(function(){search_share($('#searchBox').val()); return false;});
     $('#save-metadata').click(edit_metadata);
     $('#file-table').on('click','span.tag',function(){hide_other_tags($(this).text())});
