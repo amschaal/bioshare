@@ -13,7 +13,7 @@ from django.shortcuts import redirect, render
 from django.urls.base import reverse
 from django.views.decorators.cache import never_cache
 from django.db import transaction
-from bioshareX.ratelimit import url_path_key
+from bioshareX.ratelimit import ratelimit_rate, url_path_key
 from guardian.decorators import permission_required
 from guardian.shortcuts import assign_perm
 from rest_framework.renderers import JSONRenderer
@@ -107,7 +107,7 @@ def edit_share(request,share):
     return render(request, 'share/edit_share.html', {'form': form})
 
 
-@ratelimit(key=url_path_key, rate='10/h')
+@ratelimit(key=url_path_key, group='list_directory', rate=ratelimit_rate)
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files'])
 @never_cache
@@ -148,7 +148,7 @@ def list_directory(request,share,subdir=None):
         readme = re.sub(r'src="(?!http)',r'src="{0}'.format(download_base),readme)
     return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"errors":errors,"path":PATH,"share":share,"subshare":subshare,"subdir": subdir, "is_realpath": is_realpath,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"link_form":SymlinkForm(request.user),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails, "readme":readme})
 
-@ratelimit(key=url_path_key, rate='10/h')
+@ratelimit(key=url_path_key, group='wget_listing', rate=ratelimit_rate)
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
 def wget_listing(request,share,subdir=None):

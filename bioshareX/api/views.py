@@ -9,7 +9,7 @@ from django.db.models import Q
 from django.http.response import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
-from bioshareX.ratelimit import url_path_key
+from bioshareX.ratelimit import ratelimit_rate, url_path_key
 from guardian.decorators import permission_required
 from guardian.models import UserObjectPermission
 from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
@@ -199,7 +199,7 @@ def set_permissions(request,share,json=None):
     data['json']=json
     return json_response(data)
 
-@ratelimit(key=url_path_key, rate='10/h')
+@ratelimit(key=url_path_key, group='search_share', rate=ratelimit_rate)
 @share_access_decorator(['view_share_files'])
 def search_share(request,share,subdir=None):
     from bioshareX.utils import find
@@ -288,7 +288,7 @@ def create_share(request):
         return JsonResponse({'errors':form.errors},status=400)
 
 @ajax_login_required
-@ratelimit(key=url_path_key, rate='3/d')
+@ratelimit(key=url_path_key, group='email_participants', rate=ratelimit_rate)
 @share_access_decorator(['view_share_files'])
 def email_participants(request,share,subdir=None):
     try:

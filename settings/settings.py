@@ -239,4 +239,33 @@ ZFS_DESTROY_COMMAND =  ['zfs','destroy']
 # RATELIMIT_EXCEPTION_CLASS = 'bioshareX.exceptions.ThrottledException'
 RATELIMIT_VIEW = 'bioshareX.views.ratelimit_exceeded'
 
+# Custom settings so it is easy to override per view rates in config, rather than changing source code
+RATELIMIT_RATES = {
+    'default': '10/m',
+    'user': '10/m',
+    'anon': '5/m',
+    'groups': {
+        'list_directory': {
+            'user': '5/m',
+            'anon': '2/m'
+        },
+        'wget_listing': '5/h',
+        'create_symlink': '10/h',
+        'download_stream_archive': '5/h',
+        'download_file': {
+            'user': '5/h',
+            'anon': '2/h' 
+        },
+        'get_md5sum': {
+            'user': '3/h',
+            'anon': '2/d'
+        },
+        'search_share': {
+            'user': '20/h',
+            'anon': '5/h'
+        },
+        'email_participants': '3/d'
+    }
+}
+
 from settings.config import *
