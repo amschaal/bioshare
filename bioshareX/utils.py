@@ -10,6 +10,7 @@ from django.http.response import JsonResponse
 from django.shortcuts import redirect, render
 from django.template import Context, Template
 from django.urls.base import reverse
+from django.core.cache import cache
 from rest_framework import status
 from scandir import scandir
 from bioshareX.exceptions import IllegalPathException
@@ -304,6 +305,22 @@ def sizeof_fmt(num):
             return "%3.1f%s" % (num, x)
         num /= 1024.0
     return "%3.1f%s" % (num, 'TB')
+
+def get_size_used_group(group):
+    from bioshareX.models import ShareStats
+    total_size = cache.get("get_size_used_group_{}".format(group.id))
+    if not total_size:
+        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
+        cache.set("get_size_used_group_{}".format(group.id), total_size, 30)
+    return total_size
+
+def get_size_used_user(user):
+    from bioshareX.models import ShareStats
+    total_size = cache.get("get_size_used_user_{}".format(user.id))
+    if not total_size:
+        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=user)]))
+        cache.set("get_size_used_user_{}".format(user.id), total_size, 30)
+    return total_size
 
 def zipdir(base, path, zip):
     from os.path import relpath

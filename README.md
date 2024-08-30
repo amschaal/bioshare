@@ -13,6 +13,7 @@ Installation
 3. Python 3.8+ (virtualenv recommended)
 4. PostgreSQL Server
 5. Optionally, ZFS (see ZFS.md)
+5. Optionally, install Memcached for session caching
 
 Clone the repository:
 ~~~

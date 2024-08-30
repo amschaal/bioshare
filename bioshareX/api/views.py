@@ -33,6 +33,9 @@ from bioshareX.utils import (JSONDecorator, ajax_login_required, du,
                              test_path, validate_email)
 from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
 
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
 
 @ajax_login_required
 def get_user(request):
@@ -121,7 +124,7 @@ def get_permissions(request,share):
 @JSONDecorator
 def update_share(request,share,json=None):
     share.secure = json['secure']
-    share.save()
+    share.save(update_fields=['secure'])
     return json_response({'status':'okay'})
 
 @api_view(['POST'])
@@ -299,7 +302,7 @@ class ShareLogList(generics.ListAPIView):
     filterset_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains'],'share':['exact']}
     def get_queryset(self):
         shares = Share.user_queryset(self.request.user,include_stats=False)
-        return ShareLog.objects.filter(share__in=shares)
+        return ShareLog.objects.filter(share__in=shares).select_related('user')
 
 class ShareViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareSerializer
@@ -371,6 +374,10 @@ class MessageViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Message.objects.all().order_by('-created')
 #         return Message.objects.filter(active=True).filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=self.request.user.id)
+    @method_decorator(cache_page(60))
+    @method_decorator(vary_on_cookie)
+    def list(self, request):
+        return super().list(self, request)
     @action(methods=['POST','GET'], detail=True, permission_classes=[IsAuthenticated])
     def dismiss(self, request, pk=None):
         message = self.get_object()

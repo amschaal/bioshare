@@ -22,7 +22,7 @@ from bioshareX.forms import (FolderForm, GroupForm, GroupProfileForm,
                              MetaDataForm, PasswordChangeForm, RenameForm,
                              ShareForm, SSHKeyForm, SubShareForm, SymlinkForm)
 from bioshareX.models import GroupProfile, Share, ShareStats, SSHKey
-from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, json_response, list_share_dir,
+from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, get_size_used_group, get_size_used_user, json_response, list_share_dir,
                              safe_path_decorator, share_access_decorator,
                              sizeof_fmt)
 
@@ -72,9 +72,11 @@ def list_shares(request,group_id=None):
 #     shared_with_me = get_objects_for_user(request.user, 'bioshareX.view_share_files')
     group = None if not group_id else Group.objects.get(id=group_id)
     if not group:
-        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
+        total_size = get_size_used_user(request.user)
+        # total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
     else:
-        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
+        total_size = get_size_used_group(request.user)
+        # total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
     return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":'bad_paths' in request.GET,"locked":'locked' in request.GET,"group":group})
 
 def forbidden(request):
@@ -272,11 +274,15 @@ def delete_share(request, share, confirm=False):
     if share.owner != request.user:
         return render(request, 'share/delete_share.html', {'message': 'Only the owner may delete the share.'})
     if confirm:
+        if share.link_to_path:
+            message = 'The share "%s" has been deleted.  The data remains available at %s.' % (share.name, share.link_to_path)
+        else:
+            message = 'The share "%s" and all its files have been deleted.'%share.name
         share.delete()
-        return render(request, 'share/delete_share.html', {'message': 'The share "%s" and all its files have been deleted.'%share.name})
+        return render(request, 'share/delete_share.html', {'message': message})
     else:
         return render(request, 'share/delete_share.html', {'share':share,'show_confirm':True})
-    
+
 @login_required
 def search_files(request):
     query = request.GET.get('query',None)
@@ -301,7 +307,7 @@ def locked(request, share):
             return redirect('list_directory', share=share.id)
     if request.user.is_superuser or request.user == share.owner:
         share.check_paths(check_symlinks=True)
-        return render(request,'share/links.html', {"share":share, "symlinks": share.meta['symlinks'],  "title": "Share locked"})
+        return render(request,'share/links.html', {"share":share, "symlinks": share.meta.get('symlinks', []),  "title": "Share locked"})
     else:
         return render(request,'share/links.html', {"share":share, "title": "Share locked"})
 

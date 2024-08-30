@@ -170,7 +170,7 @@ def move_paths(request, share, subdir=None, json={}):
 def download_archive_stream(request, share, subdir=None):
 #     try:
     share.last_data_access = timezone.now()
-    share.save()
+    share.save(update_fields=['last_data_access'])
     selection = request.GET.get('selection','').split(',')
     path = share.get_path()
     if subdir:
@@ -189,7 +189,7 @@ def download_archive_stream(request, share, subdir=None):
 def download_file(request, share, subpath=None):
     from sendfile import sendfile
     share.last_data_access = timezone.now()
-    share.save()
+    share.save(update_fields=['last_data_access'])
     file_path = os.path.join(share.get_path(),subpath)
     response={'path':file_path}
     return sendfile(request, os.path.realpath(file_path))

@@ -72,7 +72,7 @@ class Command(BaseCommand):
                     if share.illegal_path_found:
                         raise WrapperException('Illegal path found for share %s, rsync terminated.' % (share.id))  
                     share.last_data_access = timezone.now()
-                    share.save()
+                    share.save(update_fields=['last_data_access'])
                 command = ['rsync', '--server', '--sender', flags, '.'] + paths
             else:#client->server
                 # --no-p --no-g --chmod=ugo=rwX  //destination default permissions

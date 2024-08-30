@@ -20,7 +20,7 @@
 <h1>
 	<a href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip" title="{{share.notes}}">{{share.name}}</a>
 	{% if owner or user.is_superuser %}
-		<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete Share</a>
+		<a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete {% if share.link_to_path %}(Unlink){% endif %} Share</a>
 		<a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3"><i class="icon-edit icon-white"></i> Edit</a>
 		<a href="{% url 'view_links' share.id %}" class="btn btn-primary pull-right margin-3"><i class="icon-info-sign icon-white"></i> View Links</a>
 	{% endif %}
