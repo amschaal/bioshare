@@ -268,4 +268,7 @@ RATELIMIT_RATES = {
     }
 }
 
+RATELIMIT_EXEMPT_IPS = [] # List of exempt IP addresses or ranges
+RATELIMIT_EXEMPT_USERNAMES = [] # List of exempt usernames
+
 from settings.config import *

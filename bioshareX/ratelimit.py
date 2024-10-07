@@ -8,6 +8,14 @@ def url_path_key(group, request):
 
 def ratelimit_rate(group, request):
     rates = getattr(settings,'RATELIMIT_RATES',{})
+    if request.user.is_authenticated and request.user.username in getattr(settings,'RATELIMIT_EXEMPT_USERNAMES', []):
+        return None
+    elif not request.user.is_authenticated:
+        import ipaddress
+        for IP in getattr(settings,'RATELIMIT_EXEMPT_IPS', []):
+            if request.META['REMOTE_ADDR'] == IP or ipaddress.ip_address(request.META['REMOTE_ADDR']) in ipaddress.ip_network(IP, strict=False):
+                return None
+
     group_rates = rates.get('groups', {}).get(group)
     if group_rates:
         if isinstance(group_rates, str):
