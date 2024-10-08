@@ -16,10 +16,12 @@ from bioshareX.exceptions import IllegalPathException
 from bioshareX.file_utils import get_lines, get_num_lines, istext
 from bioshareX.forms import FolderForm, RenameForm, SymlinkForm, json_form_validate
 from bioshareX.models import Share, ShareLog
+from bioshareX.ratelimit import ratelimit_rate, url_path_key
 from bioshareX.utils import (JSONDecorator, find_symlink, is_realpath, json_error,
                              json_response, md5sum, safe_path_decorator,
                              share_access_decorator, sizeof_fmt, test_path)
 
+from django_ratelimit.decorators import ratelimit
 
 def handle_uploaded_file(path,file):
     if not is_realpath(path):
@@ -75,6 +77,7 @@ def create_folder(request, share, subdir=None):
     else:
         return json_error([error for name, error in form.errors.items()])
 
+@ratelimit(key=url_path_key, group='create_symlink', rate=ratelimit_rate)
 @permission_required('bioshareX.link_to_path', raise_exception=True)
 @share_access_decorator(['write_to_share'])
 @safe_path_decorator(path_param='subdir', write=True)
@@ -164,6 +167,7 @@ def move_paths(request, share, subdir=None, json={}):
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_MOVED,text=text,paths=json['selection'],subdir=subdir)
     return json_response(response)
 
+@ratelimit(key=url_path_key, group='download_stream_archive', rate=ratelimit_rate)
 @share_access_decorator(['download_share_files'])
 @safe_path_decorator(path_param='subdir')
 # @JSONDecorator
@@ -184,6 +188,7 @@ def download_archive_stream(request, share, subdir=None):
     except Exception as e:
         return json_error([str(e)])
 
+@ratelimit(key=url_path_key, group='download_file', rate=ratelimit_rate)
 @share_access_decorator(['download_share_files'])
 @safe_path_decorator()    
 def download_file(request, share, subpath=None):
@@ -195,7 +200,7 @@ def download_file(request, share, subpath=None):
     return sendfile(request, os.path.realpath(file_path))
 
 @share_access_decorator(['download_share_files'])
-@safe_path_decorator()    
+@safe_path_decorator()
 def preview_file(request, share, subpath):
     from_line = int(request.GET.get('from',1))
     num_lines = int(request.GET.get('for',100))
@@ -224,6 +229,7 @@ def get_directories(request, share):
     return json_response(response)
 #     return sendfile(request, os.path.realpath(file_path))
 
+@ratelimit(key=url_path_key, group='get_md5sum', rate=ratelimit_rate)
 @share_access_decorator([Share.PERMISSION_VIEW])
 @safe_path_decorator()    
 def get_md5sum(request, share, subpath):

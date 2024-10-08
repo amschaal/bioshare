@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.http.response import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
+from bioshareX.ratelimit import ratelimit_rate, url_path_key
 from guardian.decorators import permission_required
 from guardian.models import UserObjectPermission
 from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
@@ -36,6 +37,8 @@ from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
+
+from django_ratelimit.decorators import ratelimit
 
 @ajax_login_required
 def get_user(request):
@@ -95,6 +98,7 @@ def share_with(request,share):
         return json_error([str(e)])
 
 @ajax_login_required
+@api_view(['GET'])
 def share_autocomplete(request):
     terms = [term.strip() for term in request.GET.get('query').split()]
     query = reduce(lambda q,value: q&Q(name__icontains=value), terms , Q())
@@ -105,7 +109,7 @@ def share_autocomplete(request):
     except Exception as e:
         return json_error([str(e)])
 
-
+@api_view(['GET'])
 def get_group(request):
     query = request.GET.get('query')
     try:
@@ -120,6 +124,7 @@ def get_permissions(request,share):
     data = share.get_permissions(user_specific=True)
     return json_response(data)
 
+@api_view(['POST'])
 @share_access_decorator(['admin'])
 @JSONDecorator
 def update_share(request,share,json=None):
@@ -194,6 +199,7 @@ def set_permissions(request,share,json=None):
     data['json']=json
     return json_response(data)
 
+@ratelimit(key=url_path_key, group='search_share', rate=ratelimit_rate)
 @share_access_decorator(['view_share_files'])
 def search_share(request,share,subdir=None):
     from bioshareX.utils import find
@@ -205,6 +211,7 @@ def search_share(request,share,subdir=None):
         response = {'status':'error'}
     return json_response(response)
 
+@api_view(['POST'])
 @safe_path_decorator()
 @share_access_decorator(['write_to_share'])
 def edit_metadata(request, share, subpath):
@@ -228,6 +235,7 @@ def edit_metadata(request, share, subpath):
         return json_response({'name':name,'notes':metadata.notes,'tags':[tag.name for tag in tags]})
     except Exception as e:
         return json_error([str(e)])
+
 @ajax_login_required
 def delete_ssh_key(request):
     try:
@@ -280,6 +288,7 @@ def create_share(request):
         return JsonResponse({'errors':form.errors},status=400)
 
 @ajax_login_required
+@ratelimit(key=url_path_key, group='email_participants', rate=ratelimit_rate)
 @share_access_decorator(['view_share_files'])
 def email_participants(request,share,subdir=None):
     try:
@@ -331,6 +340,7 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         for r in serializer.data:
             writer.writerow([r['id'],r['name'].encode('ascii', 'replace'),r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join([t['name'].encode('ascii', 'replace') for t in r['tags']]),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'].encode('ascii', 'replace'),r['path_exists'] ])
         return response
+
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,DjangoModelPermissions,)

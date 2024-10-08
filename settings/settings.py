@@ -115,6 +115,7 @@ MIDDLEWARE = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django_ratelimit.middleware.RatelimitMiddleware'
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -201,9 +202,13 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
     'PAGINATE_BY_PARAM': 'page_size',  # Allow client to override, using `?page_size=xxx`.
     'MAX_PAGINATE_BY': 1000,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'bioshareX.api.throttles.BurstRateThrottle',
+        'bioshareX.api.throttles.SustainedRateThrottle'
+    ],
     'DEFAULT_THROTTLE_RATES': {
-        'burst': '10/min',
-#         'sustained': '1000/day'
+        'burst': '20/minute',
+        'sustained': '1000/day'
     }
 }
 
@@ -230,5 +235,40 @@ SYMLINK_DEPTH_MAX = 3 # absolute maximum depth
 
 ZFS_CREATE_COMMAND =  ['zfs','create']
 ZFS_DESTROY_COMMAND =  ['zfs','destroy']
+
+# RATELIMIT_EXCEPTION_CLASS = 'bioshareX.exceptions.ThrottledException'
+RATELIMIT_VIEW = 'bioshareX.views.ratelimit_exceeded'
+
+# Custom settings so it is easy to override per view rates in config, rather than changing source code
+RATELIMIT_RATES = {
+    'default': '10/m',
+    'user': '10/m',
+    'anon': '5/m',
+    'groups': {
+        'list_directory': {
+            'user': '5/m',
+            'anon': '2/m'
+        },
+        'wget_listing': '5/h',
+        'create_symlink': '10/h',
+        'download_stream_archive': '5/h',
+        'download_file': {
+            'user': '5/h',
+            'anon': '2/h' 
+        },
+        'get_md5sum': {
+            'user': '3/h',
+            'anon': '2/d'
+        },
+        'search_share': {
+            'user': '20/h',
+            'anon': '5/h'
+        },
+        'email_participants': '3/d'
+    }
+}
+
+RATELIMIT_EXEMPT_IPS = [] # List of exempt IP addresses or ranges
+RATELIMIT_EXEMPT_USERNAMES = [] # List of exempt usernames
 
 from settings.config import *

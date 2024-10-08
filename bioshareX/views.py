@@ -13,19 +13,20 @@ from django.shortcuts import redirect, render
 from django.urls.base import reverse
 from django.views.decorators.cache import never_cache
 from django.db import transaction
+from bioshareX.ratelimit import ratelimit_rate, url_path_key
 from guardian.decorators import permission_required
 from guardian.shortcuts import assign_perm
 from rest_framework.renderers import JSONRenderer
+from django_ratelimit.decorators import ratelimit
 
 from bioshareX.api.serializers import UserSerializer
 from bioshareX.forms import (FolderForm, GroupForm, GroupProfileForm,
                              MetaDataForm, PasswordChangeForm, RenameForm,
                              ShareForm, SSHKeyForm, SubShareForm, SymlinkForm)
 from bioshareX.models import GroupProfile, Share, ShareStats, SSHKey
-from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, get_size_used_group, get_size_used_user, json_response, list_share_dir,
+from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, get_size_used_group, get_size_used_user, json_error, json_response, list_share_dir,
                              safe_path_decorator, share_access_decorator,
                              sizeof_fmt)
-
 
 def index(request):
     # View code here...
@@ -65,6 +66,7 @@ def redirect_old_path(request, id, subpath=''):
 def tag_cloud(request):
     # View code here...
     return render(request,'viz/cloud.html')
+
 @login_required
 def list_shares(request,group_id=None):
     # View code here...
@@ -104,6 +106,8 @@ def edit_share(request,share):
         form.fields['tags'].initial = tags
     return render(request, 'share/edit_share.html', {'form': form})
 
+
+@ratelimit(key=url_path_key, group='list_directory', rate=ratelimit_rate)
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files'])
 @never_cache
@@ -144,6 +148,7 @@ def list_directory(request,share,subdir=None):
         readme = re.sub(r'src="(?!http)',r'src="{0}'.format(download_base),readme)
     return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"errors":errors,"path":PATH,"share":share,"subshare":subshare,"subdir": subdir, "is_realpath": is_realpath,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"link_form":SymlinkForm(request.user),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails, "readme":readme})
 
+@ratelimit(key=url_path_key, group='wget_listing', rate=ratelimit_rate)
 @safe_path_decorator(path_param='subdir')
 @share_access_decorator(['view_share_files','download_share_files'])
 def wget_listing(request,share,subdir=None):
@@ -329,3 +334,8 @@ def view_links(request, share):
         return redirect('list_directory', share=share.id)
     share.check_paths(check_symlinks=True)
     return render(request,'share/links.html', {"share":share, "symlinks": share.meta['symlinks'], "title": "View share links"})
+
+def ratelimit_exceeded(request, e):
+    if request.is_ajax():
+        return json_error({'status':'error','message':'Due to too much activity, your request has been throttled.'}, http_status=429)
+    return render(request,'429.html')

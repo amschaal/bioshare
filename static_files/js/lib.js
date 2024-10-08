@@ -95,6 +95,9 @@ $( document ).ajaxError(function(event, xhr, settings) {
 	console.log('error',xhr.responseJSON,event,xhr,settings);
 	if(xhr.responseJSON.unauthenticated || xhr.status == 403 || xhr.status == 401)
 		BC.login();
+	if(xhr.status == 429)
+		$.bootstrapGrowl('A request to the server has been throttled due to too many requests.  Please wait a of couple minutes, and reduce the rate of activity.',{type:'error',delay: 10000});
+
 });
 
 angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap","checklist-model","messages","ngPageState"])
@@ -117,7 +120,9 @@ angular.module("bioshare", ["ngTable","ngResource","ui.bootstrap","checklist-mod
     	   'responseError': function(rejection) {
     		   console.log('rejection',rejection);
     		  if (rejection.status == 403 || rejection.status == 401)
-    			  BC.login();
+    			BC.login();
+			  else if (rejection.status == 429)
+			  	$.bootstrapGrowl('A request to the server has been throttled due to too many requests.  Please wait a of couple minutes, and reduce the rate of activity.',{type:'error',delay: 10000});
     	      return $q.reject(rejection);
     	    }
     	  };
