@@ -384,8 +384,8 @@ class MessageViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Message.objects.all().order_by('-created')
 #         return Message.objects.filter(active=True).filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=self.request.user.id)
-    @method_decorator(cache_page(60))
-    @method_decorator(vary_on_cookie)
+    # @method_decorator(cache_page(60)) # removing caching for now so that user message dismissal does not have to wait for cache timeout
+    # @method_decorator(vary_on_cookie)
     def list(self, request):
         return super().list(self, request)
     @action(methods=['POST','GET'], detail=True, permission_classes=[IsAuthenticated])
