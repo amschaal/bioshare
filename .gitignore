@@ -6,3 +6,4 @@ settings/config.py
 bioshareX/migrations/backup
 .project
 .pydevproject
+.venv
