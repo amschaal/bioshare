@@ -77,7 +77,7 @@ def list_shares(request,group_id=None):
         total_size = get_size_used_user(request.user)
         # total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=request.user)]))
     else:
-        total_size = get_size_used_group(request.user)
+        total_size = get_size_used_group(group)
         # total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
     return render(request,'share/shares.html', {"total_size":total_size,"bad_paths":'bad_paths' in request.GET,"locked":'locked' in request.GET,"group":group})
 
