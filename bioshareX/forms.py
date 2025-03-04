@@ -165,11 +165,13 @@ class RenameForm(forms.Form):
         return to_name.strip()
 
 class SymlinkForm(forms.Form):
-    def __init__(self, user, *args, **kwargs):
+    def __init__(self, user, share, subdir=None, *args, **kwargs):
         if user.is_authenticated:
             self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
         else:
             self.file_paths = []
+        self.share = share
+        self.subdir = subdir
         self.user = user
         super(SymlinkForm, self).__init__(*args, **kwargs)
     name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
@@ -202,6 +204,16 @@ class SymlinkForm(forms.Form):
             except Exception as e:
                 raise forms.ValidationError(str(e))
         return path
+    def clean_name(self):
+        name = self.cleaned_data['name']
+        if self.subdir:
+            link_path = os.path.join(self.share.get_path(), self.subdir, name)
+        else:
+            link_path = os.path.join(self.share.get_path(), name)
+        if os.path.exists(link_path):
+            raise forms.ValidationError('The path for "{}" already exists'.format(name))
+        return name
+
 
 class RegistrationForm(forms.Form):
     """

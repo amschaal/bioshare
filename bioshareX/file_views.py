@@ -11,8 +11,11 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth.decorators import permission_required
-from bioshareX.exceptions import IllegalPathException
+from django.views.decorators.csrf import csrf_exempt
 
+from rest_framework.decorators import api_view
+
+from bioshareX.exceptions import IllegalPathException
 from bioshareX.file_utils import get_lines, get_num_lines, istext
 from bioshareX.forms import FolderForm, RenameForm, SymlinkForm, json_form_validate
 from bioshareX.models import Share, ShareLog
@@ -77,12 +80,14 @@ def create_folder(request, share, subdir=None):
     else:
         return json_error([error for name, error in form.errors.items()])
 
+@api_view(['POST'])
+# @csrf_exempt
 @ratelimit(key=url_path_key, group='create_symlink', rate=ratelimit_rate)
 @permission_required('bioshareX.link_to_path', raise_exception=True)
 @share_access_decorator(['write_to_share'])
 @safe_path_decorator(path_param='subdir', write=True)
 def create_symlink(request, share, subdir=None):
-    form = SymlinkForm(request.user, request.POST)
+    form = SymlinkForm(request.user, share, subdir, request.data)
     data = json_form_validate(form)
     if form.is_valid():
         if subdir:
