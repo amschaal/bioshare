@@ -174,7 +174,7 @@ class SymlinkForm(forms.Form):
         self.subdir = subdir
         self.user = user
         super(SymlinkForm, self).__init__(*args, **kwargs)
-    name = forms.RegexField(regex=r'^[\w\d\ \-_]+$',error_messages={'invalid':'Illegal character in folder name'})
+    name = forms.RegexField(regex=r'^[\w\d\ \-_\/]+$',error_messages={'invalid':'Illegal character in folder name'})
     target = forms.CharField()
     def clean_target(self):
         path = self.cleaned_data['target']
@@ -206,13 +206,31 @@ class SymlinkForm(forms.Form):
         return path
     def clean_name(self):
         name = self.cleaned_data['name']
+        if os.path.isabs(name):
+            raise forms.ValidationError('Illegal absolute path given for link.')
         if self.subdir:
-            link_path = os.path.join(self.share.get_path(), self.subdir, name)
+            self.link_path = os.path.join(self.share.get_path(), self.subdir, name)
         else:
-            link_path = os.path.join(self.share.get_path(), name)
-        if os.path.exists(link_path):
+            self.link_path = os.path.join(self.share.get_path(), name)
+        base_path, link_name = os.path.split(self.link_path)
+        # Make sure that everything leading up to the link is a regular old directory.  If it doesn't exist, one will be made.
+        while base_path:
+            print('base_path', base_path)
+            if os.path.exists(base_path) and (not os.path.isdir(base_path) or os.path.islink(base_path)):
+                raise forms.ValidationError('The path at {} exists and is not a regular directory.  Symlinks are only allowed in regular directories.'.format(base_path))
+            new_path, end = os.path.split(base_path)
+            if new_path == base_path:
+                break
+            base_path = new_path
+        if os.path.exists(self.link_path):
             raise forms.ValidationError('The path for "{}" already exists'.format(name))
         return name
+    def create_link(self):
+        base_path, name = os.path.split(self.link_path)
+        if not os.path.isdir(base_path) and not os.path.exists(base_path):
+            os.makedirs(base_path)
+        os.symlink(self.cleaned_data['target'], self.link_path)
+        return self.link_path
 
 
 class RegistrationForm(forms.Form):

@@ -90,11 +90,7 @@ def create_symlink(request, share, subdir=None):
     form = SymlinkForm(request.user, share, subdir, request.data)
     data = json_form_validate(form)
     if form.is_valid():
-        if subdir:
-            link_path = os.path.join(share.get_path(),subdir,form.cleaned_data['name'])
-        else:
-            link_path = os.path.join(share.get_path(),form.cleaned_data['name'])
-        os.symlink(form.cleaned_data['target'], link_path)
+        link_path = form.create_link()
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(link_path)
         data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': form.cleaned_data['target']}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
