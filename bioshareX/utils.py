@@ -341,19 +341,27 @@ def get_size(path):
                 total_size += os.path.getsize(fp)
         return total_size
 
+def get_size_bytes(path):
+    total_size = 0
+    if settings.USE_DU:
+        total_size = du_bytes(path)
+    else:
+        for dirpath, dirnames, filenames in os.walk(path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+    return total_size
+
 def get_share_stats(share):
     path = os.path.abspath(share.get_path())
     total_size = 0
     if not share.parent: # don't count subshares
         ZFS_PATH = share.get_zfs_path()
-        if ZFS_PATH:
+        if ZFS_PATH and not share.symlinks_found:
             ZFS_PATH = share.get_path()
             total_size = subprocess.check_output(['zfs', 'get', '-H', '-o', 'value', '-p', 'used', ZFS_PATH])
         else:
-            for dirpath, dirnames, filenames in os.walk(path):
-                for f in filenames:
-                    fp = os.path.join(dirpath, f)
-                    total_size += os.path.getsize(fp)
+            total_size = get_size_bytes(path)
     return {'size':int(total_size)}
 
 def get_total_size(paths=[]):
@@ -365,6 +373,10 @@ def get_total_size(paths=[]):
 def du(path):
     """disk usage in human readable format (e.g. '2,1GB')"""
     return subprocess.check_output(['du','-shL', path]).split()[0].decode('utf-8')
+
+def du_bytes(path):
+    """disk usage in bytes"""
+    return int(subprocess.check_output(['du','-sbL', path]).split()[0].decode('utf-8'))
 
 def list_share_dir(share,subdir=None,ajax=False):
     from bioshareX.models import MetaData

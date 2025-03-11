@@ -236,6 +236,8 @@ SYMLINK_DEPTH_MAX = 3 # absolute maximum depth
 ZFS_CREATE_COMMAND =  ['zfs','create']
 ZFS_DESTROY_COMMAND =  ['zfs','destroy']
 
+USE_DU = False # Whether to use "du" linux command instead of python os utils for calculating share sizes
+
 # RATELIMIT_EXCEPTION_CLASS = 'bioshareX.exceptions.ThrottledException'
 RATELIMIT_VIEW = 'bioshareX.views.ratelimit_exceeded'
 
