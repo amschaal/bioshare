@@ -170,6 +170,7 @@ class SymlinkForm(forms.Form):
             self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
         else:
             self.file_paths = []
+        self.directories_created = []
         self.share = share
         self.subdir = subdir
         self.user = user
@@ -209,9 +210,10 @@ class SymlinkForm(forms.Form):
         if os.path.isabs(name):
             raise forms.ValidationError('Illegal absolute path given for link.')
         if self.subdir:
-            self.link_path = os.path.join(self.share.get_path(), self.subdir, name)
+            self.base_directory = os.path.join(self.share.get_path(), self.subdir)
         else:
-            self.link_path = os.path.join(self.share.get_path(), name)
+            self.base_directory = self.share.get_path()
+        self.link_path = os.path.join(self.base_directory, name)
         base_path, link_name = os.path.split(self.link_path)
         # Make sure that everything leading up to the link is a regular old directory.  If it doesn't exist, one will be made.
         while base_path:
@@ -225,10 +227,25 @@ class SymlinkForm(forms.Form):
         if os.path.exists(self.link_path):
             raise forms.ValidationError('The path for "{}" already exists'.format(name))
         return name
+    def create_subdirectories(self):
+        name = self.cleaned_data['name']
+        base_path, name = os.path.split(name)
+        if base_path:
+            normalized_path = os.path.normpath(base_path)
+            path_components = normalized_path.split(os.sep)
+            for i in range(len(path_components)):
+                subpath = os.sep.join(path_components[:i + 1])
+                full_path = os.path.join(self.base_directory, subpath)
+                if not os.path.isdir(full_path) and not os.path.exists(base_path):
+                    os.mkdir(full_path)
+                    self.directories_created.append(subpath)
     def create_link(self):
-        base_path, name = os.path.split(self.link_path)
-        if not os.path.isdir(base_path) and not os.path.exists(base_path):
-            os.makedirs(base_path)
+        self.create_subdirectories()
+        # base_path, name = os.path.split(self.link_path)
+        # name = self.cleaned_data['name']
+        # if not os.path.isdir(base_path) and not os.path.exists(base_path):
+        #     os.makedirs(base_path)
+        #     self.directories_created = True
         os.symlink(self.cleaned_data['target'], self.link_path)
         return self.link_path
 

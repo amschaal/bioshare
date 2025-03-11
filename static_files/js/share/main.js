@@ -257,11 +257,22 @@ function create_link(){
 	BC.ajax_form_submit('#new-link-form',{
 		'success':function(data){
 			$.each(data.objects,function(index,obj){
-				var html = BC.run_template('link-template',obj);
-				//var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
-				var row = $(html).prependTo('#file-table');
-				filetable._fnAddTr(row[0]);
-				$.bootstrapGrowl('"'+obj.name+'" link created',{type:'info',delay: 3000});
+				if (obj.type == 'symlink') {
+					if (obj.display) {
+						var html = BC.run_template('link-template',obj);
+						var row = $(html).prependTo('#file-table');
+						filetable._fnAddTr(row[0]);
+					}
+					$.bootstrapGrowl('"'+obj.name+'" link created',{type:'info',delay: 3000});
+				} else if (obj.type == 'directory') {
+					if (obj.display) {
+						var html = BC.run_template('directory-template',obj);
+						//var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
+						var row = $(html).prependTo('#file-table');
+						filetable._fnAddTr(row[0]);
+					}
+                    $.bootstrapGrowl('"'+obj.name+'" folder created',{type:'info',delay: 3000});
+				}
 			});
 			$('#new-link').modal('hide');
 			toggle_table_visibility();

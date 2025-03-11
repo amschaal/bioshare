@@ -74,7 +74,7 @@ def create_folder(request, share, subdir=None):
         except Exception as e:
             return json_error([str(e)])
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
-        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}]
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'type': 'directory'}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FOLDER_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
         return json_response(data)
     else:
@@ -92,7 +92,9 @@ def create_symlink(request, share, subdir=None):
     if form.is_valid():
         link_path = form.create_link()
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(link_path)
-        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': form.cleaned_data['target']}]
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': form.cleaned_data['target'], 'display': os.sep not in form.cleaned_data['name'], 'type': 'symlink'}]
+        for dir in form.directories_created:
+            data['objects'].append({'name':dir, 'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'type': 'directory', 'display': os.sep not in dir})
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
         share.check_paths(True)
         return json_response(data)
@@ -129,7 +131,6 @@ def modify_name(request, share, subdir=None):
         data['objects']=[{'from_name':form.cleaned_data['from_name'],'to_name':form.cleaned_data['to_name']}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_RENAMED,text='"%s" renamed to "%s"'%(form.cleaned_data['from_name'],form.cleaned_data['to_name']),paths=[from_path],subdir=subdir)
     return json_response(data)
-
 
 @share_access_decorator(['delete_share_files'])
 @safe_path_decorator(path_param='subdir', write=True)
