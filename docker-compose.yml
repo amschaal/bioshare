@@ -11,6 +11,7 @@ services:
     environment:
       - VERSION=DOCKER
       - DEBUG=1
+      - PYTHONUNBUFFERED=1
     env_file:
       - ./.env.dev
     networks:

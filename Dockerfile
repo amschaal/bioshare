@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.10
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
@@ -6,6 +6,7 @@ RUN apt-get update \
 		postgresql-client \
 		openssh-server \
 		rsync \
+		memcached \
 	&& rm -rf /var/lib/apt/lists/*
 
 # prepare bioshare user for rsync

@@ -365,7 +365,10 @@ def get_share_stats(share):
         ZFS_PATH = share.get_zfs_path()
         if ZFS_PATH and not share.symlinks_found:
             ZFS_PATH = share.get_path()
-            total_size = subprocess.check_output(['zfs', 'get', '-H', '-o', 'value', '-p', 'used', ZFS_PATH])
+            try:
+                total_size = subprocess.check_output(['zfs', 'get', '-H', '-o', 'value', '-p', 'used', ZFS_PATH])
+            except Exception as e:
+                total_size = get_size_bytes(path)
         else:
             total_size = get_size_bytes(path)
     return {'size':int(total_size)}
