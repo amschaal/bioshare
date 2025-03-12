@@ -337,19 +337,25 @@ def get_size(path):
     elif os.path.isdir(path):
         for dirpath, dirnames, filenames in os.walk(path):
             for f in filenames:
-                fp = os.path.join(dirpath, f)
-                total_size += os.path.getsize(fp)
+                try:
+                    fp = os.path.join(dirpath, f)
+                    total_size += os.path.getsize(fp)
+                except Exception as e:
+                    pass
         return total_size
 
-def get_size_bytes(path):
+def get_size_bytes(path, followlinks=True):
     total_size = 0
     if settings.USE_DU:
-        total_size = du_bytes(path)
+        total_size = du(path, bytes=True)
     else:
-        for dirpath, dirnames, filenames in os.walk(path):
+        for dirpath, dirnames, filenames in os.walk(path, followlinks=followlinks):
             for f in filenames:
-                fp = os.path.join(dirpath, f)
-                total_size += os.path.getsize(fp)
+                try:    
+                    fp = os.path.join(dirpath, f)
+                    total_size += os.path.getsize(fp)
+                except Exception as e:
+                    pass
     return total_size
 
 def get_share_stats(share):
@@ -370,13 +376,16 @@ def get_total_size(paths=[]):
         total_size += get_size(path)
     return total_size
 
-def du(path):
-    """disk usage in human readable format (e.g. '2,1GB')"""
-    return subprocess.check_output(['du','-shL', path]).split()[0].decode('utf-8')
-
-def du_bytes(path):
-    """disk usage in bytes"""
-    return int(subprocess.check_output(['du','-sbL', path]).split()[0].decode('utf-8'))
+def du(path, bytes=False):
+    """disk usage in human readable format (e.g. '2,1GB'), or bytes if bytes=True"""
+        # return subprocess.check_output(['du','-shL', path]).split()[0].decode('utf-8')
+    flags = '-sbL' if bytes else '-shL'
+    try:
+        output = subprocess.check_output(['du', flags, path])
+    except Exception as e:
+        output = e.output
+    size = output.split()[0].decode('utf-8')
+    return int(size) if bytes else size
 
 def list_share_dir(share,subdir=None,ajax=False):
     from bioshareX.models import MetaData
