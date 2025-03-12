@@ -1,10 +1,16 @@
+from datetime import timedelta
 import subprocess
+from django.utils import timezone
 
-def update_file_stats():
+def update_file_stats(last_modified_days=7):
     from bioshareX.models import Share
-    for share in Share.objects.all():
+    last_modified = timezone.now() - timedelta(days=last_modified_days)
+    shares = Share.objects.filter(updated__gte=last_modified)
+    print('****{} shares selected.****'.format(shares.count()))
+    for share in shares:
         try:
             share.get_stats()
+            print('Updated {}'.format(share))
         except:
             print('Unable to create stats for share: %s'%share.name)
      
