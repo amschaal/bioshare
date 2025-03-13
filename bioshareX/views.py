@@ -339,3 +339,8 @@ def ratelimit_exceeded(request, e):
     if request.is_ajax():
         return json_error({'status':'error','message':'Due to too much activity, your request has been throttled.'}, http_status=429)
     return render(request,'429.html')
+
+@share_access_decorator(['admin'])
+def update_stats(request, share):
+    share.get_stats() # updates stats
+    return redirect('list_directory', share=share.id)

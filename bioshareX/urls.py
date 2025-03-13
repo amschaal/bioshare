@@ -25,6 +25,7 @@ urlpatterns = [
 #     url(r'^wget/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?wget_index.html$', bioshare_views.wget_listing, name='wget_listing'),
     url(r'^list/(?P<share>[-\w]+)/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory_old'),
     url(r'^view/(?P<share>[-\w]+)/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory'),
+    url(r'^update_stats/(?P<share>[-\w]+)/?$', bioshare_views.update_stats, name='update_stats'),
     url(r'^wget/(?P<share>[-\w]+)/(?:(?P<subdir>.*/))?wget_index.html$', bioshare_views.wget_listing, name='wget_listing'),
     url(r'^shares/$', bioshare_views.list_shares, name='list_shares'),
 #     url(r'^groups/(?P<group_id>[\d]+)/shares/?$', bioshare_views.list_shares, name='list_group_shares'),

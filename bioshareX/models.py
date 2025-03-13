@@ -32,9 +32,14 @@ class ShareStats(models.Model):
     def hr_size(self):
         from bioshareX.utils import sizeof_fmt
         return sizeof_fmt(self.bytes)
-    def update_stats(self):
-        from django.utils import timezone
-
+    def can_update(self, min_hours_since_update=1):
+        min_hours_since_update = min_hours_since_update or 1 # template is passing in None so we aren't getting default
+        if not self.updated or (((timezone.now() - self.updated).total_seconds() // 3600) > min_hours_since_update):
+            return True
+        return False
+    def update_stats(self, min_hours_since_update=1):
+        if not self.can_update(min_hours_since_update):
+            return
         from bioshareX.utils import get_share_stats
 
         #         if self.updated is None:
@@ -121,9 +126,9 @@ class Share(models.Model):
         if subpath:
             return reverse('list_directory',kwargs={'share':self.slug_or_id,'subpath':subpath})
         return reverse('list_directory',kwargs={'share':self.slug_or_id})
-    def get_stats(self):
+    def get_stats(self, min_hours_since_update=None):
         stats = ShareStats.objects.get_or_create(share=self)[0]
-        stats.update_stats()
+        stats.update_stats(min_hours_since_update=min_hours_since_update)
         return stats
     @staticmethod
     def user_queryset(user,include_stats=True):
