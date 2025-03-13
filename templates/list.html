@@ -57,7 +57,7 @@
 {% if share.tags.count > 0 %}
 	<br><b>Tags:</b> {% for tag in share.tags.all %}{{tag.name}}{% if not forloop.last %}, {% endif %}{% endfor %}
 {% endif %}
-<br><b>Share size:</b> {% if share.stats %}{{share.stats.hr_size}} (updated {{share.stats.updated}}){% else %}unknown{% endif %}
+<br><b>Share size:</b> {% if share.stats %}{{share.stats.hr_size}} (updated {{share.stats.updated}}){% else %}unknown{% endif %}{% if "admin" in share_perms %}{% if not share.stats or share.stats.can_update %} <a href="{% url 'update_stats' share=share.id %}">Update</a>{% endif%}{% endif%}
 {% if subdir %}
 <br><b>Directory size:</b> <span ng-cloak ng-controller="SizeController" >{% verbatim %}<span ng-if="size">{{size}}</span>{% endverbatim %}<a class="pointer" ng-if="!size" ng-click="calculate('{{share.id}}'{% if subdir %},'{{subdir}}'{% endif %})">Calculate...</a></span>
 {% endif %}
