@@ -108,13 +108,14 @@ TEMPLATES = [
     }
 ]
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django_ratelimit.middleware.RatelimitMiddleware'
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -145,6 +146,7 @@ INSTALLED_APPS = (
     'bioshareX',
     'crispy_forms',
     'guardian',
+    'django_filters',
     'rest_framework',
     'rest_framework.authtoken',
     'compressor',
@@ -194,30 +196,81 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ),
-    'DEFAULT_FILTER_BACKENDS': ('rest_framework_filters.backends.DjangoFilterBackend','rest_framework.filters.OrderingFilter'),
+    # 'DEFAULT_FILTER_BACKENDS': ('rest_framework_filters.backends.DjangoFilterBackend','rest_framework.filters.OrderingFilter'),
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend', 'rest_framework.filters.OrderingFilter',),
     'DEFAULT_PAGINATION_CLASS': 'bioshareX.pagination.StandardPagePagination',
     'PAGE_SIZE': 10,
     'PAGINATE_BY_PARAM': 'page_size',  # Allow client to override, using `?page_size=xxx`.
     'MAX_PAGINATE_BY': 1000,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'bioshareX.api.throttles.BurstRateThrottle',
+        'bioshareX.api.throttles.SustainedRateThrottle'
+    ],
     'DEFAULT_THROTTLE_RATES': {
-        'burst': '10/min',
-#         'sustained': '1000/day'
+        'burst': '20/minute',
+        'sustained': '1000/day'
     }
 }
 
 ANONYMOUS_USER_ID = -1 #Guardian
+
+DEFAULT_FILESYSTEM_ID = None #Replace with integer filesystem id
 
 FILE_UPLOAD_HANDLERS = (
     "django.core.files.uploadhandler.TemporaryFileUploadHandler",
 )
 SSH_WRAPPER_SCRIPT = os.path.join(CURRENT_DIR, 'sshwrapper.py')
 
-UMASK = '0002'
+UMASK = 0o002
 
 INCLUDE_REGISTER_URL = False
 
 STRIP_REGEX = r'[^\w\.\- \*^]+'
 UNDERSCORE_REGEX = r'[ ]+'
 MD5SUM_COMMAND = 'md5sum'
+
+ENABLE_SYMLINKS = False
+SYMLINK_DEPTH_DEFAULT = 1 # default depth that symlinks are allowed, can be overridden
+SYMLINK_DEPTH_MAX = 3 # absolute maximum depth
+
+ZFS_CREATE_COMMAND =  ['zfs','create']
+ZFS_DESTROY_COMMAND =  ['zfs','destroy']
+
+USE_DU = False # Whether to use "du" linux command instead of python os utils for calculating share sizes
+
+# RATELIMIT_EXCEPTION_CLASS = 'bioshareX.exceptions.ThrottledException'
+RATELIMIT_VIEW = 'bioshareX.views.ratelimit_exceeded'
+
+# Custom settings so it is easy to override per view rates in config, rather than changing source code
+RATELIMIT_RATES = {
+    'default': '10/m',
+    'user': '10/m',
+    'anon': '5/m',
+    'groups': {
+        'list_directory': {
+            'user': '5/m',
+            'anon': '2/m'
+        },
+        'wget_listing': '5/h',
+        'create_symlink': '10/h',
+        'download_stream_archive': '5/h',
+        'download_file': {
+            'user': '5/h',
+            'anon': '2/h' 
+        },
+        'get_md5sum': {
+            'user': '3/h',
+            'anon': '2/d'
+        },
+        'search_share': {
+            'user': '20/h',
+            'anon': '5/h'
+        },
+        'email_participants': '3/d'
+    }
+}
+
+RATELIMIT_EXEMPT_IPS = [] # List of exempt IP addresses or ranges
+RATELIMIT_EXEMPT_USERNAMES = [] # List of exempt usernames
 
 from settings.config import *

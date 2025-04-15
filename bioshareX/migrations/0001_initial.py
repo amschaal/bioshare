@@ -47,8 +47,8 @@ class Migration(migrations.Migration):
                 ('real_path', models.CharField(max_length=200, null=True, blank=True)),
                 ('path_exists', models.BooleanField(default=True)),
                 ('filesystem', models.ForeignKey(to='bioshareX.Filesystem', on_delete=django.db.models.deletion.PROTECT)),
-                ('owner', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
-                ('parent', models.ForeignKey(blank=True, to='bioshareX.Share', null=True)),
+                ('owner', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=django.db.models.deletion.PROTECT)),
+                ('parent', models.ForeignKey(blank=True, to='bioshareX.Share', null=True, on_delete=django.db.models.deletion.PROTECT)),
             ],
             options={
                 'permissions': (('view_share_files', 'View share files'), ('delete_share_files', 'Delete share files'), ('download_share_files', 'Download share files'), ('write_to_share', 'Write to share'), ('link_to_path', 'Link to a specific path'), ('admin', 'Administer')),
@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('password', models.CharField(default=bioshareX.models.pkgen, max_length=15)),
                 ('home', models.CharField(max_length=250)),
-                ('share', models.OneToOneField(related_name='ftp_user', to='bioshareX.Share')),
+                ('share', models.OneToOneField(related_name='ftp_user', to='bioshareX.Share', on_delete=django.db.models.deletion.PROTECT)),
             ],
         ),
         migrations.CreateModel(
@@ -70,7 +70,7 @@ class Migration(migrations.Migration):
                 ('num_files', models.IntegerField(default=0)),
                 ('bytes', models.BigIntegerField(default=0)),
                 ('updated', models.DateTimeField(null=True)),
-                ('share', models.OneToOneField(related_name='stats', to='bioshareX.Share')),
+                ('share', models.OneToOneField(related_name='stats', to='bioshareX.Share', on_delete=django.db.models.deletion.PROTECT)),
             ],
         ),
         migrations.CreateModel(
@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('name', models.CharField(max_length=50)),
                 ('key', models.TextField()),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=django.db.models.deletion.PROTECT)),
             ],
         ),
         migrations.CreateModel(
@@ -96,7 +96,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='metadata',
             name='share',
-            field=models.ForeignKey(to='bioshareX.Share'),
+            field=models.ForeignKey(to='bioshareX.Share', on_delete=django.db.models.deletion.PROTECT),
         ),
         migrations.AddField(
             model_name='metadata',

@@ -195,6 +195,7 @@ function edit_metadata(){
 	BC.ajax_form_submit('#edit-metadata-form',
 		{
 			'ajax':{
+				'type':'POST',
 				'url':url,
 				'data':{'tags':$('#edit-metadata-form [name=tags]').val(),'notes':$('#edit-metadata-form [name=notes]').val()}
 			},
@@ -250,6 +251,60 @@ function create_folder(){
 			}
 		});
 		return false;
+}
+
+function create_link(){
+	BC.ajax_form_submit('#new-link-form',{
+		'success':function(data){
+			$.each(data.objects,function(index,obj){
+				if (obj.type == 'symlink') {
+					if (obj.display) {
+						var html = BC.run_template('link-template',obj);
+						var row = $(html).prependTo('#file-table');
+						filetable._fnAddTr(row[0]);
+					}
+					$.bootstrapGrowl('"'+obj.name+'" link created',{type:'info',delay: 3000});
+				} else if (obj.type == 'directory') {
+					if (obj.display) {
+						var html = BC.run_template('directory-template',obj);
+						//var row = '<tr class="directory real-directory success" data-id="'+obj.name+'"><td><input class="action-check" type="checkbox"/></td><td><a href="'+obj.name+'"><i class="fam-folder"></i>'+obj.name+'</a></td><td></td><td></td></tr>';
+						var row = $(html).prependTo('#file-table');
+						filetable._fnAddTr(row[0]);
+					}
+                    $.bootstrapGrowl('"'+obj.name+'" folder created',{type:'info',delay: 3000});
+				}
+			});
+			$('#new-link').modal('hide');
+			toggle_table_visibility();
+		}
+	});
+	return false;
+}
+
+function unlink(){
+	if (!confirm('Are you sure you want to unlink this directory?'))
+		return;
+	var row = $(this).closest('tr');
+	var path = subpath ? subpath + row.attr('data-id') : row.attr('data-id');
+	BC.ajax(
+			{
+				'url':'/bioshare/unlink/'+share+'/'+path,
+				'success':function(data){
+						console.log('unlink',data);
+//						$.bootstrapGrowl("File: "+data.path+"<br>MD5: "+data.md5sum,{type:'success',delay: 10000});
+						// $(el).replaceWith('<span class="md5sum">'+data.md5sum+'</span>');
+						row.addClass('error').addClass('deleted');
+						setTimeout(function(){
+								$('#file-table tr.deleted').fadeOut({
+									'duration':500,
+									'complete':function(){filetable.fnDeleteRow($(this)[0]);toggle_table_visibility();}
+										});
+								}
+							,500);
+				},
+				'error': BC.on_ajax_error
+			}
+		);
 }
 
 function open_rename_form(){
@@ -373,12 +428,14 @@ $(function () {
 	$(document).on('click','[data-action="preview"]',preview_share_action);
 	$(document).on('click','[data-action="calculate-md5"]',calculate_md5);
 	$(document).on('click','[data-action="modify-name"]',open_rename_form);
+	$(document).on('click','[data-action="unlink"]',unlink);
 	
 	toggle_table_visibility();
 	BC.load_templates()
     $('#fileupload').fileupload({
         url: upload_file_url,
         dataType: 'json',
+		error: BC.on_ajax_error,
         done: function (e, data) {
             $.each(data.result.files, function (index, file) {
             	var old = $('#file-table tr[data-id="'+file.name+'"]');
@@ -398,6 +455,9 @@ $(function () {
             		$.bootstrapGrowl('Successfully uploaded '+file.name,{type:'success',delay: 3000});
             	}
             });
+			$.each(data.result.errors, function (index, error) {
+				$.bootstrapGrowl(error,{type:'error',delay: 10000});
+            });
             $('#progress').hide();
             toggle_table_visibility();
         },
@@ -413,8 +473,10 @@ $(function () {
         }
     });
     $('#create-folder').click(create_folder);
+	$('#create-link').click(create_link);
     $('#rename-button').click(modify_name);
     $('#new-folder-form').submit(create_folder);
+	$('#new-link-form').submit(create_link);
     $('#open-move-modal').click(open_move_modal);
     $('#move-button').click(function(){
     	if(confirm('Are you sure you want to move these files/folders?'))
@@ -457,7 +519,6 @@ $(function () {
     			generate_rsync_strings(share,subpath);
     	}
     });
-    $('#searchButton').click(function(){search_share($('#searchBox').val())});
     $('#searchForm').submit(function(){search_share($('#searchBox').val()); return false;});
     $('#save-metadata').click(edit_metadata);
     $('#file-table').on('click','span.tag',function(){hide_other_tags($(this).text())});

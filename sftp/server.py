@@ -1,4 +1,3 @@
-import errno
 import functools
 import logging
 import os
@@ -10,7 +9,7 @@ import paramiko
 from paramiko import SFTPServer, SFTPServerInterface
 from paramiko.sftp import SFTP_OK, SFTP_OP_UNSUPPORTED
 from paramiko.common import o666
-from bioshareX.models import Share
+from bioshareX.models import Share, ShareLog
 from paramiko.sftp_handle import SFTPHandle
 from bioshareX.utils import paths_contain
 from django.conf import settings
@@ -143,7 +142,7 @@ def log_event(method):
     """
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
-        string_args = u':'.join([arg for arg in args if isinstance(arg, basestring)])
+        string_args = u':'.join([arg for arg in args if isinstance(arg, str)])
         msg = u'%s:%%s:%s:%s' % (method.__name__, self.user, string_args)
         try:
             response = method(self, *args, **kwargs)
@@ -278,19 +277,36 @@ class SFTPInterface (SFTPServerInterface):
             print('no share exists')
             print(path)
             raise PermissionDenied("Share does not exist: %s"%path[1])
-        return self.shares[parts[1]]
+        share = self.shares[parts[1]]
+        if not hasattr(share,'_sftp_initialized'):
+            if share.symlinks_found:
+                share.check_paths()
+            setattr(share,'_sftp_initialized', True)
+        if share.locked:
+            raise PermissionDenied('Share is locked.  Contact the application administrator.')
+        return share
     def _path_modified(self,path):
         share = self._get_share(path)
         previous_date = self.modified_date.get(share.id,None)
         current_date = timezone.now()
         if not previous_date or (current_date-previous_date).seconds > SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS:
             self.modified_date[share.id] = current_date
-            Share.objects.filter(id=share.id,updated__lt=current_date).update(updated=current_date) 
+            Share.objects.filter(id=share.id,updated__lt=current_date).update(updated=current_date)
+    def _get_subpath(self, path): # takes /<share_id>/subpath
+        parts = path.split(os.path.sep)
+        return os.path.sep.join(parts[2:])
+    def _create_log(self, path, action, text): # takes /<share_id>/subpath for path
+        ShareLog.create(share=self._get_share(path),user=self.user,action=action,paths=[self._get_subpath(path)], text=text)
     def _get_bioshare_path_permissions(self,path):
         share = self._get_share(path)
         self.shares_accessed.add(share.id)
         permissions = share.get_user_permissions(self.user)
 #         print permissions
+        if not self.is_realpath(path): # Don't allow any write operations if it isn't a real directory under the share root
+            if Share.PERMISSION_DELETE in permissions:
+                permissions.remove(Share.PERMISSION_DELETE)
+            if Share.PERMISSION_WRITE in permissions:
+                permissions.remove(Share.PERMISSION_WRITE)
         return permissions
     def _get_path_permissions(self,path):
         permissions = self._get_bioshare_path_permissions(path)
@@ -309,10 +325,16 @@ class SFTPInterface (SFTPServerInterface):
         share = self._get_share(path)
         realpath = os.path.realpath(os.path.join(share.get_realpath(),os.path.sep.join(parts[2:])))
         if not paths_contain(settings.DIRECTORY_WHITELIST,realpath):
+            share.check_paths()
             raise PermissionDenied("Encountered a path outside the whitelist")
         return realpath
 #         print self.ROOT + self.canonicalize(path)
 #         return self.ROOT + self.canonicalize(path)
+    def is_realpath(self, path):
+        parts = path.split(os.path.sep)
+        share = self._get_share(path)
+        # print('is_realpath', share.is_realpath(os.path.sep.join(parts[2:])), os.path.sep.join(parts[2:]))
+        return share.is_realpath(os.path.sep.join(parts[2:]))
     @sftp_response
     def list_shares(self):
 #         print "LIST SHARES"
@@ -320,13 +342,13 @@ class SFTPInterface (SFTPServerInterface):
             return []
         try:
             out = []
-            for id,share in self.shares.iteritems():
+            for id,share in self.shares.items():
                 try:
 #                     print id
                     attr = paramiko.SFTPAttributes.from_stat(os.stat(share.get_realpath()))
                     attr.filename = id
                     out.append(attr)
-                except Exception, e:
+                except Exception as e:
                     pass #directory may be missing
             return out
         except OSError as e:
@@ -430,6 +452,7 @@ class SFTPInterface (SFTPServerInterface):
         try:
             os.remove(real_path)
             self._path_modified(path)
+            self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP delete')
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
@@ -441,6 +464,9 @@ class SFTPInterface (SFTPServerInterface):
         try:
             os.rename(oldpath, newpath)
             self._path_modified(oldpath)
+            old = os.path.basename(oldpath)
+            new = os.path.basename(newpath)
+            self._create_log(oldpath, ShareLog.ACTION_RENAMED, 'SFTP renamed {} to {}'.format(old, new))
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
@@ -453,6 +479,7 @@ class SFTPInterface (SFTPServerInterface):
             self._path_modified(path)
             if attr is not None:
                 SFTPServer.set_file_attr(real_path, attr)
+            self._create_log(path, ShareLog.ACTION_FOLDER_CREATED, 'SFTP folder created')
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
@@ -463,6 +490,7 @@ class SFTPInterface (SFTPServerInterface):
         try:
             os.rmdir(real_path)
             self._path_modified(path)
+            self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP directory deleted')
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
