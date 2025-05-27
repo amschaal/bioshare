@@ -483,6 +483,7 @@ class ShareLog(models.Model):
     ACTION_RSYNC = 'Files rsynced'
     ACTION_ERROR = 'Error'
     ACTION_PERMISSIONS_UPDATED = 'Permissions updated'
+    ACTION_USER_EMAILED = 'User emailed'
     share = models.ForeignKey(Share, related_name="logs", on_delete=models.CASCADE)
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.PROTECT)
     timestamp = models.DateTimeField(auto_now_add=True)

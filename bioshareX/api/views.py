@@ -192,8 +192,10 @@ def set_permissions(request,share,json=None):
     data['messages']=[]
     if len(emailed) > 0:
         data['messages'].append({'type':'info','content':'%s has/have been emailed'%', '.join(emailed)})
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='Permissions have been updated and emails were sent to the following users: {}'.format(', '.join(emailed)))
     if len(created) > 0:
-        data['messages'].append({'type':'info','content':'Accounts has/have been created and emails have been sent to the following email addresses: %s'%', '.join(created)})
+        data['messages'].append({'type':'info','content':'An account has been created and an email has been sent for the following email addresses: %s'%', '.join(created)})
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='An account has been created and an email has been sent for the following email addresses: %s'%', '.join(created))
     if len(failed) > 0:
         data['messages'].append({'type':'info','content':'Delivery has failed to the following addresses: %s'%', '.join(failed)})
     data['json']=json
@@ -300,6 +302,7 @@ def email_participants(request,share,subdir=None):
         body = request.POST.get('body')
         users.append(share.owner)
         email_users(users, ctx_dict={}, subject=subject, body=body,from_email=request.user.email,content_subtype='plain')
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='An email has been sent to the following participants: %s'%', '.join([u.email for u in users]))
         response = {'status':'success','sent_to':[u.email for u in users]}
         return json_response(response)
     except Exception as e:
