@@ -110,6 +110,7 @@ class Share(models.Model):
     PERMISSION_WRITE = 'write_to_share'
     PERMISSION_LINK_TO_PATH = 'link_to_path'
     PERMISSION_ADMIN = 'admin'
+    PERMISSION_SHARE_READ_ONLY = 'share_read_only'
     def __str__(self):
         return self.name
     @property
@@ -378,6 +379,7 @@ Share._meta.permissions = (
             (Share.PERMISSION_WRITE, 'Write to share'),
             (Share.PERMISSION_LINK_TO_PATH, 'Link to a specific path'),
             (Share.PERMISSION_ADMIN, 'Administer'),
+            (Share.PERMISSION_SHARE_READ_ONLY, 'Share read only'),
         )    
 
 def share_post_save(sender, **kwargs):
