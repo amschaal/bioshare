@@ -1,0 +1,43 @@
+<div class="modal hide fade" id="share-read-only-dialog">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <h3>Share (read only)</h3>
+  </div>
+  <div class="modal-body">
+	<p>You may give another user read only access to this share.  If they do not yet have an account associated with the email provided, a new account will be created.</p>
+  	<form id="share-read-only-form" action="{% url 'api_share_read_only' share=share.id %}" method="POST">
+  	<fieldset>
+  	{% csrf_token %}
+  	<label>Email: <input name="email" type="email"/></label>
+    </fieldset>
+    </form>
+    <button class="btn btn-primary" aria-hidden="true" id="share-button">Share</button>
+    <!-- <button class="btn btn-primary" id="preview-more">More</button> -->
+  </div>
+  <div class="modal-footer">
+  <span id="lines-loaded" class="pull-left"></span>
+	<button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+</div>
+<script>
+function share_read_only(){
+	$("#share-button").prop("disabled",true);
+	BC.ajax_form_submit('#share-read-only-form',{
+		'success':function(data){
+            $.bootstrapGrowl('Successfully shared with : ' + data.email,{type:'info',delay: 10000});
+			$('#share-read-only-dialog').modal('hide');
+		},
+		'error':function(){
+			$("#share-button").prop("disabled",false);
+		}
+	});
+	return false;
+}
+$(function () {
+	$('#share-read-only').click(function(){
+		$("#share-button").prop("disabled",false);
+		$('#share-read-only-dialog').modal('show');
+	});
+	$('#share-button').click(share_read_only);
+});
+</script>

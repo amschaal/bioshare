@@ -28,6 +28,7 @@
 		<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary pull-right margin-3"><i class="icon-lock icon-white"></i> Permissions</a>
 	{% endif %}
 	{% if "write_to_share" in share_perms or "admin" in share_perms %}<button class="btn btn-primary pull-right margin-3" id="email-users"><i class="icon-envelope icon-white"></i> Email</a>{%endif%}
+	{% if "share_read_only" in share_perms or user.is_superuser %}<button class="btn btn-success pull-right margin-3" id="share-read-only"><i class="icon-user icon-white"></i> Share</a>{%endif%}
 </h1>
 
 
@@ -459,7 +460,9 @@ Filtered by: <span id="filtered-tags"></span><br>
 {% if "write_to_share" in share_perms or "admin" in share_perms %}
 {% include "dialogs/email_users.html" %}
 {% endif %}
-
+{% if "share_read_only" in share_perms %}
+{% include "dialogs/share_read_only.html" %}
+{% endif %}
 <form id="download_archive_form" action="{% if subdir %}{% url 'download_archive_stream' share=share.id subdir=subdir %}{% else %}{% url 'download_archive_stream' share=share.id %}{% endif %}" method="GET">
 <input type="hidden" name="selection" id="archive_selection"/>
 </form>
