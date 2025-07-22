@@ -405,3 +405,6 @@ class GroupProfileForm(forms.ModelForm):
     class Meta:
         model = GroupProfile
         fields = ('description',)
+
+class ShareReadOnlyForm(forms.Form):
+    email = forms.EmailField()
