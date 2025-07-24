@@ -27,7 +27,7 @@ from bioshareX.api.serializers import (GroupSerializer, MessageSerializer,
                                        UserSerializer)
 from bioshareX.forms import MetaDataForm, ShareForm, ShareReadOnlyForm, json_form_validate
 from bioshareX.models import Message, MetaData, Share, ShareLog, SSHKey, Tag
-from bioshareX.permissions import ManageGroupPermission
+from bioshareX.permissions import ManageGroupPermission, SharePermissions
 from bioshareX.utils import (JSONDecorator, ajax_login_required, du,
                              email_users, json_error, json_response,
                              safe_path_decorator, share_access_decorator,
@@ -314,11 +314,12 @@ def share_read_only(request,share):
     form = ShareReadOnlyForm(request.data)
     if form.is_valid():
         email = form.cleaned_data['email'].lower()
-        response = {'status':'success', 'message': 'Successfully shared with {}'.format(email)}
-        return JsonResponse(response)
-    else:
-        response = {'status':'error','error':'Unable to share with email {}'.format(form.cleaned_data['email'])}
-        return JsonResponse(response, status=status.HTTP_400_BAD_REQUEST)
+        perms = SharePermissions(share)
+        if perms.set_user_permissions(email, [Share.PERMISSION_VIEW, Share.PERMISSION_DOWNLOAD], request.user):
+            response = {'status':'success', 'message': 'Successfully shared with {}'.format(email)}
+            return JsonResponse(response)
+    response = {'status':'error','error':'Unable to share with email {}'.format(form.cleaned_data['email'])}
+    return JsonResponse(response, status=status.HTTP_400_BAD_REQUEST)
 
 class ShareLogList(generics.ListAPIView):
     serializer_class = ShareLogSerializer
