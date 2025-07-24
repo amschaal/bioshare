@@ -136,68 +136,18 @@ def update_share(request,share,json=None):
 @share_access_decorator(['admin'])
 @JSONDecorator
 def set_permissions(request,share,json=None):
-    from smtplib import SMTPException
-    emailed=[]
-    created=[]
-    failed=[]
-#     if not request.user.has_perm('admin',share):
-#         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
-    if 'groups' in json:
-        for group, permissions in json['groups'].items():
-            g = Group.objects.get(Q(id__iexact=group)|Q(name__iexact=group.strip()))
-            current_perms = get_perms(g,share)
-            removed_perms = list(set(current_perms) - set(permissions))
-            added_perms = list(set(permissions) - set(current_perms))
-            for u in g.user_set.all():
-                if len(share.get_user_permissions(u,user_specific=True)) == 0 and len(added_perms) > 0 and json['email']:
-                    email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site_url':SITE_URL})
-                    emailed.append(u.username)
-            for perm in removed_perms:
-                remove_perm(perm,g,share)
-            for perm in added_perms:
-                assign_perm(perm,g,share)
-    if 'users' in json:
-        for username, permissions in json['users'].items():
-            username = username.lower()
-            try:
-                u = User.objects.get(username__iexact=username)
-                if len(share.get_user_permissions(u,user_specific=True)) == 0 and json['email']:
-                    try:
-                        email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site_url':SITE_URL})
-                        emailed.append(username)
-                    except:
-                        failed.append(username)
-            except:
-                if len(permissions) > 0:
-                    password = User.objects.make_random_password()
-                    u = User(username=username,email=username)
-                    u.set_password(password)
-                    u.save()
-                    try:
-                        email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':share,'sharer':request.user,'site_url':SITE_URL})
-                        created.append(username)
-                    except:
-                        failed.append(username)
-                        u.delete()
-            current_perms = share.get_user_permissions(u,user_specific=True)
-            removed_perms = list(set(current_perms) - set(permissions))
-            added_perms = list(set(permissions) - set(current_perms))
-            for perm in removed_perms:
-                if u.username not in failed:
-                    remove_perm(perm,u,share)
-            for perm in added_perms:
-                if u.username not in failed:
-                    assign_perm(perm,u,share)
-    data = share.get_permissions(user_specific=True)
-    data['messages']=[]
-    if len(emailed) > 0:
-        data['messages'].append({'type':'info','content':'%s has/have been emailed'%', '.join(emailed)})
-        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='Permissions have been updated and emails were sent to the following users: {}'.format(', '.join(emailed)))
-    if len(created) > 0:
-        data['messages'].append({'type':'info','content':'An account has been created and an email has been sent for the following email addresses: %s'%', '.join(created)})
-        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='An account has been created and an email has been sent for the following email addresses: %s'%', '.join(created))
-    if len(failed) > 0:
-        data['messages'].append({'type':'info','content':'Delivery has failed to the following addresses: %s'%', '.join(failed)})
+    perms = SharePermissions(share)
+    perms.set_permissions(json, request.user, json['email'])
+    data = perms.get_permissions(user_specific=True)
+    data['messages'] = []
+    if len(perms.emailed) > 0:
+        data['messages'].append({'type':'info','content':'%s has/have been emailed'%', '.join(perms.emailed)})
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='Permissions have been updated and emails were sent to the following users: {}'.format(', '.join(perms.emailed)))
+    if len(perms.created) > 0:
+        data['messages'].append({'type':'info','content':'An account has been created and an email has been sent for the following email addresses: %s'%', '.join(perms.created)})
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='An account has been created and an email has been sent for the following email addresses: %s'%', '.join(perms.created))
+    if len(perms.failed) > 0:
+        data['messages'].append({'type':'info','content':'Delivery has failed to the following addresses: %s'%', '.join(perms.failed)})
     data['json']=json
     return json_response(data)
 
@@ -315,7 +265,7 @@ def share_read_only(request,share):
     if form.is_valid():
         email = form.cleaned_data['email'].lower()
         perms = SharePermissions(share)
-        if perms.set_user_permissions(email, [Share.PERMISSION_VIEW, Share.PERMISSION_DOWNLOAD], request.user):
+        if perms.set_user_permissions(email, [Share.PERMISSION_VIEW, Share.PERMISSION_DOWNLOAD], request.user, email=True):
             response = {'status':'success', 'message': 'Successfully shared with {}'.format(email)}
             return JsonResponse(response)
     response = {'status':'error','error':'Unable to share with email {}'.format(form.cleaned_data['email'])}
