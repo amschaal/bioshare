@@ -50,6 +50,9 @@ class SharePermissions(object):
         u = User(username=username,email=username)
         u.set_password(password)
         u.save()
+        if shared_by:
+            u.profile.created_by = shared_by
+            u.profile.save()
         try:
             email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':self.share,'sharer':shared_by,'site_url':SITE_URL})
             self.created.append(username)
@@ -84,7 +87,7 @@ class SharePermissions(object):
         else:
             username = user.username
         if not user and len(permissions) > 0:
-            user = self.create_user(username)
+            user = self.create_user(username, shared_by=shared_by)
         if user:
             current_perms = self.get_user_permissions(user,user_specific=True)
             removed_perms = list(set(current_perms) - set(permissions))

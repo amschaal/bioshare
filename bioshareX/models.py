@@ -490,6 +490,11 @@ class GroupProfile(models.Model):
     created_by = models.ForeignKey(User,on_delete=models.PROTECT)
     description = models.TextField(blank=True,null=True)
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.RESTRICT, related_name='created_users')
+    def __str__(self):
+        return f"{self.user.username}'s profile"
 
 """
     Make permissions more efficient to check by having a direct foreign key:
@@ -521,3 +526,9 @@ def lowercase_user(sender, instance, **kwargs):
     if instance.username != instance.username.lower() or instance.email != instance.email.lower():
         User.objects.filter(id=instance.id).update(username=instance.username.lower(),email=instance.email.lower())
 post_save.connect(lowercase_user, sender=User)
+
+def create_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+post_save.connect(create_profile, sender=User)
