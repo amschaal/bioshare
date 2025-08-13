@@ -24,10 +24,11 @@ function share_read_only(){
 	$("#share-button").prop("disabled",true);
 	BC.ajax_form_submit('#share-read-only-form',{
 		'success':function(data){
-            $.bootstrapGrowl('Successfully shared with : ' + data.email,{type:'info',delay: 10000});
+            $.bootstrapGrowl(data.message,{type:'info',delay: 10000});
 			$('#share-read-only-dialog').modal('hide');
 		},
 		'error':function(){
+			// $.bootstrapGrowl(data.message,{type:'error',delay: 10000});
 			$("#share-button").prop("disabled",false);
 		}
 	});

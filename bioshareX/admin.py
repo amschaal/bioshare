@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as OriginalUserAdmin
 from django.contrib.auth.models import User
 from guardian.admin import GuardedModelAdmin
 
-from bioshareX.models import FilePath, Filesystem, Message, Share
+from bioshareX.models import FilePath, Filesystem, Message, Share, UserProfile
 
 
 class ShareAdmin(GuardedModelAdmin):
@@ -26,9 +26,24 @@ class FilePathAdmin(GuardedModelAdmin):
 class FPInline(admin.TabularInline):
     model = FilePath.users.through
 
+class UserProfileInline(admin.StackedInline):
+    model = UserProfile
+    can_delete = False
+    verbose_name_plural = 'User Profile'
+    readonly_fields = ['created_by']
+    extra = 0
+    max_num = 1
+    fk_name = 'user'
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
 class UserAdmin(OriginalUserAdmin):
     """ Just add inlines to the original UserAdmin class """
-    inlines = [FSInline, FPInline]
+    inlines = [FSInline, FPInline, UserProfileInline]
 #     def formfield_for_manytomany(self, db_field, request, **kwargs):
 #         if db_field.name == "cars":
 #             kwargs["queryset"] = Car.objects.filter(owner=request.user)
