@@ -108,11 +108,11 @@ class SharePermissions(object):
     def set_permissions(self, permissions, shared_by=None, email=True):
         emailed = []
         if 'groups' in permissions:
-            for group, permissions in permissions['groups'].items():
-                self.set_group_permissions(group, permissions, shared_by, email)
+            for group, group_permissions in permissions['groups'].items():
+                self.set_group_permissions(group, group_permissions, shared_by, email)
         if 'users' in permissions:
-            for username, permissions in permissions['users'].items():
-                self.set_user_permissions(username, permissions, shared_by, email)
+            for username, user_permissions in permissions['users'].items():
+                self.set_user_permissions(username, user_permissions, shared_by, email)
     def get_permissions(self,user_specific=False):
         user_perms = self.get_all_user_permissions(user_specific=user_specific)
         groups = get_groups_with_perms(self.share,attach_perms=True)
