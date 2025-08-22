@@ -69,6 +69,7 @@ urlpatterns += [
     url(r'^api/share/(?P<share>[\da-zA-Z]{15})/?$', api_views.share_with, name='api_share_with'),
     url(r'^api/shares/create/?$', api_views.create_share, name='api_create_share'),
     url(r'^api/email_participants/(?P<share>[\da-zA-Z]{15})/(?P<subdir>.*)/?$', api_views.email_participants, name='api_email_participants'),
+    url(r'^api/share_read_only/(?P<share>[\da-zA-Z]{15})/$', api_views.share_read_only, name='api_share_read_only'),
     url(r'^api/logs/$', api_views.ShareLogList.as_view()),
 #     url(r'^api/shares/$', api_views.ShareList.as_view()),
     url(r'^api/', include(router.urls)),

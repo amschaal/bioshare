@@ -11,6 +11,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.urls.base import reverse
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.html import strip_tags
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
 from jsonfield import JSONField
@@ -110,6 +111,7 @@ class Share(models.Model):
     PERMISSION_WRITE = 'write_to_share'
     PERMISSION_LINK_TO_PATH = 'link_to_path'
     PERMISSION_ADMIN = 'admin'
+    PERMISSION_SHARE_READ_ONLY = 'share_read_only'
     def __str__(self):
         return self.name
     @property
@@ -148,45 +150,16 @@ class Share(models.Model):
                  list(User.objects.filter(groups__in=ShareGroupObjectPermission.objects.filter(content_object=self).values_list('group_id',flat=True)))
                  )
              )
+    @cached_property
+    def share_permissions(self):
+        from .permissions import SharePermissions
+        return SharePermissions(self)
     def get_permissions(self,user_specific=False):
-        from guardian.shortcuts import get_groups_with_perms
-        user_perms = self.get_all_user_permissions(user_specific=user_specific)
-        groups = get_groups_with_perms(self,attach_perms=True)
-        group_perms = [{'group':{'name':group.name,'id':group.id},'permissions':permissions} for group, permissions in groups.items()]
-        return {'user_perms':user_perms,'group_perms':group_perms}
+        return self.share_permissions.get_permissions(user_specific)
     def get_user_permissions(self,user,user_specific=False):
-        if self.locked:
-            return []
-        if user_specific:
-            from bioshareX.utils import fetchall
-            perms = [uop.permission.codename for uop in ShareUserObjectPermission.objects.filter(user=user,content_object=self).select_related('permission')]
-        else:
-            from guardian.shortcuts import get_perms
-            if user.username == self.owner.username:
-                perms = [perm[0] for perm in self._meta.permissions]
-            else:
-                perms = get_perms(user, self)
-        if not self.secure and not user_specific:
-            perms = list(set(perms+['view_share_files','download_share_files']))
-        if self.read_only:
-            if 'write_to_share' in perms:
-                perms.remove('write_to_share')
-            if 'delete_share_files' in perms:
-                perms.remove('delete_share_files')
-        return perms
+        return self.share_permissions.get_user_permissions(user, user_specific)
     def get_all_user_permissions(self,user_specific=False):
-        if not user_specific:
-            from guardian.shortcuts import get_users_with_perms
-            users = get_users_with_perms(self,attach_perms=True, with_group_users=False)
-            user_perms = [{'user':{'username':user.username, 'email':user.email, 'first_name':user.first_name, 'last_name':user.last_name},'permissions':permissions} for user, permissions in users.items()]
-        else:
-            perms = ShareUserObjectPermission.objects.filter(content_object=self).select_related('permission','user')
-            user_perms={}
-            for perm in perms:
-                if perm.user.username not in user_perms:
-                    user_perms[perm.user.username]={'user':{'username':perm.user.username},'permissions':[]}
-                user_perms[perm.user.username]['permissions'].append(perm.permission.codename)
-        return user_perms
+        return self.share_permissions.get_all_user_permissions(user_specific)
     def get_path(self):
         return os.path.join(self.filesystem.path,self.id)
     def get_link_path(self, add_trailing_slash=True):
@@ -378,6 +351,7 @@ Share._meta.permissions = (
             (Share.PERMISSION_WRITE, 'Write to share'),
             (Share.PERMISSION_LINK_TO_PATH, 'Link to a specific path'),
             (Share.PERMISSION_ADMIN, 'Administer'),
+            (Share.PERMISSION_SHARE_READ_ONLY, 'Share read only'),
         )    
 
 def share_post_save(sender, **kwargs):
@@ -516,6 +490,11 @@ class GroupProfile(models.Model):
     created_by = models.ForeignKey(User,on_delete=models.PROTECT)
     description = models.TextField(blank=True,null=True)
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.RESTRICT, related_name='created_users')
+    def __str__(self):
+        return f"{self.user.username}'s profile"
 
 """
     Make permissions more efficient to check by having a direct foreign key:
@@ -547,3 +526,9 @@ def lowercase_user(sender, instance, **kwargs):
     if instance.username != instance.username.lower() or instance.email != instance.email.lower():
         User.objects.filter(id=instance.id).update(username=instance.username.lower(),email=instance.email.lower())
 post_save.connect(lowercase_user, sender=User)
+
+def create_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+post_save.connect(create_profile, sender=User)
