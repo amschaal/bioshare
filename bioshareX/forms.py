@@ -4,7 +4,7 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.contrib.auth.models import Group, User
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bioshareX.models import FilePath, GroupProfile, Share, SSHKey
 from bioshareX.utils import check_symlinks_dfs, paths_contain, search_illegal_symlinks, test_path

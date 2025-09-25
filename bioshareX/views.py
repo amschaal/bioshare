@@ -24,7 +24,7 @@ from bioshareX.forms import (FolderForm, GroupForm, GroupProfileForm,
                              MetaDataForm, PasswordChangeForm, RenameForm,
                              ShareForm, SSHKeyForm, SubShareForm, SymlinkForm)
 from bioshareX.models import GroupProfile, Share, ShareStats, SSHKey
-from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, get_size_used_group, get_size_used_user, json_error, json_response, list_share_dir,
+from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, get_size_used_group, get_size_used_user, is_ajax, json_error, json_response, list_share_dir,
                              safe_path_decorator, share_access_decorator,
                              sizeof_fmt)
 
@@ -114,8 +114,8 @@ def edit_share(request,share):
 def list_directory(request,share,subdir=None):
     if not share.check_path(subdir=subdir):
         return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
-    files,directories,errors = list_share_dir(share,subdir=subdir,ajax=request.is_ajax())
-    if request.is_ajax():
+    files,directories,errors = list_share_dir(share,subdir=subdir,ajax=is_ajax(request))
+    if is_ajax(request):
         return json_response({'files':files,'directories':directories.values()})
     #Find any shares that point at this directory
     for s in Share.user_queryset(request.user).filter(real_path__in=directories.keys()).exclude(id=share.id):
@@ -336,7 +336,7 @@ def view_links(request, share):
     return render(request,'share/links.html', {"share":share, "symlinks": share.meta['symlinks'], "title": "View share links"})
 
 def ratelimit_exceeded(request, e):
-    if request.is_ajax():
+    if is_ajax(request):
         return json_error({'status':'error','message':'Due to too much activity, your request has been throttled.'}, http_status=429)
     return render(request,'429.html')
 

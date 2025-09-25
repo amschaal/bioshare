@@ -1,4 +1,5 @@
 from django.conf import settings
+from bioshareX.utils import is_ajax
 from guardian.shortcuts import get_objects_for_user
 
 from bioshareX.models import Share
@@ -25,7 +26,7 @@ class UserShares():
         return get_objects_for_user(self.request.user, 'bioshareX.view_share_files',klass=Share).filter(locked=True).order_by('-created')
     
 def user_contexts(request):
-        if request.user.is_authenticated and not request.is_ajax():
+        if request.user.is_authenticated and not is_ajax(request):
             shares = UserShares(request)
             # recent_shares = Share.objects.filter(owner=request.user).order_by('-created')[:5]
             # # The calls below are causing a lot of extra queries to be run, here or from the template. Make more efficient, or cache somehow

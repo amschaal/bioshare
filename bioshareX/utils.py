@@ -72,7 +72,7 @@ class share_access_decorator(object):
             request = args[0]
             user_permissions = share.get_user_permissions(request.user)
             if share.locked:
-                if request.is_ajax():
+                if is_ajax(request):
                     return json_error(['This share has been locked.  Please contact the web admin.'])
                 else:
                     return redirect('locked', share=share.id)
@@ -80,7 +80,7 @@ class share_access_decorator(object):
                 if not share.secure and perm in ['view_share_files','download_share_files']:
                     continue
                 if not perm in user_permissions:
-                    if request.is_ajax():
+                    if is_ajax(request):
                         if not request.user.is_authenticated:
                             return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']},status=status.HTTP_401_UNAUTHORIZED)
                             return json_error({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']})
@@ -533,3 +533,6 @@ def check_symlinks_dfs_test(path, checked=set(), depth=0, max_depth=3, checked_a
             raise IllegalPathException('Duplicate directory found at: {}->{}'.format(link, target))
         if os.path.isdir(target):
             check_symlinks_dfs_test(target, checked, depth=depth, max_depth=max_depth, checked_all=checked_all)
+
+def is_ajax(request):
+    return request.headers.get('x-requested-with') == 'XMLHttpRequest'
