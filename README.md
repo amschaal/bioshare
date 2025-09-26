@@ -8,11 +8,13 @@ Installation
 
 ### Requirements ###
 
-1. Linux (tested w/ Ubuntu 14.04) 
+1. Linux (tested w/ Ubuntu 22.04) 
 2. Apache 2.4+, mod_ssl, mod_wsgi, mod_xsendfile
-3. Python 2.7.x (virtualenv recommended)
+3. Python 3.8+ (virtualenv recommended)
 4. PostgreSQL Server
- 
+5. Optionally, ZFS (see ZFS.md)
+5. Optionally, install Memcached for session caching
+
 Clone the repository:
 ~~~
 git clone https://github.com/amschaal/bioshare.git

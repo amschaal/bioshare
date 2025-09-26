@@ -1,15 +1,20 @@
+var autocomplete_timeout = null;
 
-function share_autocomplete(query,process){
-	$.get(share_autocomplete_url,{query:query},function(data){
-		if(data.errors)
-			BC.handle_ajax_errors(data);
-		else if(data.shares){
-			var shares = $.map(data.shares,function(share,index){
-				return '<span data-toggle="tooltip" title="'+share.notes+'" data-url="'+share.url+'">'+share.name+'</span>';
-			});
-			process(shares);
-		}
-	});
+function share_autocomplete(query, process){
+	clearTimeout(autocomplete_timeout); // don't process last request
+	var get_shares = function () {
+		$.get(share_autocomplete_url,{query:query},function(data){
+			if(data.errors)
+				BC.handle_ajax_errors(data);
+			else if(data.shares){
+				var shares = $.map(data.shares,function(share,index){
+					return '<span data-toggle="tooltip" title="'+share.notes+'" data-url="'+share.url+'">'+share.name+'</span>';
+				});
+				process(shares);
+			}
+		});
+	}
+	autocomplete_timeout = setTimeout(get_shares, 1000); // fetch shares in 1 second if a new query doesn't come first
 }
 function share_autocomplete_match(obj){
 	return true;

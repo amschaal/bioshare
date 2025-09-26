@@ -59,9 +59,19 @@ SFTP_PORT = 2200
 HOST = 'server.domain.net'
 SITE_URL = 'https://server.domain.net'
 
-SFTP_SSH_PORT = 2222
+SFTP_SSH_PORT = 2200
 # Note, you can generate a new host key like this:
 # ssh-keygen -t rsa -N '' -f host_key
 SFTP_HOST_KEY = '/tmp/host_key'
 #The share modified date can be updated whenever modifications are made over SFTP.  Set the minimum number of seconds between updates.
 SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS = 60
+
+# Caching using memcached
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+        "LOCATION": "127.0.0.1:11211",
+    }
+}
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'

@@ -8,7 +8,7 @@ angular.module('ngTable')
 		}
 		angular.merge(params,ngparams);
 		return new NgTableParams(params, {
-			filterOptions:{filterDelay: 500},
+			filterOptions:{filterDelay: 1500},
 			getData: function(params) {
 				var url_params = params.url();
 				console.log(params);

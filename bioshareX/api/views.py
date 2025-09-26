@@ -1,35 +1,44 @@
 # Create your views here.
-from django.core.urlresolvers import reverse
-from django.http.response import JsonResponse, HttpResponse
-from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
-from bioshareX.models import Share, SSHKey, MetaData, Tag
-from bioshareX.forms import MetaDataForm, json_form_validate
-from guardian.shortcuts import get_perms, get_users_with_perms, remove_perm, assign_perm
-from bioshareX.utils import JSONDecorator, json_response, json_error, share_access_decorator, safe_path_decorator, validate_email, fetchall,\
-    test_path, du
-from django.contrib.auth.models import User, Group
-from django.db.models import Q
-import os
-from rest_framework.decorators import api_view, detail_route, throttle_classes,\
-    action
-from bioshareX.forms import ShareForm
-from guardian.decorators import permission_required
-from bioshareX.utils import ajax_login_required, email_users
-from rest_framework import generics, viewsets, status
-from bioshareX.models import ShareLog, Message
-from bioshareX.api.serializers import ShareLogSerializer, ShareSerializer,\
-    GroupSerializer, UserSerializer, MessageSerializer
-from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
-from bioshareX.permissions import ManageGroupPermission
-from rest_framework.response import Response
-from guardian.models import UserObjectPermission
-from django.contrib.contenttypes.models import ContentType
-import datetime
-from bioshareX.api.filters import UserShareFilter, ShareTagFilter,\
-    GroupShareFilter, ActiveMessageFilter
-from rest_framework.throttling import UserRateThrottle
-from django.utils import timezone
 import csv
+import os
+from functools import reduce
+
+from django.contrib.auth.models import Group, User
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
+from django.http.response import HttpResponse, JsonResponse
+from django.urls import reverse
+from django.utils import timezone
+from bioshareX.ratelimit import ratelimit_rate, url_path_key
+from guardian.decorators import permission_required
+from guardian.models import UserObjectPermission
+from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
+                                remove_perm)
+from rest_framework import generics, status, viewsets
+from rest_framework.decorators import action, api_view, throttle_classes
+from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
+
+from bioshareX.api.filters import (ActiveMessageFilter, ContainsSymlinkFilter, GroupShareFilter,
+                                   ShareTagFilter, SymlinkTargetFilter, SymlinkWarningFilter, UserShareFilter)
+from bioshareX.api.serializers import (GroupSerializer, MessageSerializer,
+                                       ShareLogSerializer, ShareSerializer,
+                                       UserSerializer)
+from bioshareX.forms import MetaDataForm, ShareForm, ShareReadOnlyForm, json_form_validate
+from bioshareX.models import Message, MetaData, Share, ShareLog, SSHKey, Tag
+from bioshareX.permissions import ManageGroupPermission, SharePermissions
+from bioshareX.utils import (JSONDecorator, ajax_login_required, du,
+                             email_users, json_error, json_response,
+                             safe_path_decorator, share_access_decorator,
+                             test_path, validate_email)
+from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
+
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
+
+from django_ratelimit.decorators import ratelimit
 
 @ajax_login_required
 def get_user(request):
@@ -38,7 +47,7 @@ def get_user(request):
         user = User.objects.get(Q(username=query)|Q(email=query))
         return JsonResponse({'user':UserSerializer(user).data})
     except Exception as e:
-        return JsonResponse({'status':'error','query':query,'errors':[e.message]},status=status.HTTP_404_NOT_FOUND)
+        return JsonResponse({'status':'error','query':query,'errors':[str(e)]},status=status.HTTP_404_NOT_FOUND)
 
 @ajax_login_required
 def get_address_book(request):
@@ -47,7 +56,7 @@ def get_address_book(request):
         groups = Group.objects.all().order_by('name')
         return json_response({'emails':[email[0] for email in emails], 'groups':[g.name for g in groups]})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
 
 @ajax_login_required
 def get_tags(request):
@@ -55,7 +64,7 @@ def get_tags(request):
         tags = Tag.objects.filter(name__icontains=request.GET.get('tag'))
         return json_response({'tags':[tag.name for tag in tags]})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
     
 @share_access_decorator(['admin'])    
 def share_with(request,share):
@@ -86,9 +95,10 @@ def share_with(request,share):
                 invalid.append(email)
         return json_response({'exists':exists, 'groups':groups,'new_users':new_users,'invalid':invalid})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
 
 @ajax_login_required
+@api_view(['GET'])
 def share_autocomplete(request):
     terms = [term.strip() for term in request.GET.get('query').split()]
     query = reduce(lambda q,value: q&Q(name__icontains=value), terms , Q())
@@ -97,16 +107,16 @@ def share_autocomplete(request):
         shares = [{'id':s.id,'url':reverse('list_directory',kwargs={'share':s.id}),'name':s.name,'notes':s.notes} for s in share_objs]
         return json_response({'status':'success','shares':shares})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
 
-
+@api_view(['GET'])
 def get_group(request):
     query = request.GET.get('query')
     try:
         group = Group.objects.get(name=query)
         return json_response({'group':{'name':group.name}})
     except Exception as e:
-        return json_error([e.message])
+        return json_error([str(e)])
 
 @api_view(['GET'])
 @share_access_decorator(['admin'])
@@ -114,80 +124,34 @@ def get_permissions(request,share):
     data = share.get_permissions(user_specific=True)
     return json_response(data)
 
+@api_view(['POST'])
 @share_access_decorator(['admin'])
 @JSONDecorator
 def update_share(request,share,json=None):
     share.secure = json['secure']
-    share.save()
+    share.save(update_fields=['secure'])
     return json_response({'status':'okay'})
 
 @api_view(['POST'])
 @share_access_decorator(['admin'])
 @JSONDecorator
 def set_permissions(request,share,json=None):
-    from smtplib import SMTPException
-    emailed=[]
-    created=[]
-    failed=[]
-#     if not request.user.has_perm('admin',share):
-#         return json_response({'status':'error','error':'You do not have permission to write to this share.'})
-    if 'groups' in json:
-        for group, permissions in json['groups'].iteritems():
-            g = Group.objects.get(id__iexact=group)
-            current_perms = get_perms(g,share)
-            removed_perms = list(set(current_perms) - set(permissions))
-            added_perms = list(set(permissions) - set(current_perms))
-            for u in g.user_set.all():
-                if len(share.get_user_permissions(u,user_specific=True)) == 0 and len(added_perms) > 0 and json['email']:
-                    email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site_url':SITE_URL})
-                    emailed.append(u.username)
-            for perm in removed_perms:
-                remove_perm(perm,g,share)
-            for perm in added_perms:
-                assign_perm(perm,g,share)
-    if 'users' in json:
-        for username, permissions in json['users'].iteritems():
-            username = username.lower()
-            try:
-                u = User.objects.get(username__iexact=username)
-                if len(share.get_user_permissions(u,user_specific=True)) == 0 and json['email']:
-                    try:
-                        email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':share,'sharer':request.user,'site_url':SITE_URL})
-                        emailed.append(username)
-                    except:
-                        failed.append(username)
-            except:
-                if len(permissions) > 0:
-                    password = User.objects.make_random_password()
-                    u = User(username=username,email=username)
-                    u.set_password(password)
-                    u.save()
-                    try:
-                        email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':share,'sharer':request.user,'site_url':SITE_URL})
-                        created.append(username)
-                    except:
-                        failed.append(username)
-                        u.delete()
-            current_perms = share.get_user_permissions(u,user_specific=True)
-            removed_perms = list(set(current_perms) - set(permissions))
-            added_perms = list(set(permissions) - set(current_perms))
-            for perm in removed_perms:
-                if u.username not in failed:
-                    remove_perm(perm,u,share)
-            for perm in added_perms:
-                if u.username not in failed:
-                    assign_perm(perm,u,share)
-    data = share.get_permissions(user_specific=True)
-    data['messages']=[]
-    if len(emailed) > 0:
-        data['messages'].append({'type':'info','content':'%s has/have been emailed'%', '.join(emailed)})
-    if len(created) > 0:
-        data['messages'].append({'type':'info','content':'Accounts has/have been created and emails have been sent to the following email addresses: %s'%', '.join(created)})
-    if len(failed) > 0:
-        data['messages'].append({'type':'info','content':'Delivery has failed to the following addresses: %s'%', '.join(failed)})
+    perms = SharePermissions(share)
+    perms.set_permissions(json, request.user, json['email'])
+    data = perms.get_permissions(user_specific=True)
+    data['messages'] = []
+    if len(perms.emailed) > 0:
+        data['messages'].append({'type':'info','content':'%s has/have been emailed'%', '.join(perms.emailed)})
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='Permissions have been updated and emails were sent to the following users: {}'.format(', '.join(perms.emailed)))
+    if len(perms.created) > 0:
+        data['messages'].append({'type':'info','content':'An account has been created and an email has been sent for the following email addresses: %s'%', '.join(perms.created)})
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='An account has been created and an email has been sent for the following email addresses: %s'%', '.join(perms.created))
+    if len(perms.failed) > 0:
+        data['messages'].append({'type':'info','content':'Delivery has failed to the following addresses: %s'%', '.join(perms.failed)})
     data['json']=json
     return json_response(data)
 
+@ratelimit(key=url_path_key, group='search_share', rate=ratelimit_rate)
 @share_access_decorator(['view_share_files'])
 def search_share(request,share,subdir=None):
     from bioshareX.utils import find
@@ -199,6 +163,7 @@ def search_share(request,share,subdir=None):
         response = {'status':'error'}
     return json_response(response)
 
+@api_view(['POST'])
 @safe_path_decorator()
 @share_access_decorator(['write_to_share'])
 def edit_metadata(request, share, subpath):
@@ -215,13 +180,14 @@ def edit_metadata(request, share, subpath):
             tag = tag.strip()
             if len(tag) >2 :
                 tags.append(Tag.objects.get_or_create(name=tag)[0])
-        metadata.tags = tags
+        metadata.tags.set(tags)
         metadata.notes = form.cleaned_data['notes']
         metadata.save()
         name = os.path.basename(os.path.normpath(subpath))
         return json_response({'name':name,'notes':metadata.notes,'tags':[tag.name for tag in tags]})
     except Exception as e:
         return json_error([str(e)])
+
 @ajax_login_required
 def delete_ssh_key(request):
     try:
@@ -256,7 +222,7 @@ Optional: "link_to_path", "read_only"
 @api_view(['POST'])
 @permission_required('bioshareX.add_share', return_403=True)
 def create_share(request):
-    form = ShareForm(request.user,request.data)
+    form = ShareForm(request.user,request.data, require_filesystem=False)
     if form.is_valid():
         share = form.save(commit=False)
         share.owner=request.user
@@ -268,12 +234,13 @@ def create_share(request):
             share.save()
         except Exception as e:
             share.delete()
-            return JsonResponse({'error':e.message},status=400)
+            return JsonResponse({'error':str(e)},status=400)
         return JsonResponse({'url':"%s%s"%(SITE_URL,reverse('list_directory',kwargs={'share':share.id})),'id':share.id})
     else:
         return JsonResponse({'errors':form.errors},status=400)
 
 @ajax_login_required
+@ratelimit(key=url_path_key, group='email_participants', rate=ratelimit_rate)
 @share_access_decorator(['view_share_files'])
 def email_participants(request,share,subdir=None):
     try:
@@ -285,28 +252,42 @@ def email_participants(request,share,subdir=None):
         body = request.POST.get('body')
         users.append(share.owner)
         email_users(users, ctx_dict={}, subject=subject, body=body,from_email=request.user.email,content_subtype='plain')
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_USER_EMAILED, text='An email has been sent to the following participants: %s'%', '.join([u.email for u in users]))
         response = {'status':'success','sent_to':[u.email for u in users]}
         return json_response(response)
     except Exception as e:
         return JsonResponse({'errors':[str(e)]},status=400)
 
+@api_view(['POST'])
+@share_access_decorator([Share.PERMISSION_SHARE_READ_ONLY])
+def share_read_only(request,share):
+    form = ShareReadOnlyForm(request.data)
+    if form.is_valid():
+        email = form.cleaned_data['email'].lower()
+        perms = SharePermissions(share)
+        if perms.set_user_permissions(email, [Share.PERMISSION_VIEW, Share.PERMISSION_DOWNLOAD], request.user, email=True):
+            response = {'status':'success', 'message': 'Successfully shared with {}'.format(email)}
+            return JsonResponse(response)
+    response = {'status':'error','error':'Unable to share with email {}'.format(form.cleaned_data['email'])}
+    return JsonResponse(response, status=status.HTTP_400_BAD_REQUEST)
+
 class ShareLogList(generics.ListAPIView):
     serializer_class = ShareLogSerializer
     permission_classes = (IsAuthenticated,)
-    filter_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains'],'share':['exact']}
+    filterset_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains'],'share':['exact']}
     def get_queryset(self):
         shares = Share.user_queryset(self.request.user,include_stats=False)
-        return ShareLog.objects.filter(share__in=shares)
+        return ShareLog.objects.filter(share__in=shares).select_related('user')
 
 class ShareViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareSerializer
     permission_classes = (IsAuthenticated,)
-    filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter]
-    filter_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains'],'path_exists':['exact']}
+    filter_backends = generics.ListAPIView.filter_backends + [UserShareFilter,ShareTagFilter,GroupShareFilter, ContainsSymlinkFilter, SymlinkTargetFilter, SymlinkWarningFilter]
+    filterset_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains'],'path_exists':['exact'],'locked':['exact']}
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
         return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags','user_permissions__user','group_permissions__group')
-    @detail_route(['GET'])
+    @action(methods=['GET'], detail=True)
     @throttle_classes([UserRateThrottle])
     def directory_size(self, request, *args, **kwargs):
         share = self.get_object()
@@ -325,17 +306,18 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         for r in serializer.data:
             writer.writerow([r['id'],r['name'].encode('ascii', 'replace'),r['url'],', '.join(r['users']),', '.join(r['groups']),r['stats'].get('bytes') if r['stats'] else '',', '.join([t['name'].encode('ascii', 'replace') for t in r['tags']]),r['owner'].get('username'),r['slug'],r['created'],r['updated'],r['secure'],r['read_only'],r['notes'].encode('ascii', 'replace'),r['path_exists'] ])
         return response
+
 class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = GroupSerializer
     permission_classes = (IsAuthenticated,DjangoModelPermissions,)
-    filter_fields = {'name':['icontains']}
+    filterset_fields = {'name':['icontains']}
     model = Group
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.is_staff:
             return Group.objects.all()
         else:
             return self.request.user.groups.all()
-    @detail_route(['POST'],permission_classes=[ManageGroupPermission])
+    @action(methods=['POST'], detail=True,permission_classes=[ManageGroupPermission])
     def update_users(self, request, *args, **kwargs):
         users =  request.data.get('users')
         group = self.get_object()
@@ -344,7 +326,7 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
 #         remove_users = set(old_user_ids) - set(user_ids)
 #         add_users = set(user_ids) - set(old_user_ids)
         
-        group.user_set = [u['id'] for u in users]
+        group.user_set.set([u['id'] for u in users])
         #clear permissions
         ct = ContentType.objects.get_for_model(Group)
         UserObjectPermission.objects.filter(content_type=ct,object_pk=group.id).delete()
@@ -368,7 +350,11 @@ class MessageViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Message.objects.all().order_by('-created')
 #         return Message.objects.filter(active=True).filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=self.request.user.id)
-    @detail_route(['POST','GET'],permission_classes=[IsAuthenticated])
+    # @method_decorator(cache_page(60)) # removing caching for now so that user message dismissal does not have to wait for cache timeout
+    # @method_decorator(vary_on_cookie)
+    def list(self, request):
+        return super().list(self, request)
+    @action(methods=['POST','GET'], detail=True, permission_classes=[IsAuthenticated])
     def dismiss(self, request, pk=None):
         message = self.get_object()
         message.viewed_by.add(request.user)

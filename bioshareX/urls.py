@@ -1,8 +1,10 @@
-from django.conf.urls import  url, include
-from bioshareX import views as bioshare_views, jsutils
-from bioshareX.api import views as api_views
-from bioshareX import file_views
+from django.conf.urls import include, url
 from rest_framework import routers
+
+from bioshareX import file_views
+from bioshareX import views as bioshare_views  # , jsutils
+from bioshareX.api import views as api_views
+
 # from bioshareX.api.views import GroupViewSet, MessageViewSet
 router = routers.DefaultRouter()
 router.register(r'groups', api_views.GroupViewSet,'Group')
@@ -23,6 +25,7 @@ urlpatterns = [
 #     url(r'^wget/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?wget_index.html$', bioshare_views.wget_listing, name='wget_listing'),
     url(r'^list/(?P<share>[-\w]+)/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory_old'),
     url(r'^view/(?P<share>[-\w]+)/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory'),
+    url(r'^update_stats/(?P<share>[-\w]+)/?$', bioshare_views.update_stats, name='update_stats'),
     url(r'^wget/(?P<share>[-\w]+)/(?:(?P<subdir>.*/))?wget_index.html$', bioshare_views.wget_listing, name='wget_listing'),
     url(r'^shares/$', bioshare_views.list_shares, name='list_shares'),
 #     url(r'^groups/(?P<group_id>[\d]+)/shares/?$', bioshare_views.list_shares, name='list_group_shares'),
@@ -40,8 +43,11 @@ urlpatterns = [
 #     url(r'^account/update_password/?$', 'update_password', name='update_password'),
     url(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':False},name='delete_share'),
     url(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':True},name='confirm_delete_share'),
-    url(r'^search/files/?$', bioshare_views.search_files, name='search_files'),
-    url(r'^jsurls.js$', jsutils.jsurls, {}, 'jsurls'),
+    # url(r'^search/files/?$', bioshare_views.search_files, name='search_files'),
+    url(r'^locked/(?P<share>[-\w]+)/$', bioshare_views.locked, name='locked'),
+    url(r'^unlock/(?P<share>[-\w]+)/$', bioshare_views.unlock, name='unlock'),
+    url(r'^view_links/(?P<share>[-\w]+)/$', bioshare_views.view_links, name='view_links')
+    # url(r'^jsurls.js$', jsutils.jsurls, {}, 'jsurls'), # @todo: replace this
 ]
 
 # urlpatterns += [
@@ -63,6 +69,7 @@ urlpatterns += [
     url(r'^api/share/(?P<share>[\da-zA-Z]{15})/?$', api_views.share_with, name='api_share_with'),
     url(r'^api/shares/create/?$', api_views.create_share, name='api_create_share'),
     url(r'^api/email_participants/(?P<share>[\da-zA-Z]{15})/(?P<subdir>.*)/?$', api_views.email_participants, name='api_email_participants'),
+    url(r'^api/share_read_only/(?P<share>[\da-zA-Z]{15})/$', api_views.share_read_only, name='api_share_read_only'),
     url(r'^api/logs/$', api_views.ShareLogList.as_view()),
 #     url(r'^api/shares/$', api_views.ShareList.as_view()),
     url(r'^api/', include(router.urls)),
@@ -71,6 +78,8 @@ urlpatterns += [
 urlpatterns += [
     url(r'^upload/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.upload_file, name='upload_file'),
     url(r'^create_folder/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.create_folder, name='create_folder'),
+    url(r'^create_symlink/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.create_symlink, name='create_symlink'),
+    url(r'^unlink/(?P<share>[\da-zA-Z]{15})/(?P<subpath>.*)/?$', file_views.unlink, name='unlink'),
     url(r'^rename/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.modify_name, name='modify_name'),
     url(r'^delete/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.delete_paths, name='delete_paths'),
     url(r'^move/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', file_views.move_paths, name='move_paths'),

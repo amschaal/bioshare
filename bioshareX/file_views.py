@@ -1,23 +1,34 @@
 # Create your views here.
 # from django.shortcuts import render_to_response, render
-from django.http.response import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render_to_response, render, redirect
-from django.core.urlresolvers import reverse
-from models import Share
+import datetime
 # from django.utils import simplejson
 import json
-from forms import UploadFileForm, FolderForm, json_form_validate, RenameForm
-from utils import JSONDecorator, test_path, sizeof_fmt, json_error
-from file_utils import istext
 import os
 import re
-from utils import share_access_decorator, safe_path_decorator, json_response
-import datetime
+from os.path import join
+
 from django.conf import settings
-from bioshareX.models import ShareLog
+from django.urls import reverse
 from django.utils import timezone
+from django.contrib.auth.decorators import permission_required
+from django.views.decorators.csrf import csrf_exempt
+
+from rest_framework.decorators import api_view
+
+from bioshareX.exceptions import IllegalPathException
+from bioshareX.file_utils import get_lines, get_num_lines, istext
+from bioshareX.forms import FolderForm, RenameForm, SymlinkForm, json_form_validate
+from bioshareX.models import Share, ShareLog
+from bioshareX.ratelimit import ratelimit_rate, url_path_key
+from bioshareX.utils import (JSONDecorator, find_symlink, is_realpath, json_error,
+                             json_response, md5sum, safe_path_decorator,
+                             share_access_decorator, sizeof_fmt, test_path)
+
+from django_ratelimit.decorators import ratelimit
 
 def handle_uploaded_file(path,file):
+    if not is_realpath(path):
+        raise IllegalPathException('Files cannot be uploaded to symlinked paths.')
     with open(path, 'wb+') as destination:
         for chunk in file.chunks():
             destination.write(chunk)
@@ -26,45 +37,85 @@ def clean_filename(filename):
     filename = re.sub(settings.UNDERSCORE_REGEX,'_', filename)
     filename = re.sub(settings.STRIP_REGEX,'', filename)
     return filename
-@safe_path_decorator(path_param='subdir')
+
 @share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subdir', write=True)
 def upload_file(request, share, subdir=None):
-    from os.path import join
+
     os.umask(settings.UMASK)
     PATH = share.get_path()
     if subdir is not None:
         PATH = join(PATH,subdir)
-    data = {'share':share.id,'subdir':subdir,'files':[]}#{key:val for key,val in request.POST.iteritems()}
-    for name,file in request.FILES.iteritems():
-        filename = clean_filename(file.name)
-        FILE_PATH = join(PATH,filename)
-        handle_uploaded_file(FILE_PATH,file)
-        subpath = filename if subdir is None else subdir + filename
-        url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
-        (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
-        data['files'].append({'name':filename,'extension':filename.split('.').pop() if '.' in filename else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'isText':istext(FILE_PATH)}) 
+    data = {'share':share.id,'subdir':subdir,'files':[], 'errors':[]}#{key:val for key,val in request.POST.items()}
+    for name,file in request.FILES.items():
+        try:
+            filename = clean_filename(file.name)
+            FILE_PATH = join(PATH,filename)
+            handle_uploaded_file(FILE_PATH,file)
+            subpath = filename if subdir is None else subdir + filename
+            url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
+            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
+            data['files'].append({'name':filename,'extension':filename.split('.').pop() if '.' in filename else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'isText':istext(FILE_PATH)}) 
+        except Exception as e:
+            data['errors'].append('Unable to upload file: "{}". Exception: "{}"'.format(filename, str(e))) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
 #         url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name 
-    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FILE_ADDED,paths=[clean_filename(file.name) for file in request.FILES.values()],subdir=subdir)
+    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FILE_ADDED,paths=[clean_filename(file['name']) for file in data['files']],subdir=subdir)
     return json_response(data)
 
-@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subdir', write=True)
 def create_folder(request, share, subdir=None):
     form = FolderForm(request.POST)
     data = json_form_validate(form)
     if form.is_valid():
-        folder_path = share.create_folder(form.cleaned_data['name'],subdir)
+        try:
+            folder_path = share.create_folder(form.cleaned_data['name'],subdir)
+        except Exception as e:
+            return json_error([str(e)])
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
-        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}]
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'type': 'directory'}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FOLDER_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
         return json_response(data)
     else:
         return json_error([error for name, error in form.errors.items()])
-    
 
-@safe_path_decorator(path_param='subdir')
+@api_view(['POST'])
+# @csrf_exempt
+@ratelimit(key=url_path_key, group='create_symlink', rate=ratelimit_rate)
+@permission_required('bioshareX.link_to_path', raise_exception=True)
 @share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subdir', write=True)
+def create_symlink(request, share, subdir=None):
+    form = SymlinkForm(request.user, share, subdir, request.data)
+    data = json_form_validate(form)
+    if form.is_valid():
+        link_path = form.create_link()
+        (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(link_path)
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': form.cleaned_data['target'], 'display': os.sep not in form.cleaned_data['name'], 'type': 'symlink'}]
+        for dir in form.directories_created:
+            data['objects'].append({'name':dir, 'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'type': 'directory', 'display': os.sep not in dir})
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
+        share.check_paths(True)
+        return json_response(data)
+    else:
+        return json_error([error for name, error in form.errors.items()])
+
+@permission_required('bioshareX.link_to_path', raise_exception=True)
+@share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subpath')
+def unlink(request, share, subpath):
+    path = os.path.join(share.get_path(), subpath)
+    if os.path.islink(path):
+        os.unlink(path)
+        ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_DELETED,paths=subpath)
+        share.check_paths(True)
+        return json_response({})
+    else:
+        return json_error(messages=['No symlink at path specified.'])
+
+@share_access_decorator(['write_to_share'])
+@safe_path_decorator(path_param='subdir', write=True)
 def modify_name(request, share, subdir=None):
     import os
     form = RenameForm(request.POST)
@@ -81,9 +132,8 @@ def modify_name(request, share, subdir=None):
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_RENAMED,text='"%s" renamed to "%s"'%(form.cleaned_data['from_name'],form.cleaned_data['to_name']),paths=[from_path],subdir=subdir)
     return json_response(data)
 
-
-@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['delete_share_files'])
+@safe_path_decorator(path_param='subdir', write=True)
 @JSONDecorator
 def delete_paths(request, share, subdir=None, json={}):
     response={'deleted':[],'failed':[]}
@@ -100,8 +150,8 @@ def delete_paths(request, share, subdir=None, json={}):
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_DELETED,paths=json['selection'],subdir=subdir)
     return json_response(response)
 
-@safe_path_decorator(path_param='subdir')
 @share_access_decorator(['delete_share_files'])
+@safe_path_decorator(path_param='subdir', write=True)
 @JSONDecorator
 def move_paths(request, share, subdir=None, json={}):
     response={'moved':[],'failed':[]}
@@ -113,42 +163,47 @@ def move_paths(request, share, subdir=None, json={}):
                 response['moved'].append(item)
             else:
                 response['failed'].append(item)
-        except Exception, e:
+        except Exception as e:
             pass
     text = '%s moved from "%s" to "%s"' % (', '.join(response['moved']), subdir if subdir else '', json['destination'])
     ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_MOVED,text=text,paths=json['selection'],subdir=subdir)
     return json_response(response)
 
-@safe_path_decorator(path_param='subdir')
+@ratelimit(key=url_path_key, group='download_stream_archive', rate=ratelimit_rate)
 @share_access_decorator(['download_share_files'])
+@safe_path_decorator(path_param='subdir')
 # @JSONDecorator
 def download_archive_stream(request, share, subdir=None):
 #     try:
     share.last_data_access = timezone.now()
-    share.save()
+    share.save(update_fields=['last_data_access'])
     selection = request.GET.get('selection','').split(',')
+    path = share.get_path()
+    if subdir:
+        path = os.path.join(path,subdir)
     for item in selection:
         test_path(item)
+        if find_symlink(os.path.join(path,item)):
+            return json_error(['Item {} is or contained symlinks.  It is not eligible to be archived.'.format(item)])
     try:
         return share.create_archive_stream(items=selection,subdir=subdir)
-    except Exception, e:
+    except Exception as e:
         return json_error([str(e)])
 
-@safe_path_decorator()    
+@ratelimit(key=url_path_key, group='download_file', rate=ratelimit_rate)
 @share_access_decorator(['download_share_files'])
+@safe_path_decorator()    
 def download_file(request, share, subpath=None):
     from sendfile import sendfile
     share.last_data_access = timezone.now()
-    share.save()
+    share.save(update_fields=['last_data_access'])
     file_path = os.path.join(share.get_path(),subpath)
     response={'path':file_path}
     return sendfile(request, os.path.realpath(file_path))
 
-
-@safe_path_decorator()    
 @share_access_decorator(['download_share_files'])
+@safe_path_decorator()
 def preview_file(request, share, subpath):
-    from file_utils import get_lines, get_num_lines
     from_line = int(request.GET.get('from',1))
     num_lines = int(request.GET.get('for',100))
     file_path = os.path.join(share.get_path(),subpath)
@@ -158,7 +213,7 @@ def preview_file(request, share, subpath):
         if 'get_total' in request.GET:
             response['total'] = get_num_lines(file_path)
         return json_response(response)
-    except Exception, e:
+    except Exception as e:
         content = "Unable to preview file.  This file may not be a plain text file, or has unsupported characters."
         response = {'share_id':share.id,'subpath':subpath,'content':content,'from':from_line,'for':num_lines,'next':{'from':from_line+num_lines,'for':num_lines}}
         return json_response(response)
@@ -176,12 +231,12 @@ def get_directories(request, share):
     return json_response(response)
 #     return sendfile(request, os.path.realpath(file_path))
 
-@safe_path_decorator()    
+@ratelimit(key=url_path_key, group='get_md5sum', rate=ratelimit_rate)
 @share_access_decorator([Share.PERMISSION_VIEW])
+@safe_path_decorator()    
 def get_md5sum(request, share, subpath):
-    from utils import md5sum
     file_path = os.path.join(share.get_path(),subpath)
     try:
         return json_response({'md5sum':md5sum(file_path),'path':subpath})
-    except Exception, e:
+    except Exception as e:
         return json_error(str(e))

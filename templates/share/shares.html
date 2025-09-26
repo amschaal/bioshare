@@ -21,7 +21,9 @@
 <h2>Shares</h2>
 {% endif %}
 
-
+{% if locked %}
+<h3>The following shares are locked. View <a href="{% url 'home' %}">all shares.</a></h3>
+{% endif %}
 {% if bad_paths %}
 <h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
@@ -31,17 +33,43 @@
 	{% endif %}
 {% endif %}
 
- <div ng-controller="SharesController" ng-init="init({ {% if bad_paths %}path_exists:'false',{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})" ng-cloak>
+ <div ng-controller="SharesController" ng-init="init({ {% if locked %}locked:true,{% endif %}{% if bad_paths %}path_exists:false,{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})" ng-cloak>
 	    {% verbatim %}
-	    <h4>Fields</h4>
+	    	<h4>Fields</h4>
             <div style="margin-bottom: 20px">
 		        <label class="checkbox-inline" ng-repeat="(col,val) in cols">
 		          <input type="checkbox" ng-model-options="{ getterSetter: true }" ng-model="cols[col]"/> {{col}}
 		        </label>
 		      </div>
+			{% endverbatim %}
+			{% if user.share_set.all.count > 0 %}
+			<!-- If a user owns any shares, give them the advanced filters -->
+			{% verbatim %}
+			<h4>
+				<a class="pointer" ng-if="!show_filters" ng-click="toggleFilters()">Show</a>
+				<a class="pointer" ng-if="show_filters" ng-click="toggleFilters()">Hide</a>
+				Advanced Filters
+			</h4>
+			<div style="margin-bottom: 20px" ng-show="show_filters">
+				<!-- <label class="checkbox-inline" ng-repeat="(filter,label) in filter_labels" ng-click="setFilter(filter, filters[filter]);saveState()"> -->
+				<label class="checkbox-inline" ng-repeat="(filter,label) in filter_labels">
+					<input type="checkbox" ng-model-options="{ getterSetter: true }" ng-model="filters[filter]"/> {{filter_labels[filter]}}
+				</label>
+				<label title="Only show shares containing symlinks with a target containing a string.">Symlink target contains 
+					<input ng-model="filters['symlink_target']"/>
+				</label>
+				<button class="btn" ng-click="setAllFilters();">Update</button>
+			</div>
+			{% endverbatim %}
+			{% endif %}
+			{% verbatim %}
 	     <table ng-table="tableParams" class="limit-col-width table table-bordered table-striped table-condensed">
 	      <tr ng-repeat="row in $data track by row.id">
-	        <td ng-if="cols['Share']" data-title="'Share'" filter="{name__icontains: 'text'}" sortable="'name'"><a ng-click="saveState()" ng-if="row.path_exists" href="{{row.url}}">{{row.name}}</a><span ng-if="!row.path_exists" class="error" title="Share has non existant path">{{row.name}}</span></td>
+	        <td ng-if="cols['Share']" data-title="'Share'" filter="{name__icontains: 'text'}" sortable="'name'">
+				<a ng-click="saveState()" ng-if="row.path_exists && !row.locked" href="{{row.url}}">{{row.name}}</a>
+				<span ng-if="!row.path_exists" class="error" title="Share has non existant path">{{row.name}}</span>
+				<a ng-click="saveState()" ng-if="row.locked && row.path_exists" href="{{row.url}}" class="error" title="Share has been locked."><i class="icon-lock"></i> {{row.name}}</a>
+			</td>
 	        <td ng-if="cols['Description']" data-title="'Description'" filter="{notes__icontains: 'text'}">{{row.notes}}</td>
 	        <td ng-if="cols['Tags']" data-title="'Tags'" filter="{tags: 'text'}"><span ng-repeat="tag in row.tags"><a class="pointer" ng-click="setFilter('tags',tag.name)">{{tag.name}}</a>{{$last ? '' : ', '}}</span></td>
 	        <td ng-if="cols['Owner']" data-title="'Owner'" filter="{owner__username__icontains: 'text'}" sortable="'owner__username'"><a class="pointer" ng-click="setFilter('owner__username__icontains',row.owner.username)">{{row.owner.username}}</a></td>

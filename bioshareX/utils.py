@@ -1,21 +1,21 @@
-from django.shortcuts import redirect, render
-import os
-import json
-from functools import wraps
-
-from django.http.response import JsonResponse
-from django.conf import settings
-from django.template import Context, Template
-from rest_framework import status
-from django.db.models.query_utils import Q
-import subprocess
-from scandir import scandir
-import re
 import datetime
-from bioshareX.file_utils import istext
+import os
+import re
+import subprocess
+from functools import wraps
 from os import path
-from django.urls.base import reverse
 
+from django.conf import settings
+from django.http.response import JsonResponse
+from django.shortcuts import redirect, render
+from django.template import Context, Template
+from django.urls.base import reverse
+from django.core.cache import cache
+from rest_framework import status
+from scandir import scandir
+from bioshareX.exceptions import IllegalPathException
+
+from bioshareX.file_utils import istext
 
 
 class JSONDecorator(object):
@@ -42,7 +42,7 @@ def share_access_decorator_old(perms,share_param='share'):
 def ajax_login_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if request.user.is_authenticated():
+        if request.user.is_authenticated:
             return view_func(request, *args, **kwargs)
         return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']},status=status.HTTP_401_UNAUTHORIZED)
     return wrapper
@@ -71,18 +71,23 @@ class share_access_decorator(object):
             kwargs[self.share_param]=share
             request = args[0]
             user_permissions = share.get_user_permissions(request.user)
+            if share.locked:
+                if request.is_ajax():
+                    return json_error(['This share has been locked.  Please contact the web admin.'])
+                else:
+                    return redirect('locked', share=share.id)
             for perm in self.perms:
                 if not share.secure and perm in ['view_share_files','download_share_files']:
                     continue
                 if not perm in user_permissions:
                     if request.is_ajax():
-                        if not request.user.is_authenticated():
+                        if not request.user.is_authenticated:
                             return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']},status=status.HTTP_401_UNAUTHORIZED)
                             return json_error({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']})
                         else:
                             return json_error(['You do not have access to this resource.'])
                     else:
-                        if not request.user.is_authenticated():
+                        if not request.user.is_authenticated:
                             url = reverse('login') + '?next=%s' % request.get_full_path()
                             return redirect(url)
                         return redirect('forbidden')
@@ -91,13 +96,14 @@ class share_access_decorator(object):
 
 class safe_path_decorator(object):
 
-    def __init__(self, share_param='share',path_param='subpath'):
+    def __init__(self, share_param='share',path_param='subpath', write=False):
         """
         If there are decorator arguments, the function
         to be decorated is not passed to the constructor!
         """
         self.share_param  = share_param
         self.path_param  = path_param
+        self.write = write
     def __call__(self, f):
         """
         If there are decorator arguments, __call__() is only called
@@ -114,14 +120,22 @@ class safe_path_decorator(object):
                     except Share.DoesNotExist:
                         return render(args[0],'errors/message.html', {'message':'No share with that ID exists.'},status=500)
                 if not paths_contain(settings.DIRECTORY_WHITELIST,share.get_realpath()):
-                    raise Exception('Share has an invalid root path: %s'%share.get_realpath())
+                    return json_error(messages=['Share has an invalid root path: %s'%share.get_realpath()])
+                    # raise Exception('Share has an invalid root path: %s'%share.get_realpath())
             path = kwargs.get(self.path_param,None)
             if path is not None:
                 test_path(path)
                 if share:
                     full_path = os.path.join(share.get_path(),path)
                     if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
-                        raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
+                        share.check_paths()
+                        return json_error(messages=['Illegal path encountered, %s, %s'%(share.get_path(),path)])
+                        # raise Exception('Illegal path encountered, %s, %s'%(share.get_path(),path))
+            if self.write:
+                real_path = share.is_realpath(path)
+                if not real_path:
+                    return json_error(messages=['Write is not allowed for symlinked files and directories.'])
+                    # raise Exception('Write is not allowed for symlinked files and directories.  Encountered path: {}'.format(real_path))
             return f(*args,**kwargs)
         return wrapped_f
 
@@ -170,15 +184,28 @@ def path_contains(parent_path,child_path,real_path=True):
     else:
         return os.path.join(child_path,'').startswith(os.path.join(parent_path,''))
 
-def paths_contain(paths,child_path):
+def paths_contain(paths,child_path, get_path=False):
     for path in paths:
         if path_contains(path, child_path):
-            return True
+            return path if get_path else True
     return False
 
+def paths_contain_new(paths,child_path, get_paths=False):
+    matching = []
+    for path in paths:
+        if path_contains(path, child_path):
+            if not get_paths:
+                return True
+            matching.append(path)
+    if not get_paths or len(matching) == 0:
+        return False
+    else:
+        return matching
+
 def json_response(dict):
-    from django.http.response import HttpResponse
     import json
+
+    from django.http.response import HttpResponse
     return HttpResponse(json.dumps(dict), content_type='application/json')
 def json_error(messages,http_status=None):
     http_status = http_status or status.HTTP_400_BAD_REQUEST
@@ -218,10 +245,11 @@ def find_in_shares(shares, pattern):
     return output.split('\n')
 
 def find(share, pattern, subdir=None,prepend_share_id=True):
-    import subprocess, os
+    import os
+    import subprocess
     path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
     base_path = os.path.realpath(path) 
-    output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0]
+    output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
 #     output = subprocess.check_output(['find',path,'-name',pattern])
     paths = output.split('\n')
 #     return paths
@@ -238,8 +266,8 @@ def find(share, pattern, subdir=None,prepend_share_id=True):
     return results
 
 def validate_email( email ):
-    from django.core.validators import validate_email
     from django.core.exceptions import ValidationError
+    from django.core.validators import validate_email
     try:
         validate_email( email )
         return True
@@ -247,8 +275,8 @@ def validate_email( email ):
         return False
 
 def email_users(users, subject_template=None, body_template=None, ctx_dict={},subject=None,body=None, from_email=settings.DEFAULT_FROM_EMAIL,content_subtype = "html"):
-    from django.template.loader import render_to_string
     from django.core.mail import EmailMessage
+    from django.template.loader import render_to_string
     if subject:
         t = Template(subject)
         subject = t.render(Context(ctx_dict))
@@ -278,6 +306,22 @@ def sizeof_fmt(num):
         num /= 1024.0
     return "%3.1f%s" % (num, 'TB')
 
+def get_size_used_group(group):
+    from bioshareX.models import ShareStats
+    total_size = cache.get("get_size_used_group_{}".format(group.id))
+    if not total_size:
+        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__in=group.shares.all())]))
+        cache.set("get_size_used_group_{}".format(group.id), total_size, 30)
+    return total_size
+
+def get_size_used_user(user):
+    from bioshareX.models import ShareStats
+    total_size = cache.get("get_size_used_user_{}".format(user.id))
+    if not total_size:
+        total_size = sizeof_fmt(sum([s.bytes for s in ShareStats.objects.filter(share__owner=user)]))
+        cache.set("get_size_used_user_{}".format(user.id), total_size, 30)
+    return total_size
+
 def zipdir(base, path, zip):
     from os.path import relpath
     for root, dirs, files in os.walk(path):
@@ -293,23 +337,40 @@ def get_size(path):
     elif os.path.isdir(path):
         for dirpath, dirnames, filenames in os.walk(path):
             for f in filenames:
-                fp = os.path.join(dirpath, f)
-                total_size += os.path.getsize(fp)
+                try:
+                    fp = os.path.join(dirpath, f)
+                    total_size += os.path.getsize(fp)
+                except Exception as e:
+                    pass
         return total_size
+
+def get_size_bytes(path, followlinks=True):
+    total_size = 0
+    if settings.USE_DU:
+        total_size = du(path, bytes=True)
+    else:
+        for dirpath, dirnames, filenames in os.walk(path, followlinks=followlinks):
+            for f in filenames:
+                try:    
+                    fp = os.path.join(dirpath, f)
+                    total_size += os.path.getsize(fp)
+                except Exception as e:
+                    pass
+    return total_size
 
 def get_share_stats(share):
     path = os.path.abspath(share.get_path())
     total_size = 0
     if not share.parent: # don't count subshares
         ZFS_PATH = share.get_zfs_path()
-        if ZFS_PATH:
+        if ZFS_PATH and not share.symlinks_found:
             ZFS_PATH = share.get_path()
-            total_size = subprocess.check_output(['zfs', 'get', '-H', '-o', 'value', '-p', 'used', ZFS_PATH])
+            try:
+                total_size = subprocess.check_output(['zfs', 'get', '-H', '-o', 'value', '-p', 'used', ZFS_PATH])
+            except Exception as e:
+                total_size = get_size_bytes(path)
         else:
-            for dirpath, dirnames, filenames in os.walk(path):
-                for f in filenames:
-                    fp = os.path.join(dirpath, f)
-                    total_size += os.path.getsize(fp)
+            total_size = get_size_bytes(path)
     return {'size':int(total_size)}
 
 def get_total_size(paths=[]):
@@ -318,9 +379,16 @@ def get_total_size(paths=[]):
         total_size += get_size(path)
     return total_size
 
-def du(path):
-    """disk usage in human readable format (e.g. '2,1GB')"""
-    return subprocess.check_output(['du','-shL', path]).split()[0].decode('utf-8')
+def du(path, bytes=False):
+    """disk usage in human readable format (e.g. '2,1GB'), or bytes if bytes=True"""
+        # return subprocess.check_output(['du','-shL', path]).split()[0].decode('utf-8')
+    flags = '-sbL' if bytes else '-shL'
+    try:
+        output = subprocess.check_output(['du', flags, path])
+    except Exception as e:
+        output = e.output
+    size = output.split()[0].decode('utf-8')
+    return int(size) if bytes else size
 
 def list_share_dir(share,subdir=None,ajax=False):
     from bioshareX.models import MetaData
@@ -329,6 +397,7 @@ def list_share_dir(share,subdir=None,ajax=False):
         PATH = os.path.join(PATH,subdir)
     file_list=[]
     directories={}
+    errors = []
     regex = r'^%s[^/]+/?' % '' if subdir is None else re.escape(os.path.normpath(subdir))+'/'
     metadatas = {}
     for md in MetaData.objects.prefetch_related('tags').filter(share=share,subpath__regex=regex):
@@ -336,17 +405,131 @@ def list_share_dir(share,subdir=None,ajax=False):
     for entry in scandir(PATH):
         subpath= entry.name if subdir is None else os.path.join(subdir,entry.name)
         metadata = metadatas[subpath] if subpath in metadatas else {}
-        if entry.is_file():
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
-            file_list.append(file)
-        else:
-            (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-            dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
-            directories[os.path.realpath(entry.path)]=dir
-    return (file_list,directories)
+        
+        try:
+            if entry.is_file():
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
+                if entry.is_symlink():
+                    file['target'] = os.readlink(entry.path)
+                file_list.append(file)
+            else: #directory
+                (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
+                dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
+                if entry.is_symlink():
+                    dir['target'] = os.readlink(entry.path)
+                directories[os.path.realpath(entry.path)]=dir
+        except OSError as e:
+            # (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat(follow_symlinks=False)
+            errors.append({'name':entry.name, 'is_file': entry.is_file(), 'is_dir': entry.is_dir(), 'extension':entry.name.split('.').pop() if '.' in entry.name else None,'metadata':metadata, 'target': os.readlink(entry.path), 'error': str(e)})
+
+    return (file_list,directories,errors)
 
 def md5sum(path):
-    output = subprocess.check_output([settings.MD5SUM_COMMAND,path]) #Much more efficient than reading file contents into python and using hashlib
+    output = subprocess.check_output([settings.MD5SUM_COMMAND,path]).decode('utf-8') #Much more efficient than reading file contents into python and using hashlib
     #IE: output = 4968966191e485885a0ed8854c591720  /tmp/Project/Undetermined_S0_L002_R2_001.fastq.gz
     return re.findall(r'([0-9a-fA-F]{32})',output)[0]
+
+def find_symlink(path): #pretty crude check to make sure the path is not and does not contain any symlinks
+    if os.path.isfile(path):
+        return os.path.islink(path)
+    elif os.path.isdir(path):
+        output = subprocess.check_output(['find', path, '-type', 'l', '-ls'])
+        return bool(output)
+
+def find_symlinks(path):
+    symlinks = {}
+    for p in subprocess.check_output(['find', path, '-type', 'l']).decode().split('\n'):
+        if p and os.path.islink(p):
+            symlinks[p] = os.path.realpath(p)
+    return symlinks
+
+def search_illegal_symlinks(path, checked=set()):
+    symlinks = find_symlinks(path)
+    for link, target in symlinks.items():
+        # Fix circular symlink check
+        # if target in checked and (os.path.isdir(target) or os.path.islink(target)):
+        #     raise IllegalPathException('Circular symlink found, {} -> {}'.format(link, target))
+        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
+            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
+        checked.add(target)
+        search_illegal_symlinks(target, checked) # Doing this depth first.  Maybe consider doing breadth first.
+
+def get_all_symlinks(path, max_depth=1):
+    max_depth = min(max(max_depth, settings.SYMLINK_DEPTH_DEFAULT), settings.SYMLINK_DEPTH_MAX)
+    symlinks = [] # {path, target, illegal, depth}
+    queue = [{'path': path, 'depth': 0, 'previous': set()}]
+    while queue:
+        current = queue.pop(0)
+        path = current['path']
+        depth = current['depth']
+        previous = current['previous'].copy()
+        realpath = os.path.realpath(path)
+        exists = os.path.exists(realpath)
+        warning = []
+        error = []
+        if not exists:
+            warning.append('Target {} does not exist'.format(realpath))
+        if realpath in previous:# and os.path.islink(path):
+            error.append('Symlink recursion found')
+        if not paths_contain(settings.DIRECTORY_WHITELIST, realpath):
+            error.append('Illegal path')
+        if depth > max_depth:
+            error.append('Link is deeper than maximum depth of {}'.format(max_depth))
+        if os.path.islink(path):
+            symlinks.append({'path': path, 'target': realpath, 'warning': ', '.join(warning) if warning else None, 'error': ', '.join(error) if error else None, 'depth': depth})
+        if not warning and not error and realpath not in previous:
+            previous.add(realpath)
+            if exists:
+                for p in subprocess.check_output(['find', realpath, '-type', 'l']).decode().split('\n'):
+                    queue.append({'path': p, 'depth': depth+1, 'previous': previous})
+    return symlinks
+
+def check_symlinks_dfs(path, checked=set(), depth=0, max_depth=1):
+    max_depth = min(max(max_depth, settings.SYMLINK_DEPTH_DEFAULT), settings.SYMLINK_DEPTH_MAX)
+    checked = checked.copy()
+    checked.add(path)
+    depth += 1
+    if depth > max_depth:
+        return IllegalPathException('Symlink depth exceeded maximum depth of {}'.format(max_depth))
+    symlinks = find_symlinks(path)
+    for link, target in symlinks.items():
+        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
+            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
+        if target in checked and os.path.isdir(target):
+            raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
+        # checked.add(target) # This actually passes sibling directories through recursive check, which is not technically recursion
+        if os.path.isdir(target):
+            check_symlinks_dfs(target, checked, depth=depth, max_depth=max_depth)
+
+def is_realpath(path, subpath=None):
+    if subpath:
+        path = os.path.join(path,subpath)
+    path = path.rstrip(os.path.sep)
+    return path == os.path.realpath(path)
+
+
+# Testing new version which checks for duplicate directories as well as recursion
+def check_symlinks_dfs_test(path, checked=set(), depth=0, max_depth=3, checked_all=set(), log=True):
+    max_depth = min(max(max_depth, settings.SYMLINK_DEPTH_DEFAULT), settings.SYMLINK_DEPTH_MAX)
+    tabs = '\t'*depth
+    checked = checked.copy()
+    checked.add(path)
+    checked_all.add(path)
+    depth += 1
+    if log:
+        print('{}{}'.format(tabs, path))
+        print('{}checked: {}'.format(tabs, checked))
+        print('{}checked_all: {}'.format(tabs, checked_all))
+    if depth > max_depth:
+        return IllegalPathException('Symlink depth exceeded maximum depth of {}'.format(max_depth))
+    symlinks = find_symlinks(path)
+    for link, target in symlinks.items():
+        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
+            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
+        if target in checked and os.path.isdir(target):
+            raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
+        if target in checked_all and os.path.isdir(target):
+            raise IllegalPathException('Duplicate directory found at: {}->{}'.format(link, target))
+        if os.path.isdir(target):
+            check_symlinks_dfs_test(target, checked, depth=depth, max_depth=max_depth, checked_all=checked_all)
