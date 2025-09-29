@@ -6,35 +6,12 @@ function get_selected_names(){
 	});
 	return selection;
 }
-function delete_paths(url,selection){
-	BC.ajax(
-		{
-			'url':url,
-			'data':{'json':JSON.stringify({'selection':selection})},
-			'success':function(data){
-				if(data.deleted){
-					$.each(data.deleted,function(index,item){
-						$('#file-table [data-id="'+item+'"]').addClass('error').addClass('deleted');
-					})
-					setTimeout(function(){
-							$('#file-table tr.deleted').fadeOut({
-								'duration':500,
-								'complete':function(){$(this).remove();}
-									});
-							
-							}
-						,500);
-				}
-			}
-		}
-	);
-}
 function set_permissions(data){
 	$('#updateUserPermissions').prop('disabled',true).text('Updating...');
 	BC.ajax(
 		{
 			'url':set_permissions_url,
-			'data':{'json':JSON.stringify(data)},
+			'data':{'json':data},
 			'success':function(data){
 					update_permissions(data);
 					$('#updateUserPermissions').prop('disabled',false).text('Update');
@@ -51,7 +28,7 @@ function update_share(data){
 	BC.ajax(
 		{
 			'url':update_share_url,
-			'data':{'json':JSON.stringify(data)},
+			'data':{'json':data},
 			'success':function(data){
 				$.bootstrapGrowl("Settings have been updated",{type:'info',delay:2000});
 			}

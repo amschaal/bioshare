@@ -26,12 +26,16 @@ BC.on_ajax_error = function (response) {
 }
 
 BC.ajax_form_submit=function(form,options){
+	// const formData = $(form).serializeArray(); // Serialize the form data
+	// const jsonData = JSON.stringify(formData);
 	var defaults={
 			'ajax':
 			{
 				'type':'POST',
 				'url':$(form).attr('action'),
 				'data':$(form).serialize()
+				// 'contentType': "application/json",
+				// 'dataType': "json"
 			}
 	}
 	var options = $.extend({},defaults,options);
@@ -59,6 +63,7 @@ BC.login=function(){
 }
 BC.ajax=function(options){
 	var callback = options.success ? options.success : false;
+	options.data = JSON.stringify(options.data);
 	options.success = function(data){
 		BC.handle_ajax_errors(data);
 		if (data.unauthenticated)
@@ -67,7 +72,9 @@ BC.ajax=function(options){
 			callback(data);
 	}
 	var defaults={
-			type:"POST"
+		type:"POST",
+		contentType: "application/json",
+		dataType: "json"
 	}
 	var options = $.extend({},defaults,options);
 	$.ajax(options).error(BC.on_ajax_error);

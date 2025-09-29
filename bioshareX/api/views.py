@@ -126,16 +126,18 @@ def get_permissions(request,share):
 
 @api_view(['POST'])
 @share_access_decorator(['admin'])
-@JSONDecorator
-def update_share(request,share,json=None):
+# @JSONDecorator
+def update_share(request,share):
+    json = request.data.get('json')
     share.secure = json['secure']
     share.save(update_fields=['secure'])
     return json_response({'status':'okay'})
 
 @api_view(['POST'])
 @share_access_decorator(['admin'])
-@JSONDecorator
-def set_permissions(request,share,json=None):
+# @JSONDecorator
+def set_permissions(request,share,):
+    json = request.data.get('json')
     perms = SharePermissions(share)
     perms.set_permissions(json, request.user, json['email'])
     data = perms.get_permissions(user_specific=True)

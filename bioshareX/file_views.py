@@ -132,12 +132,14 @@ def modify_name(request, share, subdir=None):
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_RENAMED,text='"%s" renamed to "%s"'%(form.cleaned_data['from_name'],form.cleaned_data['to_name']),paths=[from_path],subdir=subdir)
     return json_response(data)
 
+@api_view(['POST'])
 @share_access_decorator(['delete_share_files'])
 @safe_path_decorator(path_param='subdir', write=True)
-@JSONDecorator
+# @JSONDecorator
 def delete_paths(request, share, subdir=None, json={}):
+    selection = request.data.get('selection',[])
     response={'deleted':[],'failed':[]}
-    for item in json['selection']:
+    for item in selection:
         test_path(item)
         item_path = item if subdir is None else os.path.join(subdir,item)
         try:
@@ -147,13 +149,15 @@ def delete_paths(request, share, subdir=None, json={}):
                 response['failed'].append(item)
         except:
             response['failed'].append(item)
-    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_DELETED,paths=json['selection'],subdir=subdir)
+    ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_DELETED,paths=selection,subdir=subdir)
     return json_response(response)
 
+@api_view(['POST'])
 @share_access_decorator(['delete_share_files'])
 @safe_path_decorator(path_param='subdir', write=True)
-@JSONDecorator
-def move_paths(request, share, subdir=None, json={}):
+# @JSONDecorator
+def move_paths(request, share, subdir=None):
+    json = request.data.get('json')
     response={'moved':[],'failed':[]}
     for item in json['selection']:
         test_path(item)
