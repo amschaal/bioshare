@@ -1,5 +1,6 @@
 from django.conf import settings
-from django.conf.urls import include, url
+from django.conf.urls import include
+from django.urls import re_path
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
 from django.urls.conf import path
@@ -26,15 +27,15 @@ AuthenticationForm.base_fields['username'].label = 'Email'
 urlpatterns = [
     # Examples:
     # Uncomment the admin/doc line below to enable admin documentation:
-    # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-    url(r'^admin/', admin.site.urls),
-    url(r'^bioshare/', include('bioshareX.urls')),
-    url(r'^accounts/logout/$', logout_then_login, name='logout'),
+    # re_path(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+    re_path(r'^admin/', admin.site.urls),
+    re_path(r'^bioshare/', include('bioshareX.urls')),
+    re_path(r'^accounts/logout/$', logout_then_login, name='logout'),
     # path('accounts/login/', LoginView.as_view(authentication_form=BioshareAuthenticationForm), name='login',kwargs={'authentication_form':BioshareAuthenticationForm}),
     path('accounts/password_reset/', ratelimit(key='user_or_ip', rate='5/h', method=UNSAFE)(PasswordResetView.as_view(form_class=BiosharePasswordResetForm)), name='password_reset', kwargs={'password_reset_form':BiosharePasswordResetForm,'extra_email_context':{'SITE_URL':settings.SITE_URL}}),
-#     url(r'^accounts/password_reset/$', password_reset, name='password_reset', kwargs={'password_reset_form':BiosharePasswordResetForm,'extra_email_context':{'SITE_URL':settings.SITE_URL}}),
+#     re_path(r'^accounts/password_reset/$', password_reset, name='password_reset', kwargs={'password_reset_form':BiosharePasswordResetForm,'extra_email_context':{'SITE_URL':settings.SITE_URL}}),
     path('accounts/login/', ratelimit(key='post:username', rate='10/h', method=UNSAFE)(ratelimit(key='user_or_ip', rate='10/h', method=UNSAFE)(LoginView.as_view(authentication_form=BioshareAuthenticationForm))), name='login',kwargs={'authentication_form':BioshareAuthenticationForm}),
-    url(r'^accounts/', include('django.contrib.auth.urls')),
-    url(r'^$', bioshare_views.list_shares, name='home'),
-    url(r'^Data/(?P<id>[\da-zA-Z]{10})/(?:(?P<subpath>.*/?))?$', bioshare_views.redirect_old_path, name='redirect_old_path'),
+    re_path(r'^accounts/', include('django.contrib.auth.urls')),
+    re_path(r'^$', bioshare_views.list_shares, name='home'),
+    re_path(r'^Data/(?P<id>[\da-zA-Z]{10})/(?:(?P<subpath>.*/?))?$', bioshare_views.redirect_old_path, name='redirect_old_path'),
 ]

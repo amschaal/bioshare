@@ -13,7 +13,7 @@ class WrapperException(Exception):
 class Command(BaseCommand):
     help = 'Wrap rsync commands'
     logger = None
-    requires_system_checks = False
+    requires_system_checks = []
     def get_flags(self,args):
         # Collect all the short flags into one group
         args_re = re.compile(r"\-(\w+)")
