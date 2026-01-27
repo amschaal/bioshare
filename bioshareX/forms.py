@@ -236,8 +236,13 @@ class SymlinkForm(forms.Form):
             for i in range(len(path_components)):
                 subpath = os.sep.join(path_components[:i + 1])
                 full_path = os.path.join(self.base_directory, subpath)
-                if not os.path.isdir(full_path) and not os.path.exists(base_path):
-                    os.mkdir(full_path)
+                # Ensure the directory to be created is within base_directory
+                normalized_full_path = os.path.realpath(full_path)
+                base_directory_real = os.path.realpath(self.base_directory)
+                if not normalized_full_path.startswith(base_directory_real + os.sep) and normalized_full_path != base_directory_real:
+                    raise forms.ValidationError('Attempted directory creation outside of base directory.')
+                if not os.path.isdir(full_path) and not os.path.exists(full_path):
+                    os.mkdir(normalized_full_path)
                     self.directories_created.append(subpath)
     def create_link(self):
         self.create_subdirectories()
