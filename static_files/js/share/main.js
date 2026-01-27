@@ -74,7 +74,7 @@ function delete_paths(url,selection){
 	BC.ajax(
 		{
 			'url':url,
-			'data':{'json':JSON.stringify({'selection':selection})},
+			'data':{'selection':selection},
 			'success':function(data){
 				if(data.failed.length !=0){
 					var message = "The following files were unable to be deleted: " + data.failed.join(', ');
@@ -352,7 +352,7 @@ function move_files(url,selection){
 	BC.ajax(
 			{
 				'url':url,
-				'data':{'json':JSON.stringify({'selection':selection,'destination':destination})},
+				'data':{'json':{'selection':selection,'destination':destination}},
 				'success':function(data){
 					if(data.failed.length !=0){
 						var message = "The following files were unable to be moved: " + data.failed.join(', ');

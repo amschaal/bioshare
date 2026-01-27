@@ -47,7 +47,7 @@ def get_user(request):
         user = User.objects.get(Q(username=query)|Q(email=query))
         return JsonResponse({'user':UserSerializer(user).data})
     except Exception as e:
-        return JsonResponse({'status':'error','query':query,'errors':[str(e)]},status=status.HTTP_404_NOT_FOUND)
+        return JsonResponse({'status':'error','query':query,'errors':[f'Unable to get user with username or email "{query}"']},status=status.HTTP_404_NOT_FOUND)
 
 @ajax_login_required
 def get_address_book(request):
@@ -126,16 +126,18 @@ def get_permissions(request,share):
 
 @api_view(['POST'])
 @share_access_decorator(['admin'])
-@JSONDecorator
-def update_share(request,share,json=None):
+# @JSONDecorator
+def update_share(request,share):
+    json = request.data.get('json')
     share.secure = json['secure']
     share.save(update_fields=['secure'])
     return json_response({'status':'okay'})
 
 @api_view(['POST'])
 @share_access_decorator(['admin'])
-@JSONDecorator
-def set_permissions(request,share,json=None):
+# @JSONDecorator
+def set_permissions(request,share):
+    json = request.data.get('json')
     perms = SharePermissions(share)
     perms.set_permissions(json, request.user, json['email'])
     data = perms.get_permissions(user_specific=True)
@@ -234,7 +236,7 @@ def create_share(request):
             share.save()
         except Exception as e:
             share.delete()
-            return JsonResponse({'error':str(e)},status=400)
+            return JsonResponse({'error':'Unable to create share.  An internal error occurred.'},status=400)
         return JsonResponse({'url':"%s%s"%(SITE_URL,reverse('list_directory',kwargs={'share':share.id})),'id':share.id})
     else:
         return JsonResponse({'errors':form.errors},status=400)
@@ -256,7 +258,7 @@ def email_participants(request,share,subdir=None):
         response = {'status':'success','sent_to':[u.email for u in users]}
         return json_response(response)
     except Exception as e:
-        return JsonResponse({'errors':[str(e)]},status=400)
+        return JsonResponse({'errors':['An error occured trying to email participants.']},status=400)
 
 @api_view(['POST'])
 @share_access_decorator([Share.PERMISSION_SHARE_READ_ONLY])

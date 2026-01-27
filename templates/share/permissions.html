@@ -2,6 +2,7 @@
 {% load static %}
 {% load crispy_forms_tags %}
 {% load guardian_tags %}
+{% load compress %}
 {% block title %}Permissions: {{share.name}}{% endblock %}
 
 {% block content %}
@@ -78,6 +79,8 @@ var update_share_url = '{% url 'api_update_share' share=share.id %}';
 var read_only = {% if share.read_only %}true{% else %}false{% endif %};
 
 </script>
+{% compress js %}
 <script src="{% static "lib/textcomplete/jquery.textcomplete.js" %}"></script>
 <script src="{% static "js/share/permissions.js" %}"></script>
+{% endcompress %}
 {% endblock %}
