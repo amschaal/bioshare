@@ -21,7 +21,7 @@ from bioshareX.forms import FolderForm, RenameForm, SymlinkForm, json_form_valid
 from bioshareX.models import Share, ShareLog
 from bioshareX.ratelimit import ratelimit_rate, url_path_key
 from bioshareX.utils import (JSONDecorator, find_symlink, is_realpath, json_error,
-                             json_response, md5sum, safe_path_decorator,
+                             json_response, md5sum, paths_contain, safe_path_decorator,
                              share_access_decorator, sizeof_fmt, test_path)
 
 from django_ratelimit.decorators import ratelimit
@@ -165,6 +165,7 @@ def delete_paths(request, share, subdir=None, json={}):
 def move_paths(request, share, subdir=None):
     json = request.data.get('json')
     response={'moved':[],'failed':[]}
+    test_path(json['destination'])
     for item in json['selection']:
         test_path(item)
         item_subpath = item if subdir is None else os.path.join(subdir,item)
@@ -229,11 +230,16 @@ def preview_file(request, share, subpath):
         return json_response(response)
 
 @share_access_decorator(['download_share_files'])
+@safe_path_decorator()
 def get_directories(request, share):
     import os
     response=[]
     directory = request.GET.get('directory','')
+    if directory:
+        test_path(directory)
     full_path = os.path.join(share.get_path(),directory)
+    if not paths_contain(settings.DIRECTORY_WHITELIST, full_path):
+        return json_error(messages=['Illegal path encountered.'])
     dirs = [name for name in os.listdir(full_path) if os.path.isdir(os.path.join(full_path, name))]
     for dir in dirs:
         key = os.path.join(directory,dir)

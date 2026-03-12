@@ -169,7 +169,7 @@ def test_path(path,allow_absolute=False,share=None):
     for illegal in illegals:
         if illegal in path:
             raise Exception('Illegal path encountered')
-    if path.startswith(os.pathsep) and not allow_absolute:
+    if path.startswith(os.sep) and not allow_absolute:
         raise Exception('Subpath may not start with slash')
     if path.startswith('~') and not allow_absolute:
         raise Exception('Subpath may not start with a "~"')
