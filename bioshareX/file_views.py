@@ -34,9 +34,15 @@ def handle_uploaded_file(path,file):
             destination.write(chunk)
 
 def clean_filename(filename):
-    filename = re.sub(settings.UNDERSCORE_REGEX,'_', filename)
-    filename = re.sub(settings.STRIP_REGEX,'', filename)
-    return filename
+    import unicodedata
+    # Normalize unicode and apply configured substitutions
+    filename = unicodedata.normalize('NFKC', filename)
+    filename = re.sub(settings.UNDERSCORE_REGEX, '_', filename)
+    filename = re.sub(settings.STRIP_REGEX, '', filename)
+    # Disallow directory separators or null bytes in filenames
+    if os.path.basename(filename) != filename or '/' in filename or '\\' in filename or '\x00' in filename:
+        raise IllegalPathException('Illegal filename')
+    return filename.strip()
 
 @share_access_decorator(['write_to_share'])
 @safe_path_decorator(path_param='subdir', write=True)
