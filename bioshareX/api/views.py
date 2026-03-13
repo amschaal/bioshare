@@ -28,7 +28,7 @@ from bioshareX.api.serializers import (GroupSerializer, MessageSerializer,
 from bioshareX.forms import MetaDataForm, ShareForm, ShareReadOnlyForm, json_form_validate
 from bioshareX.models import Message, MetaData, Share, ShareLog, SSHKey, Tag
 from bioshareX.permissions import ManageGroupPermission, SharePermissions
-from bioshareX.utils import (JSONDecorator, ajax_login_required, du,
+from bioshareX.utils import (ajax_login_required, du,
                              email_users, json_error, json_response,
                              safe_path_decorator, share_access_decorator,
                              test_path, validate_email)
@@ -126,7 +126,6 @@ def get_permissions(request,share):
 
 @api_view(['POST'])
 @share_access_decorator(['admin'])
-# @JSONDecorator
 def update_share(request,share):
     json = request.data.get('json')
     share.secure = json['secure']
@@ -135,7 +134,6 @@ def update_share(request,share):
 
 @api_view(['POST'])
 @share_access_decorator(['admin'])
-# @JSONDecorator
 def set_permissions(request,share):
     json = request.data.get('json')
     perms = SharePermissions(share)

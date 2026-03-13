@@ -3,7 +3,7 @@ from django.urls import re_path
 from rest_framework import routers
 
 from bioshareX import file_views
-from bioshareX import views as bioshare_views  # , jsutils
+from bioshareX import views as bioshare_views
 from bioshareX.api import views as api_views
 
 # from bioshareX.api.views import GroupViewSet, MessageViewSet
@@ -21,18 +21,13 @@ urlpatterns = [
     re_path(r'^create_subshare/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', bioshare_views.create_subshare, name='create_subshare'),
     re_path(r'^edit/(?P<share>\w{15})/?$', bioshare_views.edit_share, name='edit_share'),
     re_path(r'^cloud/?$', bioshare_views.tag_cloud, name='tag_cloud'),
-#     re_path(r'^list/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory_old'),
-#     re_path(r'^view/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory'),
-#     re_path(r'^wget/(?P<share>[\da-zA-Z]{15})/(?:(?P<subdir>.*/))?wget_index.html$', bioshare_views.wget_listing, name='wget_listing'),
     re_path(r'^list/(?P<share>[-\w]+)/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory_old'),
     re_path(r'^view/(?P<share>[-\w]+)/(?:(?P<subdir>.*/))?$', bioshare_views.list_directory, name='list_directory'),
     re_path(r'^update_stats/(?P<share>[-\w]+)/?$', bioshare_views.update_stats, name='update_stats'),
     re_path(r'^wget/(?P<share>[-\w]+)/(?:(?P<subdir>.*/))?wget_index.html$', bioshare_views.wget_listing, name='wget_listing'),
     re_path(r'^shares/$', bioshare_views.list_shares, name='list_shares'),
-#     re_path(r'^groups/(?P<group_id>[\d]+)/shares/?$', bioshare_views.list_shares, name='list_group_shares'),
     re_path(r'^groups/(?P<group_id>[\d]+)/shares/create/?$', bioshare_views.create_share, name='create_group_share'),
     re_path(r'^permissions/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.share_permissions, name='share_permissions'),
-#     re_path(r'^goto/(?P<share>[\da-zA-Z]{15})/(?:(?P<subpath>.*/?))?$', bioshare_views.go_to_file_or_folder, name='go_to_file_or_folder'),
     re_path(r'^goto/(?P<share>[-\w]+)/(?:(?P<subpath>.*/?))?$', bioshare_views.go_to_file_or_folder, name='go_to_file_or_folder'),
     re_path(r'^ssh_keys/list/?$', bioshare_views.list_ssh_keys, name='list_ssh_keys'),
     re_path(r'^ssh_keys/create/?$', bioshare_views.create_ssh_key, name='create_ssh_key'),
@@ -41,19 +36,12 @@ urlpatterns = [
     re_path(r'^groups/(?P<group_id>[\d]+)/manage/?$', bioshare_views.manage_group, name='manage_group'),
     re_path(r'^groups/(?P<group_id>[\d]+)/modify/?$', bioshare_views.create_modify_group, name='modify_group'),
     re_path(r'^groups/create/?$', bioshare_views.create_modify_group, name='create_group'),
-#     re_path(r'^account/update_password/?$', 'update_password', name='update_password'),
     re_path(r'^delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':False},name='delete_share'),
     re_path(r'^confirm_delete_share/(?P<share>[\da-zA-Z]{15})/?$', bioshare_views.delete_share, kwargs={'confirm':True},name='confirm_delete_share'),
-    # re_path(r'^search/files/?$', bioshare_views.search_files, name='search_files'),
     re_path(r'^locked/(?P<share>[-\w]+)/$', bioshare_views.locked, name='locked'),
     re_path(r'^unlock/(?P<share>[-\w]+)/$', bioshare_views.unlock, name='unlock'),
     re_path(r'^view_links/(?P<share>[-\w]+)/$', bioshare_views.view_links, name='view_links')
-    # re_path(r'^jsurls.js$', jsutils.jsurls, {}, 'jsurls'), # @todo: replace this
 ]
-
-# urlpatterns += [
-#     re_path(r'^account/update_password/$', auth_views.password_change,  {'password_change_form': PasswordChangeForm,'post_change_redirect':'auth_password_change_done'},name='update_password'),
-# ]
 
 urlpatterns += [
     re_path(r'^api/get_permissions/(?P<share>[\da-zA-Z]{15})/?$', api_views.get_permissions, name='api_get_permissions'),
@@ -72,7 +60,6 @@ urlpatterns += [
     re_path(r'^api/email_participants/(?P<share>[\da-zA-Z]{15})/(?P<subdir>.*)/?$', api_views.email_participants, name='api_email_participants'),
     re_path(r'^api/share_read_only/(?P<share>[\da-zA-Z]{15})/$', api_views.share_read_only, name='api_share_read_only'),
     re_path(r'^api/logs/$', api_views.ShareLogList.as_view()),
-#     re_path(r'^api/shares/$', api_views.ShareList.as_view()),
     re_path(r'^api/', include(router.urls)),
 ]
 
