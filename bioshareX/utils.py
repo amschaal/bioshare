@@ -165,14 +165,19 @@ def get_setting(key, default=None):
     return getattr(settings, key, default)
 
 def test_path(path,allow_absolute=False,share=None):
-    illegals = ['..','*']
+    illegals = ['..','*','\x00']
     for illegal in illegals:
         if illegal in path:
             raise Exception('Illegal path encountered')
-    if path.startswith('/') and not allow_absolute:
+    if path.startswith(os.sep) and not allow_absolute:
         raise Exception('Subpath may not start with slash')
     if path.startswith('~') and not allow_absolute:
         raise Exception('Subpath may not start with a "~"')
+    # Split into components and reject any parent-traversal or wildcard components
+    components = [c for c in path.split(os.sep) if c not in ('', '.')]
+    for comp in components:
+        if comp == '..' or '*' in comp:
+            raise Exception('Illegal path encountered')
     if share:
         full_path = os.path.join(share.get_path(),path)
         if not paths_contain(settings.DIRECTORY_WHITELIST,full_path):
