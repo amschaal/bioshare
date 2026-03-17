@@ -51,8 +51,21 @@ class BioshareSFTPServer(object):
             conn = server_socket.accept()[0]
             self.start_sftp_session(conn)
 
+    # Algorithms considered weak/legacy that should not be negotiated
+    DISABLED_ALGORITHMS = {
+        'ciphers': ['blowfish-cbc', '3des-cbc', 'aes128-cbc', 'aes192-cbc', 'aes256-cbc'],
+        'macs': ['hmac-md5', 'hmac-md5-96', 'hmac-sha1-96'],
+        'kex': ['diffie-hellman-group1-sha1', 'diffie-hellman-group-exchange-sha1'],
+        'keys': ['ssh-dss'],
+    }
+
+    # Timeout in seconds for SSH negotiation and idle connections
+    AUTH_TIMEOUT = 30
+    TRANSPORT_TIMEOUT = 300
+
     def start_sftp_session(self, conn):
-        transport = paramiko.Transport(conn)
+        conn.settimeout(self.TRANSPORT_TIMEOUT)
+        transport = paramiko.Transport(conn, disabled_algorithms=self.DISABLED_ALGORITHMS)
         transport.add_server_key(self.host_key)
         transport.set_subsystem_handler(
             'sftp', SFTPServer, SFTPInterface)
@@ -63,29 +76,36 @@ class BioshareSFTPServer(object):
                 server=SSHInterface(self.get_user),
                 event=threading.Event())
 
+    ALLOW_ANONYMOUS = getattr(settings, 'SFTP_ALLOW_ANONYMOUS', False)
+
     def get_user(self, username, password):
         if username == 'anonymous':
-            return User.objects.get(id=-1)
+            if not self.ALLOW_ANONYMOUS:
+                return None
+            return User.objects.filter(id=-1).first()
         return authenticate(username=username, password=password)
-#         raise NotImplementedError()
 
 
 class SSHInterface(paramiko.ServerInterface):
 
+    MAX_AUTH_ATTEMPTS = 5
+
     def __init__(self, get_user):
         self.get_user = get_user
-    
+        self._auth_attempts = 0
+
     def check_auth_password(self, username, password):
-        if username == 'anonymous':
-            user = User.objects.get(id=-1)
-        else:
-            user =  authenticate(username=username, password=password)
+        self._auth_attempts += 1
+        if self._auth_attempts > self.MAX_AUTH_ATTEMPTS:
+            logging.warning(u'Auth attempt limit exceeded for %s' % username)
+            return paramiko.AUTH_FAILED
+        user = self.get_user(username, password)
         if user:
-            logging.info((u'Auth successful for %s' % username).encode('utf-8'))
+            logging.info(u'Auth successful for %s' % username)
             self.user = user
             return paramiko.AUTH_SUCCESSFUL
         else:
-            logging.info((u'Auth failed for %s' % username).encode('utf-8'))
+            logging.info(u'Auth failed for %s' % username)
             return paramiko.AUTH_FAILED
 
     def check_channel_request(self, kind, chanid):
@@ -172,7 +192,6 @@ def _SFTPHandle_chattr(self, attr):
 def _SFTPHandle_write(self, offset, data):
     #Custom Auth
     if Share.PERMISSION_WRITE not in self.permissions:
-        print('permission denied')
         raise PermissionDenied()
     #Below this is implementation from SFTPHandle
     writefile = getattr(self, 'writefile', None)
@@ -214,7 +233,6 @@ def _SFTPHandle_read(self, offset, length):
     :return: data read from the file, or an SFTP error code, as a `str`.
     """
     if Share.PERMISSION_VIEW not in self.permissions:
-        print('permission denied')
         raise PermissionDenied()
     readfile = getattr(self, 'readfile', None)
     if readfile is None:
@@ -247,6 +265,8 @@ SFTPHandle.chattr = _SFTPHandle_chattr
 SFTPHandle.write = _SFTPHandle_write
 SFTPHandle.read = _SFTPHandle_read
 
+SYMLINK_RECHECK_INTERVAL_SECONDS = getattr(settings, 'SFTP_SYMLINK_RECHECK_INTERVAL_SECONDS', 300)
+
 class SFTPInterface (SFTPServerInterface):
     def __init__(self, server):
         self.server = server
@@ -254,34 +274,33 @@ class SFTPInterface (SFTPServerInterface):
         self.shares = {}
         self.shares_accessed = set()
         self.modified_date = {}
+        self._symlink_checked = {}
         for share in Share.user_queryset(self.user,include_stats=False):
-            self.shares[share.slug_or_id] = share#{'path':share.get_realpath()}
-#         print 'user'
-#         print self.user
-#         self.ROOT = root
+            self.shares[share.slug_or_id] = share
     def session_ended(self):
         SFTPServerInterface.session_ended(self)
         Share.objects.filter(id__in=list(self.shares_accessed)).update(last_data_access=timezone.now())
     def _get_share(self,path):
         parts = path.split(os.path.sep)
         if len(parts) < 2:
-            print('bad length')
+            logging.warning('Received an invalid path: %s', path)
             raise PermissionDenied("Received an invalid path: %s"%path)
         if parts[1] not in self.shares and self.user.id == -1: #Anonymous users don't yet have a dictionary of shares.
             try:
                 share = Share.get_by_slug_or_id(parts[1])
                 self.shares[share.slug_or_id] = share
-            except:
+            except Share.DoesNotExist:
                 pass
         if parts[1] not in self.shares:
-            print('no share exists')
-            print(path)
+            logging.warning('Share does not exist: %s', path)
             raise PermissionDenied("Share does not exist: %s"%path[1])
         share = self.shares[parts[1]]
-        if not hasattr(share,'_sftp_initialized'):
+        now = timezone.now()
+        last_checked = self._symlink_checked.get(share.id)
+        if not last_checked or (now - last_checked).total_seconds() > SYMLINK_RECHECK_INTERVAL_SECONDS:
             if share.symlinks_found:
                 share.check_paths()
-            setattr(share,'_sftp_initialized', True)
+            self._symlink_checked[share.id] = now
         if share.locked:
             raise PermissionDenied('Share is locked.  Contact the application administrator.')
         return share
@@ -369,9 +388,7 @@ class SFTPInterface (SFTPServerInterface):
                     attr.filename = fname
                     out.append(attr)
                 except Exception as e:
-#                     @todo: Add the file to the list anyway.  It will fail on download.
-                    print('OSError with file: '+os.path.join(path, fname))
-                    print(e)
+                    logging.warning('Error reading file attributes: %s: %s', os.path.join(path, fname), e)
             return out
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
@@ -394,7 +411,6 @@ class SFTPInterface (SFTPServerInterface):
             return SFTPServer.convert_errno(e.errno)
     @sftp_response
     def open(self, path, flags, attr):
-        print('OPENING')
         permissions = self._get_bioshare_path_permissions(path)
         IS_WRITE = flags & os.O_CREAT or flags & os.O_WRONLY or flags & os.O_RDWR or flags & os.O_APPEND
         if not ((not IS_WRITE and Share.PERMISSION_VIEW in permissions and Share.PERMISSION_DOWNLOAD in permissions) or  (IS_WRITE and Share.PERMISSION_WRITE in permissions and Share.PERMISSION_VIEW in permissions)):
@@ -433,7 +449,7 @@ class SFTPInterface (SFTPServerInterface):
                 # O_RDONLY (== 0)
                 fstr = 'rb'
         except Exception as e:
-            print(e.message)
+            logging.error('Error setting file flags: %s', e)
         try:
             f = os.fdopen(fd, fstr)
         except OSError as e:
