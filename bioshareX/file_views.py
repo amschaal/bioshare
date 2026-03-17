@@ -20,7 +20,7 @@ from bioshareX.file_utils import get_lines, get_num_lines, istext
 from bioshareX.forms import FolderForm, RenameForm, SymlinkForm, json_form_validate
 from bioshareX.models import Share, ShareLog
 from bioshareX.ratelimit import ratelimit_rate, url_path_key
-from bioshareX.utils import (JSONDecorator, find_symlink, is_realpath, json_error,
+from bioshareX.utils import (find_symlink, is_realpath, json_error,
                              json_response, md5sum, paths_contain, safe_path_decorator,
                              share_access_decorator, sizeof_fmt, test_path)
 
@@ -141,7 +141,6 @@ def modify_name(request, share, subdir=None):
 @api_view(['POST'])
 @share_access_decorator(['delete_share_files'])
 @safe_path_decorator(path_param='subdir', write=True)
-# @JSONDecorator
 def delete_paths(request, share, subdir=None, json={}):
     selection = request.data.get('selection',[])
     response={'deleted':[],'failed':[]}
@@ -161,7 +160,6 @@ def delete_paths(request, share, subdir=None, json={}):
 @api_view(['POST'])
 @share_access_decorator(['delete_share_files'])
 @safe_path_decorator(path_param='subdir', write=True)
-# @JSONDecorator
 def move_paths(request, share, subdir=None):
     json = request.data.get('json')
     response={'moved':[],'failed':[]}
@@ -183,7 +181,6 @@ def move_paths(request, share, subdir=None):
 @ratelimit(key=url_path_key, group='download_stream_archive', rate=ratelimit_rate)
 @share_access_decorator(['download_share_files'])
 @safe_path_decorator(path_param='subdir')
-# @JSONDecorator
 def download_archive_stream(request, share, subdir=None):
 #     try:
     share.last_data_access = timezone.now()

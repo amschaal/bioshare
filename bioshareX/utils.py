@@ -29,16 +29,6 @@ class JSONDecorator(object):
                 elif hasattr(args[0], 'data'):
                     kwargs['json'] = args[0].data
                 return self.orig_func(*args, **kwargs)
-def share_access_decorator_old(perms,share_param='share'):
-    def wrap(f):
-        def wrapped_f(*args,**kwargs):
-            from bioshareX.models import Share
-            share = Share.objects.get(id=kwargs[share_param])
-            kwargs[share_param]=share
-            f(*args,**kwargs)
-        return wrapped_f
-    return wrap
-
 def ajax_login_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -139,28 +129,6 @@ class safe_path_decorator(object):
             return f(*args,**kwargs)
         return wrapped_f
 
-class safe_path_decorator_old(object):
-
-    def __init__(self, path_param='subpath'):
-        """
-        If there are decorator arguments, the function
-        to be decorated is not passed to the constructor!
-        """
-        self.path_param  = path_param
-    def __call__(self, f):
-        """
-        If there are decorator arguments, __call__() is only called
-        once, as part of the decoration process! You can only give
-        it a single argument, which is the function object.
-        """
-        def wrapped_f(*args,**kwargs):
-            path = kwargs[self.path_param]
-            if path is not None:
-                test_path(path)
-                
-            return f(*args,**kwargs)
-        return wrapped_f
-
 def get_setting(key, default=None):
     return getattr(settings, key, default)
 
@@ -195,18 +163,6 @@ def paths_contain(paths,child_path, get_path=False):
             return path if get_path else True
     return False
 
-def paths_contain_new(paths,child_path, get_paths=False):
-    matching = []
-    for path in paths:
-        if path_contains(path, child_path):
-            if not get_paths:
-                return True
-            matching.append(path)
-    if not get_paths or len(matching) == 0:
-        return False
-    else:
-        return matching
-
 def json_response(dict):
     import json
 
@@ -217,37 +173,12 @@ def json_error(messages,http_status=None):
     return JsonResponse({'status':'error','errors':messages},status=http_status)
 #     return json_response({'status':'error','errors':messages})
 
-def dictfetchall(sql,args=[]):
-    from django.db import connection
-    cursor = connection.cursor()
-    cursor.execute(sql, args)
-    desc = cursor.description
-    return [
-        dict(zip([col[0] for col in desc], row))
-        for row in cursor.fetchall()
-    ]
-
 def fetchall(sql,args=[]):
     from django.db import connection
     cursor = connection.cursor()
     cursor.execute(sql, args)
     return cursor.fetchall()
 
-
-def find_python(pattern, path):
-    import fnmatch
-    result = []
-    for root, dirs, files in os.walk(path):
-        for name in files:
-            if fnmatch.fnmatch(name, pattern):
-                result.append(os.path.join(root, name))
-    return result
-
-def find_in_shares(shares, pattern):
-    import subprocess
-    paths = [share.get_path() for share in shares]
-    output = subprocess.check_output(['find']+paths+['-name',pattern])
-    return output.split('\n')
 
 def find(share, pattern, subdir=None,prepend_share_id=True):
     import os
@@ -512,32 +443,6 @@ def is_realpath(path, subpath=None):
         path = os.path.join(path,subpath)
     path = path.rstrip(os.path.sep)
     return path == os.path.realpath(path)
-
-
-# Testing new version which checks for duplicate directories as well as recursion
-def check_symlinks_dfs_test(path, checked=set(), depth=0, max_depth=3, checked_all=set(), log=True):
-    max_depth = min(max(max_depth, settings.SYMLINK_DEPTH_DEFAULT), settings.SYMLINK_DEPTH_MAX)
-    tabs = '\t'*depth
-    checked = checked.copy()
-    checked.add(path)
-    checked_all.add(path)
-    depth += 1
-    if log:
-        print('{}{}'.format(tabs, path))
-        print('{}checked: {}'.format(tabs, checked))
-        print('{}checked_all: {}'.format(tabs, checked_all))
-    if depth > max_depth:
-        return IllegalPathException('Symlink depth exceeded maximum depth of {}'.format(max_depth))
-    symlinks = find_symlinks(path)
-    for link, target in symlinks.items():
-        if not paths_contain(settings.DIRECTORY_WHITELIST, target):
-            raise IllegalPathException('Illegal symlink encountered, {} -> {}'.format(link, target))
-        if target in checked and os.path.isdir(target):
-            raise IllegalPathException('Recursion found at: {}->{}'.format(link, target))
-        if target in checked_all and os.path.isdir(target):
-            raise IllegalPathException('Duplicate directory found at: {}->{}'.format(link, target))
-        if os.path.isdir(target):
-            check_symlinks_dfs_test(target, checked, depth=depth, max_depth=max_depth, checked_all=checked_all)
 
 def is_ajax(request):
     return request.headers.get('x-requested-with') == 'XMLHttpRequest'

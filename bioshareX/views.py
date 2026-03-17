@@ -21,20 +21,15 @@ from django_ratelimit.decorators import ratelimit
 
 from bioshareX.api.serializers import UserSerializer
 from bioshareX.forms import (FolderForm, GroupForm, GroupProfileForm,
-                             MetaDataForm, PasswordChangeForm, RenameForm,
+                             MetaDataForm, RenameForm,
                              ShareForm, SSHKeyForm, SubShareForm, SymlinkForm)
-from bioshareX.models import GroupProfile, Share, ShareStats, SSHKey
-from bioshareX.utils import (check_symlinks_dfs, find, find_symlinks, get_all_symlinks, get_setting, get_size_used_group, get_size_used_user, is_ajax, json_error, json_response, list_share_dir,
-                             safe_path_decorator, share_access_decorator,
-                             sizeof_fmt)
+from bioshareX.models import GroupProfile, Share, SSHKey
+from bioshareX.utils import (get_setting, get_size_used_group, get_size_used_user, is_ajax, json_error, json_response, list_share_dir,
+                             safe_path_decorator, share_access_decorator)
 
 def index(request):
     # View code here...
     return render(request,'index.html', {"message": "Hi there"})
-
-def group(request,group_id):
-    group = Group.objects.get(id=group_id)
-    return render(request,'groups/group.html', {"group": group})
 
 @permission_required('auth.manage_group',(Group,'id','group_id'))
 def manage_group(request,group_id):
@@ -223,18 +218,6 @@ def create_subshare(request,share,subdir):
     return render(request, 'share/new_share.html', {'form': form,'share':share,'subdir':subdir})
 
 @login_required
-def update_password(request):
-    if request.method == 'POST':
-        form = PasswordChangeForm(request.POST)
-        if form.is_valid():
-            request.user.set_password(form.cleaned_data['password1'])
-            request.user.save()
-            return render(request, 'registration/update_password.html', {'success': True})
-    else:
-        form = PasswordChangeForm()
-    return render(request, 'registration/update_password.html', {'form': form})
-
-@login_required
 def manage_groups(request):
     context ={'user':JSONRenderer().render(UserSerializer(request.user,include_perms=True).data).decode('utf-8')}
     return render(request,'groups/groups.html',context)
@@ -287,17 +270,6 @@ def delete_share(request, share, confirm=False):
         return render(request, 'share/delete_share.html', {'message': message})
     else:
         return render(request, 'share/delete_share.html', {'share':share,'show_confirm':True})
-
-@login_required
-def search_files(request):
-    query = request.GET.get('query',None)
-    results=[]
-    if query:
-        shares = Share.user_queryset(request.user)
-        for s in shares:
-            r=find(s,query,prepend_share_id=False)
-            results.append({'share':s,'results':r})
-    return render(request, 'search/search_files.html', {'query':query,'results':results})
 
 @login_required
 def view_messages(request):
