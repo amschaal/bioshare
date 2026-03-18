@@ -35,10 +35,10 @@ class BioshareSFTPServer(object):
     `__str__` representation for use in logging.
     """
 
-    SOCKET_BACKLOG = 10
+    SOCKET_BACKLOG = 50
 
     def __init__(self, host_key_path, get_user=None):
-        self.host_key = paramiko.RSAKey.from_private_key_file(host_key_path)
+        self.host_key = paramiko.load_private_key_file(host_key_path)
         if get_user is not None:
             self.get_user = get_user
 
@@ -475,6 +475,10 @@ class SFTPInterface (SFTPServerInterface):
     @sftp_response
     @permissions_required([Share.PERMISSION_DELETE,Share.PERMISSION_WRITE])
     def rename(self, oldpath, newpath):
+        # Verify write permission on destination share (decorator only checks oldpath)
+        dest_permissions = self._get_bioshare_path_permissions(newpath)
+        if Share.PERMISSION_WRITE not in dest_permissions:
+            raise PermissionDenied()
         oldpath = self._realpath(oldpath)
         newpath = self._realpath(newpath)
         try:
