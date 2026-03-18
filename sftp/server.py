@@ -38,7 +38,7 @@ class BioshareSFTPServer(object):
     SOCKET_BACKLOG = 50
 
     def __init__(self, host_key_path, get_user=None):
-        self.host_key = paramiko.load_private_key_file(host_key_path)
+        self.host_key = paramiko.PKey.from_path(host_key_path)
         if get_user is not None:
             self.get_user = get_user
 
