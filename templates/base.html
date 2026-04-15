@@ -39,18 +39,19 @@
   </head>
 
   <body ng-app="bioshare">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <div class="navbar navbar-inverse navbar-static-top">
+    <header class="navbar navbar-inverse navbar-static-top" role="banner">
       <div class="navbar-inner">
         <div class="container-fluid">
           
-          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-collapse">
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          
-          <div class="nav-collapse collapse">
+
+          <div class="nav-collapse collapse" id="nav-collapse">
           <span class="pull-left" style="color: white;font-size: 30px;padding: 10px;">Bioshare</span>
           <p class="navbar-text pull-right">
           {% if request.user.is_authenticated %}
@@ -60,12 +61,13 @@
           	  <a href="{% url 'login' %}" class="navbar-link">Login</a>
           {% endif %}
             </p>
+            <nav aria-label="Primary navigation">
             <ul class="nav pull-right">
               <li><a href="{% url 'home' %}">Home</a></li>
               <li><a target="_blank" href="https://bioshare.readthedocs.io/en/latest/">Help</a></li>
               {% if request.user.is_authenticated %}
               <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Shares <b class="caret"></b></a>
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Shares <b class="caret"></b></a>
                         <ul class="dropdown-menu">
                         	<li><a href="{% url 'list_shares'%}">List</a></li>
 							<li><a href="{% url 'create_share'%}">Create</a></li>
@@ -73,7 +75,7 @@
               </li>
               <li><a href="{% url 'groups'%}">Groups</a></li>
               <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">Account <b class="caret"></b></a>
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Account <b class="caret"></b></a>
                         <ul class="dropdown-menu">
 							<li><a href="{% url 'password_change'%}">Update Password</a></li>
                           <li><a href="{% url 'list_ssh_keys'%}">SSH Keys</a></li>
@@ -82,24 +84,27 @@
                       </li>
               {% endif %}
             </ul>
+            </nav>
           </div><!--/.nav-collapse -->
         </div>
       </div>
-    </div>
-	<div class="container-fluid" id="content">
+    </header>
+	<main class="container-fluid" id="main-content">
       <div class="row-fluid">
         <div class="span3">
+          <nav aria-label="Recent shares">
           <ul>
             {% for share in user_shares.recent_shares %}
               <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% elif share.locked %}class="error" title="This share has been locked"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{% if share.locked %}<i class="icon-lock"></i> {% endif %}{{share.name}}</a></li>	
               {% endfor %}
           </ul>
+          </nav>
 		  {% if request.user.is_authenticated %}
         {% cache 60 sidebar request.user.username %}
           <div class="well sidebar-nav">
             <ul class="nav nav-list">
               <li class="nav-header">Search Shares</li>
-              <li><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off" placeholder="Search by share name"></li>
+              <li><label for="share_autocomplete" class="sr-only">Search shares</label><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off" placeholder="Search by share name"></li>
               {% if user_shares.bad_share_path.count != 0 %}
               	<a href="{% url 'home' %}?bad_paths" class="error"><i class="icon-warning-sign"></i> {{user_shares.bad_share_path.count}} bad shares</a>
               {% endif %}
@@ -131,8 +136,8 @@
      	 	{% endblock %}
         </div><!--/span-->
       </div><!--/row-->
-    </div>
-    {% include 'footer.html' %}
+    </main>
+    <footer>{% include 'footer.html' %}</footer>
 
     <!-- Le javascript
     ================================================== -->

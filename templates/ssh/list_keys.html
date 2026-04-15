@@ -8,7 +8,7 @@
 {% if keys|length != 0%}
 <a class="btn btn-success" href="{% url 'create_ssh_key' %}">Add New</a>
 <table class="table" id="ssh-key-table">
-<thead><tr><th></th><th>Name</th><th>Key</th></tr></thead>
+<thead><tr><th scope="col"><span class="sr-only">Actions</span></th><th scope="col">Name</th><th scope="col">Key</th></tr></thead>
 <tbody>
 {% for key in keys%}
 <tr data-id="{{key.id}}"><td><i class="fam-cross" data-action="delete-key"></i></td><td>{{key.name}}</td><td>{{key.key}}</td></tr>

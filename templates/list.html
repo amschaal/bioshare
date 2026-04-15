@@ -279,7 +279,7 @@
 
 <div class="modal hide fade" id="new-folder">
   <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
     <h3>New Folder</h3>
   </div>
   <div class="modal-body">
@@ -289,14 +289,14 @@
   </form>
   </div>
   <div class="modal-footer">
-    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
     <a href="#" class="btn btn-primary" id="create-folder">Create</a>
   </div>
 </div>
 
 <div class="modal hide fade" id="new-link">
 	<div class="modal-header">
-	  <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+	  <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
 	  <h3>New Link</h3>
 	</div>
 	<div class="modal-body">
@@ -306,14 +306,14 @@
 	</form>
 	</div>
 	<div class="modal-footer">
-	  <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+	  <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
 	  <a href="#" class="btn btn-primary" id="create-link">Create</a>
 	</div>
   </div>
 
 <div class="modal hide fade" id="modify-name">
   <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
     <h3>Rename "<span id="rename-from-label"></span>"</h3>
   </div>
   <div class="modal-body">
@@ -323,7 +323,7 @@
   </form>
   </div>
   <div class="modal-footer">
-    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
     <a href="#" class="btn btn-primary" id="rename-button">Rename</a>
   </div>
 </div>
@@ -331,7 +331,7 @@
 
 <div class="modal hide fade" id="rsync-download">
   <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
     <h3>Rsync files</h3>
   </div>
   <div class="modal-body">
@@ -342,13 +342,13 @@
     <b id="rsync-download-selected" style="word-wrap: break-word;"></b>
   </div>
   <div class="modal-footer">
-    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
   </div>
 </div>
 
 <div class="modal hide fade" id="wget-download">
   <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
     <h3>Wget all files</h3>
   </div>
   <div class="modal-body">
@@ -360,12 +360,12 @@
     <p><i>**This requires <a href="http://gnuwin32.sourceforge.net/packages/wget.htm">installing wget</a>.  The path to "wget.exe" may be installed at a different path on your system.</i></p>
   </div>
   <div class="modal-footer">
-    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
   </div>
 </div>
 <div class="modal hide fade" id="sftp-dialog">
   <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
     <h3>SFTP connection information</h3>
   </div>
   <div class="modal-body">
@@ -394,12 +394,12 @@
 {% endif %}  	
   </div>
   <div class="modal-footer">
-    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
   </div>
 </div>
 <div class="modal hide fade" id="rsync-upload">
   <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
     <h3>Rsync upload</h3>
   </div>
   <div class="modal-body">
@@ -411,13 +411,13 @@
 	{% endif %}
 </div>
   <div class="modal-footer">
-    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
   </div>
 </div>
 
 <div class="modal hide fade" id="move-to-modal">
   <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
     <h3>Move selected files/folders to...</h3>
   </div>
   <div class="modal-body">
@@ -425,14 +425,14 @@
 	</div>
   </div>
   <div class="modal-footer">
-    <button class="btn" id="move-button">Move</button> <button class="btn" data-dismiss="modal" aria-hidden="true">Cancel</button>
+    <button class="btn" id="move-button">Move</button> <button class="btn" data-dismiss="modal" aria-label="Close">Cancel</button>
   </div>
 </div>
 
 
 <div class="modal hide fade" id="edit-metadata">
   <div class="modal-header">
-    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+    <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
     <h3>Metadata for "<span id="metadata-label"></span>"</h3>
   </div>
   <div class="modal-body">
@@ -442,7 +442,7 @@
   	<div id="edit-meta-data-form-clean" class="hidden">{{metadata_form|crispy}}</div>
   </div>
   <div class="modal-footer">
-    <button class="btn btn-primary" id="save-metadata" aria-hidden="true">Save</button><button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+    <button class="btn btn-primary" id="save-metadata">Save</button><button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
   </div>
 </div>
 <div id="reset-tags" style="

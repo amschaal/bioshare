@@ -33,7 +33,7 @@
     <h3>Symlinks</h3>
     {% if user == share.owner or user.is_superuser%}
       <table class="table table-striped table-condensed" id="link-table">
-        <thead><tr><th>Source</th><th>Destination</th><th>Depth</th><th>Warning</th><th>Error</th></tr></thead>
+        <thead><tr><th scope="col">Source</th><th scope="col">Destination</th><th scope="col">Depth</th><th scope="col">Warning</th><th scope="col">Error</th></tr></thead>
         <tbody>
         {% for link in symlinks %}
           <tr><td>{{link.path}}</td><td>{% if link.warning or link.error %}<b><i class="icon-warning-sign"></i>{{link.target}}</b>{% else %}{{link.target}}{% endif %}</td><td>{{link.depth}}</td><td class="text-warning">{% if link.warning %}{{link.warning}}{% endif %}</td><td class="text-error">{% if link.error %}{{link.error}}{% endif %}</td></tr>
