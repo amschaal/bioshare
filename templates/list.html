@@ -277,10 +277,10 @@
   
 </div>
 
-<div class="modal hide fade" id="new-folder">
+<div class="modal hide fade" id="new-folder" role="dialog" aria-modal="true" aria-labelledby="new-folder-title">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-    <h3>New Folder</h3>
+    <h3 id="new-folder-title">New Folder</h3>
   </div>
   <div class="modal-body">
     <form class="form-horizontal" method="POST" id="new-folder-form" action="{% if subdir %}{% url 'create_folder' share=share.id subdir=subdir %}{% else %}{% url 'create_folder' share=share.id %}{% endif %}">
@@ -294,10 +294,10 @@
   </div>
 </div>
 
-<div class="modal hide fade" id="new-link">
+<div class="modal hide fade" id="new-link" role="dialog" aria-modal="true" aria-labelledby="new-link-title">
 	<div class="modal-header">
 	  <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-	  <h3>New Link</h3>
+	  <h3 id="new-link-title">New Link</h3>
 	</div>
 	<div class="modal-body">
 	  <form class="form-horizontal" method="POST" id="new-link-form" action="{% if subdir %}{% url 'create_symlink' share=share.id subdir=subdir %}{% else %}{% url 'create_symlink' share=share.id %}{% endif %}">
@@ -311,10 +311,10 @@
 	</div>
   </div>
 
-<div class="modal hide fade" id="modify-name">
+<div class="modal hide fade" id="modify-name" role="dialog" aria-modal="true" aria-labelledby="modify-name-title">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-    <h3>Rename "<span id="rename-from-label"></span>"</h3>
+    <h3 id="modify-name-title">Rename "<span id="rename-from-label"></span>"</h3>
   </div>
   <div class="modal-body">
     <form class="form-horizontal" method="POST" onSubmit="modify_name();return false;" id="modify-name-form" action="{% if subdir %}{% url 'modify_name' share=share.id subdir=subdir %}{% else %}{% url 'modify_name' share=share.id %}{% endif %}">
@@ -329,10 +329,10 @@
 </div>
 
 
-<div class="modal hide fade" id="rsync-download">
+<div class="modal hide fade" id="rsync-download" role="dialog" aria-modal="true" aria-labelledby="rsync-download-title">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-    <h3>Rsync files</h3>
+    <h3 id="rsync-download-title">Rsync files</h3>
   </div>
   <div class="modal-body">
   	<p>Rsync requires first <a href="{% url 'list_ssh_keys'%}">uploading your SSH public key</a>.</p>
@@ -346,10 +346,10 @@
   </div>
 </div>
 
-<div class="modal hide fade" id="wget-download">
+<div class="modal hide fade" id="wget-download" role="dialog" aria-modal="true" aria-labelledby="wget-download-title">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-    <h3>Wget all files</h3>
+    <h3 id="wget-download-title">Wget all files</h3>
   </div>
   <div class="modal-body">
   	<p>This method uses your session for authentication.  Transfers will run so long as you remain logged in to Bioshare.</p>
@@ -363,10 +363,10 @@
     <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
   </div>
 </div>
-<div class="modal hide fade" id="sftp-dialog">
+<div class="modal hide fade" id="sftp-dialog" role="dialog" aria-modal="true" aria-labelledby="sftp-dialog-title">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-    <h3>SFTP connection information</h3>
+    <h3 id="sftp-dialog-title">SFTP connection information</h3>
   </div>
   <div class="modal-body">
 	{% if share.symlinks_found or not is_realpath %}
@@ -397,10 +397,10 @@
     <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
   </div>
 </div>
-<div class="modal hide fade" id="rsync-upload">
+<div class="modal hide fade" id="rsync-upload" role="dialog" aria-modal="true" aria-labelledby="rsync-upload-title">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-    <h3>Rsync upload</h3>
+    <h3 id="rsync-upload-title">Rsync upload</h3>
   </div>
   <div class="modal-body">
 	{% if share.symlinks_found or not is_realpath %}
@@ -415,10 +415,10 @@
   </div>
 </div>
 
-<div class="modal hide fade" id="move-to-modal">
+<div class="modal hide fade" id="move-to-modal" role="dialog" aria-modal="true" aria-labelledby="move-to-modal-title">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-    <h3>Move selected files/folders to...</h3>
+    <h3 id="move-to-modal-title">Move selected files/folders to...</h3>
   </div>
   <div class="modal-body">
     <div id="tree"><!-- When using initAjax, it may be nice to put a throbber here, that spins until the initial content is loaded: -->
@@ -430,10 +430,10 @@
 </div>
 
 
-<div class="modal hide fade" id="edit-metadata">
+<div class="modal hide fade" id="edit-metadata" role="dialog" aria-modal="true" aria-labelledby="edit-metadata-title">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-    <h3>Metadata for "<span id="metadata-label"></span>"</h3>
+    <h3 id="edit-metadata-title">Metadata for "<span id="metadata-label"></span>"</h3>
   </div>
   <div class="modal-body">
     <input type="hidden" id="metadata-id"/>

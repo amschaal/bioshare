@@ -1,7 +1,7 @@
-<div class="modal hide fade" id="email-users-dialog">
+<div class="modal hide fade" id="email-users-dialog" role="dialog" aria-modal="true" aria-labelledby="email-users-title">
   <div class="modal-header">
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
-    <h3>Email participants</h3>
+    <h3 id="email-users-title">Email participants</h3>
   </div>
   <div class="modal-body">
   	<form id="email-users-form" action="{% url 'api_email_participants' share=share.id subdir=subdir|default_if_none:"" %}" method="POST">
