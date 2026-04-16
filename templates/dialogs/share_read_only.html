@@ -8,7 +8,7 @@
   	<form id="share-read-only-form" action="{% url 'api_share_read_only' share=share.id %}" method="POST">
   	<fieldset>
   	{% csrf_token %}
-  	<label>Email: <input name="email" type="email"/></label>
+  	<label for="share-email">Email:</label> <input id="share-email" name="email" type="email"/>
     </fieldset>
     </form>
     <button class="btn btn-primary" id="share-button">Share</button>

@@ -7,11 +7,11 @@
   	<form id="email-users-form" action="{% url 'api_email_participants' share=share.id subdir=subdir|default_if_none:"" %}" method="POST">
   	<fieldset>
   	{% csrf_token %}
-  	<label>To:</label><span id="email_all"><label><input type="checkbox" checked/> All </label> {% for email in emails %}{{email}}{% if not forloop.last %}, {% endif %}{% endfor %}</span><span id="select_emails" class="hidden"></label>{% for email in emails %}<label><input name="emails" value="{{email}}" type="checkbox"/> {{email}}</label>{% endfor %}</span>
-    <label>Subject:</label> 
-    <input type="text" name="subject" value='Bioshare: "{{share.name}}" updated' class="input-block-level"/>
-    <label>Body:</label> 
-    <textarea name="body" class="input-block-level" rows="15">Greetings,
+  	<label>To:</label><span id="email_all"><label><input type="checkbox" checked aria-label="Select all recipients"/> All </label> {% for email in emails %}{{email}}{% if not forloop.last %}, {% endif %}{% endfor %}</span><span id="select_emails" class="hidden"></label>{% for email in emails %}<label><input name="emails" value="{{email}}" type="checkbox"/> {{email}}</label>{% endfor %}</span>
+    <label for="email-subject">Subject:</label>
+    <input type="text" id="email-subject" name="subject" value='Bioshare: "{{share.name}}" updated' class="input-block-level"/>
+    <label for="email-body">Body:</label>
+    <textarea id="email-body" name="body" class="input-block-level" rows="15">Greetings,
 
 "{{share.name}}" has been updated on Bioshare.  Please visit the following URL to see changes:
 {{SITE_URL}}{% url 'list_directory' share.slug_or_id %}
