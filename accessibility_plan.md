@@ -262,6 +262,45 @@ These require the deepest investigation and may involve vendor library configura
 
 ---
 
+## Stage 8 — Audit Follow-up Fixes (Mixed Risk)
+
+Fixes identified by code-level accessibility audit after Stages 1-7 were implemented.
+
+### 8a. Fix mismatched `<button>`/`</a>` tags (CRITICAL — DOM corruption)
+- [x] `templates/list.html` lines 30-31 — `<button>...</a>` → `<button>...</button>` for Email and Share buttons
+
+### 8b. Add `tabindex="0"` and `role="button"` to `data-action` `<i>` icons (WCAG 2.1.1, 4.1.2)
+
+Completes the deferred work from Stage 5b. Icons had `aria-label` (Stage 1e) and keyboard handlers (Stage 6a) but were not focusable.
+
+- [x] `templates/list.html` line 186 — directory row `edit-metadata` and `modify-name` icons
+- [x] `templates/list.html` lines 222-224 — file row `edit-metadata`, `preview`, `modify-name` icons
+- [x] `templates/handlebars/list_files.html` lines 27, 41, 55 — all three template icon sets
+- [x] `templates/ssh/list_keys.html` line 14 — `delete-key` icon
+
+### 8c. Convert remaining `<a>` without `href` to `<button>` (WCAG 2.1.1)
+- [x] `templates/list.html` line 136 — `<a id="open-move-modal">` → `<button>`
+- [x] `templates/list.html` line 138 — `<a id="delete-button">` → `<button>`
+
+### 8d. Add ARIA combobox pattern to search textcompletes (WCAG 4.1.2)
+- [x] `static_files/js/share/search.js` — added `role="combobox"`, `aria-autocomplete`, `aria-expanded`, `aria-haspopup` to `#search_users` and `#search_tags`; hooked `textComplete:show`/`textComplete:hide` for `aria-expanded` and `role="listbox"`/`role="option"`
+- [x] Removed stray bare `search_tags` reference (dead code on line 72)
+
+### 8e. Fix `.error` color contrast (WCAG 1.4.3)
+- [x] `static_files/css/bioshare.css` — changed `color: red` (#FF0000, 3.99:1) to `color: #b30000` (5.5:1 contrast ratio)
+
+### 8f. Add `aria-hidden="true"` to decorative icons (WCAG 1.1.1)
+- [x] `templates/list.html` lines 207, 209 — `fam-link` and `fam-page-white` file icons
+- [x] `templates/share/shares.html` line 71 — `icon-lock` inside locked share link
+- [x] `templates/handlebars/list_files.html` lines 21, 35, 49 — `fam-folder`, `fam-folder-link`, `fam-page-white`
+
+### 8g. Improve `429.html` structure (WCAG 4.1.1)
+- [x] `templates/429.html` — added `<!DOCTYPE html>`, `<head>`, `<meta charset>`, `<title>`
+
+**WCAG criteria covered:** 4.1.1 Parsing, 1.1.1 Non-text Content, 1.4.3 Contrast, 2.1.1 Keyboard, 4.1.2 Name/Role/Value
+
+---
+
 ## Summary
 
 | Stage | Description | Risk | Key WCAG Criteria | Estimated Scope |
@@ -273,6 +312,7 @@ These require the deepest investigation and may involve vendor library configura
 | 5 | Semantic element upgrades | Medium | 2.1.1, 4.1.2 | ~15 element changes, 4 files + Handlebars |
 | 6 | JS keyboard + aria-live | Medium | 2.1.1, 4.1.2, 4.1.3 | 4 JS files + 4 templates |
 | 7 | Third-party widget audit | High | 4.1.2, 2.1.1, 1.3.1 | Investigation + potential patches/replacements |
+| 8 | Audit follow-up fixes | Mixed | 4.1.1, 1.1.1, 1.4.3, 2.1.1, 4.1.2 | Bug fixes + deferred items across 7 files |
 
 **Stages 1-3** are safe, mechanical changes that address the majority of WCAG violations and should be completed first. **Stage 2a (focus indicators)** is the single highest-impact change — without visible focus, the entire application is effectively unusable by keyboard.
 

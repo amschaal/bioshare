@@ -27,8 +27,8 @@
 	{% if "admin" in share_perms %}
 		<a href="{% url 'share_permissions' share.id%}" class="btn btn-primary pull-right margin-3"><i class="icon-lock icon-white"></i> Permissions</a>
 	{% endif %}
-	{% if "write_to_share" in share_perms or "admin" in share_perms %}<button class="btn btn-primary pull-right margin-3" id="email-users"><i class="icon-envelope icon-white"></i> Email</a>{%endif%}
-	{% if "share_read_only" in share_perms or user.is_superuser %}<button class="btn btn-success pull-right margin-3" id="share-read-only"><i class="icon-user icon-white"></i> Share</a>{%endif%}
+	{% if "write_to_share" in share_perms or "admin" in share_perms %}<button class="btn btn-primary pull-right margin-3" id="email-users"><i class="icon-envelope icon-white"></i> Email</button>{%endif%}
+	{% if "share_read_only" in share_perms or user.is_superuser %}<button class="btn btn-success pull-right margin-3" id="share-read-only"><i class="icon-user icon-white"></i> Share</button>{%endif%}
 </h1>
 
 
@@ -133,9 +133,9 @@
 		{% if user.can_link %}
 		<a href="#new-link" role="button" class="btn btn-success" data-toggle="modal"><i class="icon-plus icon-white"></i>Link</a>
 	    {% endif %}
-		<a id="open-move-modal" role="button" class="btn btn-success">Move</a>
+		<button id="open-move-modal" class="btn btn-success">Move</button>
 	    {% if "delete_share_files" in share_perms %}
-	    <a role="button" class="btn btn-danger" id="delete-button">Delete</a>
+	    <button class="btn btn-danger" id="delete-button">Delete</button>
 	    {% endif %}
 	  {% endif %}
 	  {% if "admin" in share_perms and subdir and not subshare and is_realpath%}
@@ -183,7 +183,7 @@
 				{{ dir.modified }}
 			</td>
 			<td>
-				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata" aria-label="Edit metadata"></i>{% endif %}{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name" aria-label="Rename"></i>{% endif%}
+				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata" aria-label="Edit metadata" role="button" tabindex="0"></i>{% endif %}{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name" aria-label="Rename" role="button" tabindex="0"></i>{% endif%}
 				{% if "admin" in share_perms %}
 					{% if dir.share %}
 					{% elif not dir.target and is_realpath%}
@@ -204,9 +204,9 @@
 			<td>file</td>
 			<td class="name" {% if file.metadata.notes %}data-toggle="tooltip" title="{{file.metadata.notes}}"{% endif %}>
 				{% if file.target %}
-					<i class="fam-link" title="{{file.target}}"></i>
+					<i class="fam-link" title="{{file.target}}" aria-hidden="true"></i>
 				{% endif %}
-					<i class="fam-page-white"></i>
+					<i class="fam-page-white" aria-hidden="true"></i>
 				{% if "download_share_files" in share_perms %}
 					<a href="{% url 'download_file' share=share.id subpath=subdir|default_if_none:""|add:file.name %}">{{ file.name }}</a>
 				{% else %}
@@ -219,9 +219,9 @@
 			<td><button class="btn btn-link" data-action="calculate-md5">Calculate</button></td>
 			<td>{{ file.modified }}</td>
 			<td>
-				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata" aria-label="Edit metadata"></i>{% endif %}
-				{% if "download_share_files" in share_perms and file.isText %}<i class="fam-eye" data-toggle="tooltip" title="Preview contents" data-action="preview" aria-label="Preview file contents"></i>{% endif %}
-				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name" aria-label="Rename"></i>{% endif %}
+				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata" aria-label="Edit metadata" role="button" tabindex="0"></i>{% endif %}
+				{% if "download_share_files" in share_perms and file.isText %}<i class="fam-eye" data-toggle="tooltip" title="Preview contents" data-action="preview" aria-label="Preview file contents" role="button" tabindex="0"></i>{% endif %}
+				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Modify filename" class="fam-pencil" data-action="modify-name" aria-label="Rename" role="button" tabindex="0"></i>{% endif %}
 			</td>
 		</tr>    
 	  {% endfor %}

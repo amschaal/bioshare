@@ -69,6 +69,19 @@ $(function () {
 	 	                            	  replace: function (value) { return '$1' + value + ', '; }
 	 	                            }
 	     ]);
-	search_tags
+
+	/* WCAG 8d — Add ARIA combobox roles to search textcompletes */
+	$('#search_users, #search_tags').each(function() {
+		$(this).attr({'role': 'combobox', 'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-haspopup': 'listbox'});
+		$(this).on('textComplete:show', function() {
+			$(this).attr('aria-expanded', 'true');
+			var $list = $(this).siblings('.dropdown-menu');
+			$list.attr('role', 'listbox');
+			$list.find('li').attr('role', 'option');
+		});
+		$(this).on('textComplete:hide', function() {
+			$(this).attr('aria-expanded', 'false');
+		});
+	});
 });
 

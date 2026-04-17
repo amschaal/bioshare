@@ -11,7 +11,7 @@
 <thead><tr><th scope="col"><span class="sr-only">Actions</span></th><th scope="col">Name</th><th scope="col">Key</th></tr></thead>
 <tbody>
 {% for key in keys%}
-<tr data-id="{{key.id}}"><td><i class="fam-cross" data-action="delete-key" aria-label="Delete SSH key {{key.name}}"></i></td><td>{{key.name}}</td><td>{{key.key}}</td></tr>
+<tr data-id="{{key.id}}"><td><i class="fam-cross" data-action="delete-key" aria-label="Delete SSH key {{key.name}}" role="button" tabindex="0"></i></td><td>{{key.name}}</td><td>{{key.key}}</td></tr>
 {% endfor %}
 </tbody>
 </table>
