@@ -417,6 +417,26 @@ function init_dynatree(){
 //	          // We don't want the next line in production code:
 //	          debugLazyDelay: 750
 //	        });
+	      },
+	      /* WCAG 7b — Add ARIA tree roles post-render */
+	      onCreate: function(dtnode, nodeSpan) {
+	          if (dtnode.li) {
+	              dtnode.li.setAttribute('role', 'treeitem');
+	              dtnode.li.setAttribute('aria-label', dtnode.data.title || dtnode.data.key || '');
+	              if (dtnode.data.isFolder) {
+	                  dtnode.li.setAttribute('aria-expanded', dtnode.bExpanded ? 'true' : 'false');
+	              }
+	          }
+	      },
+	      onPostInit: function() {
+	          var $ul = $("#tree").find('ul.dynatree-container');
+	          $ul.attr('role', 'tree');
+	          $ul.find('ul').attr('role', 'group');
+	      },
+	      onExpand: function(flag, dtnode) {
+	          if (dtnode.li) {
+	              dtnode.li.setAttribute('aria-expanded', flag ? 'true' : 'false');
+	          }
 	      }
 	    });
 	 BC.move_modal_initialized = true;

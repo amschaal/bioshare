@@ -1,4 +1,31 @@
+/* WCAG 7c — Label ng-table filter inputs and add aria-sort to sortable headers */
 angular.module('ngTable')
+.directive('ngTable', function() {
+	return {
+		restrict: 'A',
+		priority: -1,
+		link: function(scope, element) {
+			function patchFilters() {
+				element.find('.input-filter').each(function() {
+					var input = $(this);
+					if (input.attr('aria-label')) return;
+					var th = input.closest('th');
+					var title = th.attr('data-title-text') || th.find('[data-title-text]').attr('data-title-text') || th.text().trim();
+					if (title) input.attr('aria-label', 'Filter by ' + title);
+				});
+				element.find('th[sortable]').each(function() {
+					var th = $(this);
+					var sortClass = th.attr('class') || '';
+					if (sortClass.indexOf('sort-asc') >= 0) th.attr('aria-sort', 'ascending');
+					else if (sortClass.indexOf('sort-desc') >= 0) th.attr('aria-sort', 'descending');
+					else th.attr('aria-sort', 'none');
+				});
+			}
+			scope.$watch(function() { return element.find('.input-filter').length; }, patchFilters);
+			scope.$on('ngTableAfterReloadData', patchFilters);
+		}
+	};
+})
 .factory('DRFNgTableParams', ['NgTableParams','$http', function(NgTableParams,$http) {
 	return function(url,ngparams,resource) {
 		var params = {

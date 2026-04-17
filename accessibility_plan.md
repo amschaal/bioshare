@@ -230,33 +230,33 @@ $('.modal').on('shown', function() {
 These require the deepest investigation and may involve vendor library configuration, patches, or replacement.
 
 ### 7a. DataTables accessibility
-- [ ] `templates/list.html` line 528 and `templates/search/search_files.html` line 57 — DataTables initialization. Verify that the version in use (`datatables.min.js`) includes ARIA attributes for sort buttons (`aria-sort`), pagination, and the filter input
-- [ ] Test: keyboard-navigate the file table sorting headers — do they announce sort state?
-- [ ] Test: can a screen reader user understand the table structure with DataTables' injected elements?
+- [x] Verified DataTables 1.9.4 already includes `aria-sort` and `aria-label` on sortable column headers, and wraps its filter input in an implicit `<label>Filter: <input></label>`. No changes needed.
+- [x] Sort headers announce sort state via `aria-sort` and `aria-label` attributes built into the library
+- [x] Table structure is preserved by DataTables — original `<table>`, `<thead>`, `<th scope="col">` remain intact
 
 ### 7b. Dynatree (file move tree widget)
-- [ ] `static_files/js/share/main.js` lines 383-424 — Dynatree is initialized for the move-to modal. Dynatree predates WAI-ARIA tree patterns. Test whether:
-  - Tree nodes are keyboard-navigable (arrow keys)
-  - `role="tree"`, `role="treeitem"` are present on rendered elements
-  - Selection state is announced
-- [ ] If Dynatree lacks ARIA support, consider replacing with a more accessible alternative or adding ARIA attributes post-render
+- [x] Dynatree has zero native ARIA support. Added post-render ARIA via callbacks:
+  - `onCreate`: sets `role="treeitem"`, `aria-label`, and `aria-expanded` on each `<li>` node
+  - `onPostInit`: sets `role="tree"` on the root `<ul>` and `role="group"` on nested `<ul>` elements
+  - `onExpand`: updates `aria-expanded` when nodes are expanded/collapsed
+- [x] Dynatree's built-in keyboard navigation (arrow keys, +/- for expand/collapse) works without modification
 
 ### 7c. AngularJS ng-table
-- [ ] `templates/share/shares.html` — the shares table is rendered by ng-table. Test:
-  - Are sort controls keyboard-accessible?
-  - Does the table re-render announce changes to screen readers?
-  - Filter inputs — do they have associated labels?
-- [ ] `templates/groups/manage_group.html` — the manage users table is also ng-table. Same tests
+- [x] Added Angular directive in `ng-table-services.js` that patches ng-table post-render:
+  - Adds `aria-label="Filter by [column]"` to all filter `<input>` elements
+  - Adds `aria-sort` (`ascending`/`descending`/`none`) to sortable `<th>` headers
+  - Re-patches on data reload via `$watch` and `ngTableAfterReloadData` event
+- [x] Covers both `shares.html` and `manage_group.html` ng-table instances
 
 ### 7d. Bootstrap typeahead / textcomplete autocomplete
-- [ ] `static_files/js/bioshare.js` line 47 — `$('#share_autocomplete').typeahead(...)` — test keyboard navigation of suggestions, whether `role="listbox"` and `role="option"` are present, and whether selection is announced
-- [ ] `static_files/js/share/permissions.js` line 208 — `$('#addUser').textcomplete(...)` — same tests. Textcomplete may need an `aria-live` container for suggestions
+- [x] `bioshare.js` — Patched typeahead instance: added `role="combobox"`, `aria-autocomplete="list"`, `aria-haspopup="listbox"`, `aria-expanded` to input; `role="listbox"` on menu; `role="option"` on items. Show/hide wrappers toggle `aria-expanded`.
+- [x] `permissions.js` — Added `role="combobox"`, `aria-autocomplete`, `aria-expanded`, `aria-haspopup` to `#addUser`. Hooked `textComplete:show`/`textComplete:hide` events to set `role="listbox"`/`role="option"` on dropdown and toggle `aria-expanded`.
 
 ### 7e. bootstrapGrowl toast notifications
-- [ ] Used throughout for success/error messages (via `$.bootstrapGrowl(...)`). Verify the injected DOM elements have `role="alert"` or are in an `aria-live` region. If not, patch the plugin or wrap calls to inject into a live region
+- [x] Monkey-patched `$.bootstrapGrowl` in `bioshare.js` to add `role="alert"` to each toast div. This ensures all growl notifications (success, error, info) are announced by screen readers.
 
 ### 7f. jQuery file upload
-- [ ] `templates/list.html` line 124 — `<input id="fileupload" type="file" ...>` is visually hidden behind a styled span. Verify it is still accessible (operable by keyboard, has accessible label). The `<a>` trigger text says "Browser" — ensure the actual file input is labeled
+- [x] Added `aria-label="Upload files via browser"` to `<input id="fileupload" type="file">` in `list.html`. The input is keyboard-operable (real `<input type="file">` with `opacity:0` overlay pattern).
 
 **WCAG criteria covered:** 4.1.2 Name/Role/Value, 2.1.1 Keyboard, 4.1.3 Status Messages, 1.3.1 Info and Relationships
 

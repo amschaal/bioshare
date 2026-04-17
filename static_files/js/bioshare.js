@@ -43,8 +43,39 @@ function share_autocomplete_highlighter(item){
 	return text;
 	return $(item).text(text).clone().wrap('<div>').parent().html();
 }
+/* WCAG 7e — Patch bootstrapGrowl to add role="alert" for screen readers */
+if ($.bootstrapGrowl) {
+	var origGrowl = $.bootstrapGrowl;
+	$.bootstrapGrowl = function(message, options) {
+		var $alert = origGrowl.call(this, message, options);
+		if ($alert && $alert.attr) $alert.attr('role', 'alert');
+		return $alert;
+	};
+	$.bootstrapGrowl.default_options = origGrowl.default_options;
+}
+
 $(function () {
-	$('#share_autocomplete').typeahead({highlighter:share_autocomplete_highlighter,source:share_autocomplete,updater:share_autocomplete_select,minLength:2,matcher:share_autocomplete_match})
+	$('#share_autocomplete').typeahead({highlighter:share_autocomplete_highlighter,source:share_autocomplete,updater:share_autocomplete_select,minLength:2,matcher:share_autocomplete_match});
+	/* WCAG 7d — Add ARIA combobox/listbox roles to typeahead */
+	var $ta = $('#share_autocomplete');
+	var taData = $ta.data('typeahead');
+	if (taData) {
+		$ta.attr({'role': 'combobox', 'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-haspopup': 'listbox'});
+		taData.$menu.attr('role', 'listbox');
+		var origShow = taData.show;
+		taData.show = function() {
+			var ret = origShow.apply(this, arguments);
+			$ta.attr('aria-expanded', 'true');
+			this.$menu.find('li').attr('role', 'option');
+			return ret;
+		};
+		var origHide = taData.hide;
+		taData.hide = function() {
+			var ret = origHide.apply(this, arguments);
+			$ta.attr('aria-expanded', 'false');
+			return ret;
+		};
+	}
 });
 
 /* Start file preview code */

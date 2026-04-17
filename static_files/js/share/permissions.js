@@ -258,6 +258,17 @@ $(function () {
 	                            	  replace: function (value) { return '$1' + value + ', '; }
 	                            }
     ]);
+	/* WCAG 7d — Add ARIA combobox roles to textcomplete */
+	$('#addUser').attr({'role': 'combobox', 'aria-autocomplete': 'list', 'aria-expanded': 'false', 'aria-haspopup': 'listbox'});
+	$('#addUser').on('textComplete:show', function() {
+		$(this).attr('aria-expanded', 'true');
+		var $list = $(this).siblings('.dropdown-menu');
+		$list.attr('role', 'listbox');
+		$list.find('li').attr('role', 'option');
+	});
+	$('#addUser').on('textComplete:hide', function() {
+		$(this).attr('aria-expanded', 'false');
+	});
 	$('#user_permissions').on('click keydown','.check_all',function(e){
 		if (e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
 			if (e.type === 'keydown') e.preventDefault();
