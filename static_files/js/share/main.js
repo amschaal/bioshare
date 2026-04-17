@@ -423,12 +423,21 @@ function init_dynatree(){
 
 }
 
+/* WCAG 2.1.1 — Wrap handler so Enter/Space on data-action elements triggers action */
+function a11y_handler(handler) {
+	return function(e) {
+		if (e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
+			if (e.type === 'keydown') e.preventDefault();
+			handler.call(this, e);
+		}
+	};
+}
 $(function () {
-	$(document).on('click','[data-action="edit-metadata"]',open_metadata_form);
-	$(document).on('click','[data-action="preview"]',preview_share_action);
-	$(document).on('click','[data-action="calculate-md5"]',calculate_md5);
-	$(document).on('click','[data-action="modify-name"]',open_rename_form);
-	$(document).on('click','[data-action="unlink"]',unlink);
+	$(document).on('click keydown','[data-action="edit-metadata"]',a11y_handler(open_metadata_form));
+	$(document).on('click keydown','[data-action="preview"]',a11y_handler(preview_share_action));
+	$(document).on('click keydown','[data-action="calculate-md5"]',a11y_handler(calculate_md5));
+	$(document).on('click keydown','[data-action="modify-name"]',a11y_handler(open_rename_form));
+	$(document).on('click keydown','[data-action="unlink"]',a11y_handler(unlink));
 	
 	toggle_table_visibility();
 	BC.load_templates()
@@ -521,10 +530,26 @@ $(function () {
     });
     $('#searchForm').submit(function(){search_share($('#searchBox').val()); return false;});
     $('#save-metadata').click(edit_metadata);
-    $('#file-table').on('click','span.tag',function(){hide_other_tags($(this).text())});
+    $('#file-table').on('click keydown','span.tag',function(e){
+    	if (e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
+    		if (e.type === 'keydown') e.preventDefault();
+    		hide_other_tags($(this).text());
+    	}
+    });
     filtered_tags = [];
     $('#reset-tag-button').click(reset_tags);
-    
+
+    /* WCAG 2.4.3 — Move focus into modal on open, return on close */
+    $('.modal').on('shown', function() {
+        var $modal = $(this);
+        $modal.data('trigger', document.activeElement);
+        $modal.find('input, button, textarea, select, a[href]').filter(':visible').first().focus();
+    });
+    $('.modal').on('hidden', function() {
+        var trigger = $(this).data('trigger');
+        if (trigger) $(trigger).focus();
+    });
+
 });
 function hide_other_tags(tag){
 	if(filtered_tags.indexOf(tag) >= 0)

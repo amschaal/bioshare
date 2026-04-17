@@ -65,12 +65,12 @@ function check_row_permissions_modified(row){
 	});
 	if (permissions.length == 0 && modified && $('#email_users').prop('checked')){
 		if(row.find('.fam-email').length == 0)
-			row.find('td').first().append('<i class="fam-email" style="margin-left:5px" ></i>');
+			row.find('td').first().append('<i class="fam-email" style="margin-left:5px" aria-hidden="true"></i>');
 	}else
 		row.find('.fam-email').remove();
 	if (permissions.length > 0 && row.find('input[data-perm]:checked').length == 0){
 		if(row.find('.fam-cross').length == 0)
-			row.find('td').first().append('<i class="fam-cross" style="margin-left:5px" data-toggle="tooltip" title="Remove access from this user"></i>');
+			row.find('td').first().append('<i class="fam-cross" role="button" tabindex="0" style="margin-left:5px" data-toggle="tooltip" title="Remove access from this user" aria-label="Remove access from this user"></i>');
 	}else
 		row.find('.fam-cross').remove();
 	if(modified)
@@ -122,15 +122,30 @@ function show_hide_permissions(){
 		$('#user-permission-section').show();
 }
 
+var PERM_LABELS = {
+	'view_share_files': 'Browse',
+	'download_share_files': 'Download',
+	'write_to_share': 'Write',
+	'delete_share_files': 'Delete',
+	'share_read_only': 'Read only',
+	'admin': 'Admin'
+};
+function label_permission_checkboxes(row, name) {
+	row.find('input[data-perm]').each(function() {
+		var perm = $(this).attr('data-perm');
+		var label = PERM_LABELS[perm] || perm;
+		$(this).attr('aria-label', label + ' permission for ' + name);
+	});
+}
 function add_permission_row(obj){
 	if (!obj.permissions)
 		obj.permissions = [];
 	var write_permissions = read_only ? '' : '<td><input data-perm="write_to_share" type="checkbox"></td><td><input data-perm="delete_share_files" type="checkbox"></td>';
-	var check_uncheck_controls = '<td><i class="fam-accept check_all" title="Check all permissions"></i> <i class="fam-delete uncheck_all" title="Uncheck all permissions"></i></td>';
+	var check_uncheck_controls = '<td><i class="fam-accept check_all" role="button" tabindex="0" title="Check all permissions" aria-label="Check all permissions"></i> <i class="fam-delete uncheck_all" role="button" tabindex="0" title="Uncheck all permissions" aria-label="Uncheck all permissions"></i></td>';
 	if (obj.user){
 		if ($('.permissions tr[data-username="'+obj.user.username+'"]').length == 0){
 			var classes = obj.new_user ? 'new-user ' : '';
-			var warning = obj.new_user ? ' <i class="fam-error-add" data-toggle="tooltip" title="An account will automatically be made for this email address"></i>' : '';
+			var warning = obj.new_user ? ' <i class="fam-error-add" aria-hidden="true" data-toggle="tooltip" title="An account will automatically be made for this email address"></i>' : '';
 			var row = $('<tr data-username="'+obj.user.username+'" class="'+classes+'"><td><i class="fam-user"></i>'+obj.user.username + warning+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td>'+write_permissions+'<td><input data-perm="share_read_only" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td>'+check_uncheck_controls+'</tr>').data('permissions',obj.permissions);
 		}
 	}else if(obj.group){
@@ -138,6 +153,10 @@ function add_permission_row(obj){
 			var row = $('<tr data-group-id="'+obj.group.id+'" class="'+classes+'"><td><i class="fam-group"></i>'+obj.group.name+'</td><td><input data-perm="view_share_files" type="checkbox"></td><td><input data-perm="download_share_files" type="checkbox"></td>'+write_permissions+'<td><input data-perm="share_read_only" type="checkbox"></td><td><input data-perm="admin" type="checkbox"></td>'+check_uncheck_controls+'</tr>').data('permissions',obj.permissions);
 	}
 	
+	if (row) {
+		var name = obj.user ? obj.user.username : (obj.group ? obj.group.name : '');
+		label_permission_checkboxes(row, name);
+	}
 	$.each(obj.permissions.length ? obj.permissions : ['view_share_files','download_share_files'],function(i,perm){
 		$('input[data-perm="'+perm+'"]',row).prop('checked',true);
 	});
@@ -239,7 +258,17 @@ $(function () {
 	                            	  replace: function (value) { return '$1' + value + ', '; }
 	                            }
     ]);
-	$('#user_permissions').on('click','.check_all',check_all);
-	$('#user_permissions').on('click','.uncheck_all',uncheck_all);
+	$('#user_permissions').on('click keydown','.check_all',function(e){
+		if (e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
+			if (e.type === 'keydown') e.preventDefault();
+			check_all.call(this, e);
+		}
+	});
+	$('#user_permissions').on('click keydown','.uncheck_all',function(e){
+		if (e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
+			if (e.type === 'keydown') e.preventDefault();
+			uncheck_all.call(this, e);
+		}
+	});
 });
 

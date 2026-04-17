@@ -182,40 +182,27 @@ $(document).on('click','[data-action="modify-name"]',open_rename_form);
 $(document).on('click','[data-action="unlink"]',unlink);
 ```
 
-- [ ] Change each to `'click keydown'` and add a guard:
-```javascript
-function a11y_handler(handler) {
-    return function(e) {
-        if (e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
-            if (e.type === 'keydown') e.preventDefault();
-            handler.call(this, e);
-        }
-    };
-}
-$(document).on('click keydown','[data-action="edit-metadata"]', a11y_handler(open_metadata_form));
-// ... same pattern for all five
-```
-
-- [ ] `static_files/js/share/main.js` line 524 — `$('#file-table').on('click','span.tag',...)` → add keydown handler for tag filtering
-- [ ] `static_files/js/ssh/ssh_keys.js` line 19 — `$('[data-action="delete-key"]').click(...)` → add keydown
-- [ ] `static_files/js/share/permissions.js` lines 242-243 — `.check_all` and `.uncheck_all` click handlers on `<i>` icons → add keydown
+- [x] Changed each to `'click keydown'` with `a11y_handler()` guard wrapper
+- [x] `static_files/js/share/main.js` — `$('#file-table').on('click','span.tag',...)` → added keydown handler for tag filtering
+- [x] `static_files/js/ssh/ssh_keys.js` — `$('[data-action="delete-key"]').click(...)` → added keydown
+- [x] `static_files/js/share/permissions.js` — `.check_all` and `.uncheck_all` click handlers on `<i>` icons → added keydown
 
 ### 6b. Dynamically created icons need `role`, `tabindex`, `aria-label` (WCAG 4.1.2)
 
 `static_files/js/share/permissions.js` creates icons dynamically without accessibility attributes:
 
-- [ ] Line 68 — `.append('<i class="fam-email"...')` → add `aria-hidden="true"` (this is a visual indicator, not interactive)
-- [ ] Line 73 — `.append('<i class="fam-cross"...')` → add `role="button" tabindex="0" aria-label="Remove access from this user"`
-- [ ] Line 129 — `<i class="fam-accept check_all" title="...">` and `<i class="fam-delete uncheck_all" title="...">` → add `role="button" tabindex="0" aria-label="Check all permissions"` / `aria-label="Uncheck all permissions"`
-- [ ] Line 133 — `<i class="fam-error-add" ...>` → add `aria-hidden="true"` (informational icon, tooltip provides context)
-- [ ] Line 128/134 — dynamically created permission checkboxes `<input data-perm="..." type="checkbox">` → add `aria-label` that combines username and permission name, e.g. `aria-label="Browse permission for ' + obj.user.username + '"`
+- [x] Line 68 — `.append('<i class="fam-email"...')` → added `aria-hidden="true"`
+- [x] Line 73 — `.append('<i class="fam-cross"...')` → added `role="button" tabindex="0" aria-label="Remove access from this user"`
+- [x] Line 129 — `<i class="fam-accept check_all">` and `<i class="fam-delete uncheck_all">` → added `role="button" tabindex="0" aria-label`
+- [x] Line 133 — `<i class="fam-error-add" ...>` → added `aria-hidden="true"`
+- [x] Line 134 — dynamically created permission checkboxes → added `label_permission_checkboxes()` helper that sets `aria-label` combining permission name and username/group
 
 ### 6c. `aria-live` regions for dynamic content (WCAG 4.1.3 Status Messages)
 
-- [ ] `templates/list.html` line 154 — `<div id="messages"></div>` → add `aria-live="polite" aria-atomic="true"` (receives bootstrapGrowl messages and AJAX errors)
-- [ ] `templates/list.html` line 269 — `<div id="searchResults"></div>` → add `aria-live="polite"` (populated by `search_share()` in main.js)
-- [ ] `templates/dialogs/preview_file.html` line 11 / `templates/dialogs/email_users.html` line 25 — `<span id="lines-loaded">` → add `aria-live="polite"` (updated with progress info)
-- [ ] `templates/share/permissions.html` line 68 — `<div id="messages">` → add `aria-live="polite"`
+- [x] `templates/list.html` — `<div id="messages">` → added `aria-live="polite" aria-atomic="true"`
+- [x] `templates/list.html` — `<div id="searchResults">` → added `aria-live="polite"`
+- [x] `templates/dialogs/preview_file.html` and `templates/dialogs/email_users.html` — `<span id="lines-loaded">` → added `aria-live="polite"`
+- [x] `templates/share/permissions.html` — `<div id="messages">` → added `aria-live="polite"`
 
 Note: Do NOT add `aria-live` to high-frequency update targets like `#preview-file-area` (would be excessively noisy). The `#lines-loaded` summary is the right element to announce.
 
@@ -223,9 +210,9 @@ Note: Do NOT add `aria-live` to high-frequency update targets like `#preview-fil
 
 Bootstrap 2.x `modal('show')` may not automatically move focus into the modal or return focus on close.
 
-- [ ] Audit all `$(...).modal('show')` calls in `main.js` (lines 42, 61, 71, 93, 109, 168, 317, 342, 498) — after `modal('show')`, focus should move to the first focusable element inside the modal (typically the close button or first input)
-- [ ] Audit all `$(...).modal('hide')` calls — after hide, focus should return to the triggering element
-- [ ] For the `$uibModal.open()` calls in `group-controller.js` and `message-directives.js` — ui-bootstrap generally handles focus management, but verify
+- [x] Added global `.modal` `shown` handler in main.js — focuses first visible input/button/textarea/link inside modal, stores trigger element
+- [x] Added global `.modal` `hidden` handler — returns focus to the element that opened the modal
+- [x] `$uibModal.open()` calls in `group-controller.js` and `message-directives.js` — ui-bootstrap handles focus management automatically, no change needed
 
 Recommended approach: add a global handler:
 ```javascript

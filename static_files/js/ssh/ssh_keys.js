@@ -16,7 +16,10 @@ function delete_key(id){
 }
 
 $(function () {
-	$('[data-action="delete-key"]').click(function(){
-		delete_key($(this).closest('[data-id]').attr('data-id'));
+	$('[data-action="delete-key"]').on('click keydown', function(e){
+		if (e.type === 'click' || e.key === 'Enter' || e.key === ' ') {
+			if (e.type === 'keydown') e.preventDefault();
+			delete_key($(this).closest('[data-id]').attr('data-id'));
+		}
 	});
 });
