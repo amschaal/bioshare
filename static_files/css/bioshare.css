@@ -103,6 +103,13 @@ table.dataTable.table-condensed tbody th, table.dataTable tbody td {
 	border: 0;
 }
 
+/* Remove extra padding from btn-link inside table cells (accessibility upgrade) */
+td .btn-link {
+	padding: 0;
+	margin: 0;
+	vertical-align: baseline;
+}
+
 /* WCAG 2.4.7 — Restore keyboard focus indicators suppressed by vendor CSS */
 *:focus-visible {
 	outline: 2px solid #005fcc !important;

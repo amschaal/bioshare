@@ -63,7 +63,7 @@
 {% endif %}
 <br><b>Share size:</b> {% if share.stats %}{{share.stats.hr_size}} (updated {{share.stats.updated}}){% else %}unknown{% endif %}{% if "admin" in share_perms %}{% if not share.stats or share.stats.can_update %} <a href="{% url 'update_stats' share=share.id %}">Update</a>{% endif%}{% endif%}
 {% if subdir %}
-<br><b>Directory size:</b> <span ng-cloak ng-controller="SizeController" >{% verbatim %}<span ng-if="size">{{size}}</span>{% endverbatim %}<a class="pointer" ng-if="!size" ng-click="calculate('{{share.id}}'{% if subdir %},'{{subdir}}'{% endif %})">Calculate...</a></span>
+<br><b>Directory size:</b> <span ng-cloak ng-controller="SizeController" >{% verbatim %}<span ng-if="size">{{size}}</span>{% endverbatim %}<button class="btn btn-link" ng-if="!size" ng-click="calculate('{{share.id}}'{% if subdir %},'{{subdir}}'{% endif %})">Calculate...</button></span>
 {% endif %}
 {% if share.link_to_path and share.filepath and share.filepath.show_path %}
 <br><b>System path:</b> {{share.get_link_path}}{% if subdir %}{{subdir}} <i class="fam-help" title="If you have access to the cluster, data may be available at this path." aria-label="If you have access to the cluster, data may be available at this path."></i>{% endif %}
@@ -216,7 +216,7 @@
 			</td>
 			<td>{% if file.extension %}{{ file.extension }}{% endif %}</td>
 			<td>{{ file.size }}</td>
-			<td><a href="#" data-action="calculate-md5">Calculate</a></td>
+			<td><button class="btn btn-link" data-action="calculate-md5">Calculate</button></td>
 			<td>{{ file.modified }}</td>
 			<td>
 				{% if "write_to_share" in share_perms %}<i data-toggle="tooltip" title="Add/Edit metadata" class="fam-tag-blue" data-action="edit-metadata" aria-label="Edit metadata"></i>{% endif %}
@@ -290,7 +290,7 @@
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
-    <a href="#" class="btn btn-primary" id="create-folder">Create</a>
+    <button class="btn btn-primary" id="create-folder">Create</button>
   </div>
 </div>
 
@@ -307,7 +307,7 @@
 	</div>
 	<div class="modal-footer">
 	  <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
-	  <a href="#" class="btn btn-primary" id="create-link">Create</a>
+	  <button class="btn btn-primary" id="create-link">Create</button>
 	</div>
   </div>
 
@@ -324,7 +324,7 @@
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-label="Close">Close</button>
-    <a href="#" class="btn btn-primary" id="rename-button">Rename</a>
+    <button class="btn btn-primary" id="rename-button">Rename</button>
   </div>
 </div>
 
