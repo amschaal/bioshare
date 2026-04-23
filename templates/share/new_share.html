@@ -15,7 +15,7 @@
 	  	</p>
 	  {% endif %}
 	  {% if error %}<h3>Exception: {{error}}</h3>{% endif %}
-	    {{ form|crispy }}
+	    {% crispy form %}
 	  <div class="control-group">
 	    <div class="controls">
 	    	<button type="submit" class="btn">Create</button>

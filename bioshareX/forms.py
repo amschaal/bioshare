@@ -17,6 +17,13 @@ class ShareForm(forms.ModelForm):
     def __init__(self, user, *args, **kwargs):
         require_filesystem = kwargs.pop('require_filesystem', True)
         super(ShareForm, self).__init__(*args, **kwargs)
+        from crispy_forms.helper import FormHelper
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.disable_csrf = True
+        self.helper.form_class = 'form-horizontal'
+        self.helper.label_class = 'col-sm-3'
+        self.helper.field_class = 'col-sm-9'
         if user.is_authenticated:
             self.file_paths = FilePath.objects.all() if user.is_superuser else user.file_paths.all()
         else:
@@ -24,6 +31,7 @@ class ShareForm(forms.ModelForm):
         self.fields['filesystem'].queryset = user.filesystems
         self.fields['filesystem'].required = require_filesystem
         self.fields['owner'].required = False
+        self.fields['owner'].widget.attrs.setdefault('class', 'form-control')
         if not self.initial.get('filesystem'):
             self.initial['filesystem'] = self.get_default_filesystem()
         if not user.is_superuser:

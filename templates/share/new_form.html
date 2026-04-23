@@ -7,7 +7,7 @@
   <form class="form-horizontal" method="POST" action="#">
   <fieldset>
 	  <legend>Create a New Share</legend>
-	    {{ form|crispy }}
+	    {% crispy form %}
 	  <div class="control-group">
 	    <div class="controls">
 	    	<button type="submit" class="btn">Create</button>

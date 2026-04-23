@@ -130,3 +130,47 @@ td .btn-link {
 	left: 0;
 	top: 0;
 }
+
+/* crispy-forms 2.x emits Bootstrap 3 .form-group markup, but the loaded
+   stylesheet is Bootstrap 2 which only clearfixes .control-group.
+   Without this, long <select> lists (e.g. Owner with ~3000 users) render
+   at native option-width and push adjacent rows out of alignment. */
+.form-horizontal .form-group::after {
+	content: "";
+	display: table;
+	clear: both;
+}
+.form-horizontal .form-group {
+	margin-bottom: 15px;
+}
+/* Checkbox rows have no label column, so offset them to align with the
+   input column used by every other field. */
+.form-horizontal .form-group > .checkbox {
+	margin-left: 160px;
+}
+.form-horizontal .form-group .controls select,
+.form-horizontal .form-group .controls input[type="text"],
+.form-horizontal .form-group .controls input[type="email"],
+.form-horizontal .form-group .controls input[type="password"],
+.form-horizontal .form-group .controls textarea {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+/* Bootstrap 2 (loaded CSS) squashes inputs to ~20px line-height. Restore
+   Bootstrap 3-like dimensions for crispy's .form-control fields. */
+input.form-control,
+select.form-control {
+	height: 34px !important;
+	min-width: 400px;
+	padding: 6px 12px !important;
+	line-height: 1.42857143 !important;
+	font-size: 14px !important;
+}
+textarea.form-control {
+	min-width: 400px;
+	padding: 6px 12px !important;
+	line-height: 1.42857143 !important;
+	font-size: 14px !important;
+	height: auto !important;
+}
