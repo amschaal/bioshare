@@ -14,7 +14,6 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.html import strip_tags
 from guardian.models import GroupObjectPermissionBase, UserObjectPermissionBase
-from jsonfield import JSONField
 from bioshareX.exceptions import IllegalPathException
 
 from bioshareX.utils import check_symlinks_dfs, find_symlink, is_realpath, path_contains, paths_contain, test_path, get_all_symlinks
@@ -318,7 +317,8 @@ class Share(models.Model):
     def create_archive_stream(self,items,subdir=None):
         from os.path import isdir, isfile
 
-        import zipstream
+        from zipfile import ZIP_DEFLATED
+        from zipstream import ZipStream
         from django.http.response import StreamingHttpResponse
         from bioshareX.utils import get_total_size, zipdir
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
@@ -326,7 +326,7 @@ class Share(models.Model):
         if not os.path.exists(path):
             raise Exception('Invalid subdirectory provided')
         share_path = self.get_path()
-        z = zipstream.ZipFile(mode='w', compression=zipstream.ZIP_DEFLATED)
+        z = ZipStream(compress_type=ZIP_DEFLATED)
         total_size = get_total_size([os.path.join(path,item) for item in items])
         if total_size > ZIPFILE_SIZE_LIMIT_BYTES:
             raise Exception("%d bytes is above bioshare's limit for creating zipfiles, please use rsync or wget instead" % (total_size))
@@ -336,7 +336,7 @@ class Share(models.Model):
                 raise Exception("File or folder: '%s' does not exist" % (item))
             if isfile(item_path):
                 item_name = item#os.path.join(self.id,item)
-                z.write(item_path,arcname=item_name)
+                z.add_path(item_path,arcname=item_name)
             elif isdir(item_path):
                 zipdir(share_path,item_path,z)
         from datetime import datetime
@@ -463,7 +463,7 @@ class ShareLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=30,null=True,blank=True)
     text = models.TextField(null=True,blank=True)
-    paths = JSONField()
+    paths = models.JSONField()
     @staticmethod
     def create(share,action,user=None,text='',paths=[],subdir=None,share_updated=True):
         if subdir:

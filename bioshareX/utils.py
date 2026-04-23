@@ -12,7 +12,7 @@ from django.template import Context, Template
 from django.urls.base import reverse
 from django.core.cache import cache
 from rest_framework import status
-from scandir import scandir
+from os import scandir
 from bioshareX.exceptions import IllegalPathException
 
 from bioshareX.file_utils import istext
@@ -264,7 +264,7 @@ def zipdir(base, path, zip):
         for file in files:
             file_path = os.path.join(root, file)
             rel_path = relpath(path=file_path, start=base)
-            zip.write(file_path,arcname=rel_path)
+            zip.add_path(file_path,arcname=rel_path)
 
 def get_size(path):
     total_size = 0

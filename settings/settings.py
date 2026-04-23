@@ -21,12 +21,10 @@ SITE_ID = 1
 # to load the internationalization machinery.
 USE_I18N = True
 
-# If you set this to False, Django will not format dates, numbers and
-# calendars according to the current locale.
-USE_L10N = True
-
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/var/www/example.com/media/"
@@ -145,6 +143,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
     'bioshareX',
     'crispy_forms',
+    'crispy_bootstrap3',
     'guardian',
     'django_filters',
     'rest_framework',
@@ -213,6 +212,9 @@ REST_FRAMEWORK = {
 }
 
 ANONYMOUS_USER_ID = -1 #Guardian
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap3'
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 DEFAULT_FILESYSTEM_ID = None #Replace with integer filesystem id
 
