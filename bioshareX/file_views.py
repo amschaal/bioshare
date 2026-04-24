@@ -202,7 +202,7 @@ def download_archive_stream(request, share, subdir=None):
 @share_access_decorator(['download_share_files'])
 @safe_path_decorator()    
 def download_file(request, share, subpath=None):
-    from django_sendfile import sendfile
+    from bioshareX.sendfile import sendfile
     share.last_data_access = timezone.now()
     share.save(update_fields=['last_data_access'])
     file_path = os.path.join(share.get_path(),subpath)
