@@ -2,6 +2,7 @@ import functools
 import logging
 import os
 import socket
+import stat as stdlib_stat
 import threading
 from django.utils import timezone
 from django.contrib.auth import authenticate
@@ -292,8 +293,8 @@ class SFTPInterface (SFTPServerInterface):
             except Share.DoesNotExist:
                 pass
         if parts[1] not in self.shares:
-            logging.warning('Share does not exist: %s', path)
-            raise PermissionDenied("Share does not exist: %s"%path[1])
+            logging.warning('Share does not exist: {}, {}'.format(path, self.shares))
+            raise PermissionDenied("Share does not exist: {}, {}}".format(path[1], self.shares))
         share = self.shares[parts[1]]
         now = timezone.now()
         last_checked = self._symlink_checked.get(share.id)
@@ -354,6 +355,17 @@ class SFTPInterface (SFTPServerInterface):
         share = self._get_share(path)
         # print('is_realpath', share.is_realpath(os.path.sep.join(parts[2:])), os.path.sep.join(parts[2:]))
         return share.is_realpath(os.path.sep.join(parts[2:]))
+    def _root_attributes(self):
+        """Synthetic attrs for the virtual SFTP root '/' (no real fs path)."""
+        now = int(timezone.now().timestamp())
+        attr = paramiko.SFTPAttributes()
+        attr.st_mode = stdlib_stat.S_IFDIR | 0o755
+        attr.st_size = 0
+        attr.st_uid = 0
+        attr.st_gid = 0
+        attr.st_atime = now
+        attr.st_mtime = now
+        return attr
     @sftp_response
     def list_shares(self):
 #         print "LIST SHARES"
@@ -396,6 +408,8 @@ class SFTPInterface (SFTPServerInterface):
     @sftp_response
     @permissions_required([Share.PERMISSION_VIEW])
     def stat(self, path):
+        if path == '/':
+            return self._root_attributes()
         path = self._realpath(path)
         try:
             return paramiko.SFTPAttributes.from_stat(os.stat(path))
@@ -404,6 +418,8 @@ class SFTPInterface (SFTPServerInterface):
     @sftp_response
     @permissions_required([Share.PERMISSION_VIEW])
     def lstat(self, path):
+        if path == '/':
+            return self._root_attributes()
         path = self._realpath(path)
         try:
             return paramiko.SFTPAttributes.from_stat(os.lstat(path))
