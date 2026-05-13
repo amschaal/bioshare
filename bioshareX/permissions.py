@@ -6,6 +6,7 @@ from guardian.shortcuts import (assign_perm, get_perms, get_users_with_perms,
 from .models import Share, ShareUserObjectPermission
 from django.contrib.auth.models import User, Group
 from django.db.models import Q
+from bioshareX.utils import generate_random_password
 
 from settings.config import SITE_URL
 
@@ -46,7 +47,7 @@ class SharePermissions(object):
         self.failed = []
         self.created = []
     def create_user(self, username, shared_by=None):
-        password = User.objects.make_random_password()
+        password = generate_random_password(15)
         u = User(username=username,email=username)
         u.set_password(password)
         u.save()

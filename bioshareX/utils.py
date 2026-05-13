@@ -16,7 +16,12 @@ from os import scandir
 from bioshareX.exceptions import IllegalPathException
 
 from bioshareX.file_utils import istext
+import secrets
+import string
 
+def generate_random_password(length=15):
+    characters = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(characters) for _ in range(length))
 
 class JSONDecorator(object):
         def __init__(self, orig_func):
