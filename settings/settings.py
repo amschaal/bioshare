@@ -143,7 +143,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
     'bioshareX',
     'crispy_forms',
-    'crispy_bootstrap3',
+    'crispy_bootstrap5',
     'guardian',
     'django_filters',
     'rest_framework',
@@ -213,8 +213,8 @@ REST_FRAMEWORK = {
 
 ANONYMOUS_USER_ID = -1 #Guardian
 
-CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap3'
-CRISPY_TEMPLATE_PACK = 'bootstrap3'
+CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
+CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 DEFAULT_FILESYSTEM_ID = None #Replace with integer filesystem id
 
