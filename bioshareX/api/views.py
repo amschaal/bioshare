@@ -21,7 +21,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 
 from bioshareX.api.filters import (ActiveMessageFilter, ContainsSymlinkFilter, GroupShareFilter,
-                                   ShareTagFilter, SymlinkTargetFilter, SymlinkWarningFilter, UserShareFilter)
+                                   ShareLogFilterSet, ShareTagFilter, SymlinkTargetFilter,
+                                   SymlinkWarningFilter, UserShareFilter)
 from bioshareX.api.serializers import (GroupSerializer, MessageSerializer,
                                        ShareLogSerializer, ShareSerializer,
                                        UserSerializer)
@@ -274,7 +275,7 @@ def share_read_only(request,share):
 class ShareLogList(generics.ListAPIView):
     serializer_class = ShareLogSerializer
     permission_classes = (IsAuthenticated,)
-    filterset_fields = {'action':['icontains'],'user__username':['icontains'],'text':['icontains'],'paths':['icontains'],'share':['exact']}
+    filterset_class = ShareLogFilterSet
     def get_queryset(self):
         shares = Share.user_queryset(self.request.user,include_stats=False)
         return ShareLog.objects.filter(share__in=shares).select_related('user')

@@ -1,11 +1,31 @@
 import datetime
 
+import django_filters
 from django.contrib.auth.models import Group, User
+from django.db.models import JSONField
 from django.db.models.query_utils import Q
 from rest_framework import filters
 from bioshareX.api.filter_utils import gen_sql_filter_json_array
 
-from bioshareX.models import Share
+from bioshareX.models import Share, ShareLog
+
+
+class ShareLogFilterSet(django_filters.FilterSet):
+    class Meta:
+        model = ShareLog
+        fields = {
+            'action': ['icontains'],
+            'user__username': ['icontains'],
+            'text': ['icontains'],
+            'paths': ['icontains'],
+            'share': ['exact'],
+        }
+        # django-filter 23+ refuses to auto-generate filters for JSONField; tell it to
+        # treat paths (JSONField storing a list of file paths) as a plain CharFilter so
+        # `?paths__icontains=foo` substring-matches the jsonb text representation.
+        filter_overrides = {
+            JSONField: {'filter_class': django_filters.CharFilter},
+        }
 
 
 class UserShareFilter(filters.BaseFilterBackend):
