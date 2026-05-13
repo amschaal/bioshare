@@ -7,20 +7,21 @@
 // and run alongside this app, mounting their own Vue instances onto
 // page-specific DOM roots.
 
-import { createApp, h } from '/static/lib/vue/vue.esm-browser.prod.js';
-import { state, toast, announce, dismissToast } from '/static/js/app/state.js';
+import { createApp, h } from 'vue';
+import { state, toast, announce, confirm as openConfirm, dismissToast } from '/static/js/app/state.js';
 import { ToastHost } from '/static/js/app/components/ToastHost.vue.js';
 import { Announce } from '/static/js/app/components/Announce.vue.js';
-import { ConfirmDialogHost } from '/static/js/app/components/ConfirmDialogHost.vue.js';
+import { ConfirmDialog } from '/static/js/app/components/ConfirmDialog.vue.js';
 
 const app = createApp({
     render() {
-        return [h(ToastHost), h(Announce), h(ConfirmDialogHost)];
+        return [h(Announce), h(ToastHost), h(ConfirmDialog)];
     },
 });
 
-// Singletons mount onto a single host div added to base.html. Components
-// inside use position: fixed / sr-only so the host node itself is empty.
+// Singletons mount onto #bioshare-globals (added by base.html). All three
+// components position themselves via fixed/sr-only so the host node has no
+// visual footprint.
 const hostId = 'bioshare-globals';
 let host = document.getElementById(hostId);
 if (!host) {
@@ -30,11 +31,13 @@ if (!host) {
 }
 app.mount(host);
 
-// Expose imperative APIs for templates that aren't yet Vue-mounted.
+// Expose imperative APIs for legacy (non-Vue) code that still wants to
+// fire a toast or open a confirm dialog during the migration.
 window.BIOSHARE = window.BIOSHARE || {};
 Object.assign(window.BIOSHARE, {
     state,
     toast,
-    dismissToast,
+    confirm: openConfirm,
     announce,
+    dismissToast,
 });
