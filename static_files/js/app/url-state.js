@@ -63,8 +63,12 @@ export function setUrlState(data) {
     const flat = flatten(data);
     const params = new URLSearchParams();
     for (const k of Object.keys(flat)) {
-        if (flat[k] === undefined || flat[k] === null || flat[k] === '') continue;
-        params.set(k, flat[k]);
+        const v = flat[k];
+        if (v === undefined || v === null || v === '') continue;
+        // flatten() emits result[prop] = {} for empty-object branches; those
+        // serialize to "[object Object]" in URLSearchParams. Skip them.
+        if (typeof v === 'object') continue;
+        params.set(k, String(v));
     }
     const qs = params.toString();
     const url = `${window.location.pathname}${qs ? '?' + qs : ''}${window.location.hash}`;

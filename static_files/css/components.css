@@ -98,6 +98,17 @@
     vertical-align: -.125em;
 }
 
+/* ---------------------------------------------------------------- Accordion chevron */
+/* Rotates the chevron icon inside the AccordionTrigger when the accordion item
+ * is open. Reka UI sets data-state="open"/"closed" on the trigger element. */
+.accordion-chevron {
+    transition: transform .15s ease-out;
+}
+[data-state="open"] > .accordion-chevron,
+[data-state="open"] .accordion-chevron {
+    transform: rotate(180deg);
+}
+
 /* ---------------------------------------------------------------- Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .skip-link {
