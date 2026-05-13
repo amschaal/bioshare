@@ -90,4 +90,10 @@ USER root
 RUN chmod +x /usr/local/bin/init-firewall.sh && \
   echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
   chmod 0440 /etc/sudoers.d/node-firewall
+
+# Playwright + Chrome for Testing for browser testing via MCP (Phase 0 prerequisite of frontend_revamp_plan.md)
+# install-deps needs root to apt-install OS libraries (covers chrome-for-testing too — same Chromium-derived deps).
+# @playwright/mcp specifically requires chrome-for-testing, not the plain chromium build.
+RUN npx -y playwright install-deps chromium
 USER node
+RUN npx -y @playwright/mcp@latest install-browser chrome-for-testing
