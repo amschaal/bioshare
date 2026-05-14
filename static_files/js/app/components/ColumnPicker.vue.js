@@ -22,9 +22,13 @@ export const ColumnPicker = defineComponent({
     emits: ['update:columns'],
     setup(props, { emit }) {
         function toggle(key, visible) {
-            emit('update:columns', props.columns.map(c => (
-                c.key === key ? { ...c, visible } : c
-            )));
+            // Mutate the reactive column directly so consumers don't need to
+            // re-wire — DataTable's visibleColumns computed picks it up.
+            const col = props.columns.find(c => c.key === key);
+            if (col) col.visible = visible;
+            // Also emit the new array form for consumers that want explicit
+            // change events.
+            emit('update:columns', props.columns.slice());
         }
         return { toggle };
     },

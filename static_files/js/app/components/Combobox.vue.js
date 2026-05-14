@@ -101,9 +101,12 @@ export const Combobox = defineComponent({
             </combobox-anchor>
             <combobox-portal>
                 <combobox-content
-                    class="bg-white rounded-2 shadow border mt-1"
+                    class="bg-white rounded-2 shadow border"
                     style="z-index: 1080; min-width: 16rem;"
+                    position="popper"
+                    side="bottom"
                     :side-offset="4"
+                    align="start"
                 >
                     <combobox-viewport class="overflow-auto" style="max-height: 18rem;">
                         <combobox-item
