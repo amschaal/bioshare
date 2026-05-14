@@ -1,37 +1,44 @@
 // list.js — orchestrator for the share file browser (templates/list.html).
 //
-// C2a scope: file browsing. Mounts:
-//   - Tabs: Files / Search / Logs
-//   - Files tab: FileTable, data loaded from the existing list_directory
-//     view's AJAX branch (same URL + X-Requested-With header -> JSON).
-//   - Search tab: a simple query form against /api/search/<share>/.
-//   - Logs tab: DataTable against /bioshare/api/logs/?share=<id>.
-//   - Toolbar: a download DropdownMenu (Zip link).
+// C2a: file browsing — Tabs (Files / Search / Logs), FileTable, Logs DataTable.
+// C2b: create folder, rename, delete, edit metadata — Modal + ConfirmDialog.
 //
-// Deferred to later C2 sub-phases: create folder/link, rename, delete, move,
-// edit metadata, upload, file preview, SFTP/rsync/wget dialogs. The FileTable
-// action buttons render now (accessible) but their events are no-ops here.
+// Data: the Files tab loads from the list_directory view's AJAX branch (same
+// URL + X-Requested-With header -> { files, directories, errors } JSON).
+//
+// Deferred to later C2 sub-phases: upload + progress, move-to, file preview,
+// create symlink, and the SFTP/rsync/wget/email/share-read-only dialogs.
 
-import { createApp, ref, reactive, onMounted } from 'vue';
-import { apiGet } from '/static/js/app/api.js';
-import { toast } from '/static/js/app/state.js';
+import { createApp, ref, computed, onMounted } from 'vue';
+import { apiGet, apiPost } from '/static/js/app/api.js';
+import { toast, confirm as openConfirm } from '/static/js/app/state.js';
 import { Tabs } from '/static/js/app/components/Tabs.vue.js';
 import { FileTable } from '/static/js/app/components/FileTable.vue.js';
 import { DataTable } from '/static/js/app/components/DataTable.vue.js';
 import { DropdownMenu, DropdownMenuItem } from '/static/js/app/components/DropdownMenu.vue.js';
+import { Modal } from '/static/js/app/components/Modal.vue.js';
 import { fmtDateShort } from '/static/js/app/format.js';
 
 const initEl = document.getElementById('list-init');
 const init = initEl ? JSON.parse(initEl.textContent) : {};
 const mountEl = document.getElementById('file-browser-mount');
 
+// POST a form-urlencoded body. Several legacy file_views read request.POST
+// (not request.data), so they need multipart/form-data, not JSON.
+function formPost(url, fields) {
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+    return apiPost(url, fd);
+}
+
 if (mountEl) {
     createApp({
-        components: { Tabs, FileTable, DataTable, DropdownMenu, DropdownMenuItem },
+        components: { Tabs, FileTable, DataTable, DropdownMenu, DropdownMenuItem, Modal },
         setup() {
             const perms = init.perms || [];
             const canWrite = perms.includes('write_to_share');
             const canDownload = perms.includes('download_share_files');
+            const canDelete = perms.includes('delete_share_files');
 
             const activeTab = ref('files');
             const tabs = [
@@ -51,8 +58,6 @@ if (mountEl) {
                 loading.value = true;
                 loadError.value = null;
                 try {
-                    // The list_directory view returns { files, directories }
-                    // JSON when called with X-Requested-With: XMLHttpRequest.
                     const r = await fetch(window.location.pathname, {
                         headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
                         credentials: 'same-origin',
@@ -68,18 +73,144 @@ if (mountEl) {
                 }
             }
 
-            function dirHref(subdir, name) {
-                // Directory links are relative to the current path (matches legacy).
-                return `${name}/`;
+            const dirHref = (subdir, name) => `${name}/`;
+            const fileHref = (name) => init.urls.downloadFilePrefix + encodeURIComponent(name);
+
+            // ----- New Folder modal -----
+            const folderModalOpen = ref(false);
+            const folderName = ref('');
+            const folderError = ref('');
+            const folderSaving = ref(false);
+            function openFolderModal() {
+                folderName.value = '';
+                folderError.value = '';
+                folderModalOpen.value = true;
             }
-            function fileHref(name) {
-                return init.urls.downloadFilePrefix + encodeURIComponent(name);
+            async function createFolder() {
+                if (!folderName.value.trim()) { folderError.value = 'Enter a folder name.'; return; }
+                folderSaving.value = true;
+                folderError.value = '';
+                try {
+                    const data = await formPost(init.urls.createFolder, { name: folderName.value.trim() });
+                    if (data.errors && data.errors.length) {
+                        folderError.value = data.errors.join(' ');
+                        return;
+                    }
+                    for (const obj of (data.objects || [])) {
+                        directories.value.push({ name: obj.name, modified: obj.modified, metadata: {} });
+                    }
+                    folderModalOpen.value = false;
+                    toast.success(`Folder "${folderName.value.trim()}" created.`);
+                } catch (e) {
+                    folderError.value = e?.body?.errors?.join(' ') || e.message || 'Could not create folder.';
+                } finally {
+                    folderSaving.value = false;
+                }
             }
 
-            // Row action stubs — wired in later C2 sub-phases.
-            function onEditMetadata(_payload) { toast.info('Edit metadata — coming in a later update.'); }
-            function onRename(_payload) { toast.info('Rename — coming in a later update.'); }
-            function onPreview(_file) { toast.info('Preview — coming in a later update.'); }
+            // ----- Rename modal -----
+            const renameModalOpen = ref(false);
+            const renameTarget = ref(null); // { type, row }
+            const renameTo = ref('');
+            const renameError = ref('');
+            const renameSaving = ref(false);
+            function openRename({ type, row }) {
+                renameTarget.value = { type, row };
+                renameTo.value = row.name;
+                renameError.value = '';
+                renameModalOpen.value = true;
+            }
+            async function doRename() {
+                const from = renameTarget.value?.row?.name;
+                const to = renameTo.value.trim();
+                if (!to) { renameError.value = 'Enter a new name.'; return; }
+                if (to === from) { renameModalOpen.value = false; return; }
+                renameSaving.value = true;
+                renameError.value = '';
+                try {
+                    const data = await formPost(init.urls.modifyName, { from_name: from, to_name: to });
+                    if (data.errors && data.errors.length) {
+                        renameError.value = data.errors.join(' ');
+                        return;
+                    }
+                    const list = renameTarget.value.type === 'directory' ? directories.value : files.value;
+                    const item = list.find(x => x.name === from);
+                    if (item) item.name = to;
+                    renameModalOpen.value = false;
+                    toast.success(`Renamed to "${to}".`);
+                } catch (e) {
+                    renameError.value = e?.body?.errors?.join(' ') || e.message || 'Could not rename.';
+                } finally {
+                    renameSaving.value = false;
+                }
+            }
+
+            // ----- Delete (global ConfirmDialog) -----
+            async function deleteSelected() {
+                const sel = selection.value.slice();
+                if (sel.length === 0) return;
+                const ok = await openConfirm({
+                    title: `Delete ${sel.length} item${sel.length > 1 ? 's' : ''}?`,
+                    message: `This permanently deletes: ${sel.join(', ')}. This cannot be undone.`,
+                    confirmLabel: 'Delete',
+                    danger: true,
+                });
+                if (!ok) return;
+                try {
+                    const data = await apiPost(init.urls.deletePaths, { selection: sel });
+                    const deleted = new Set(data.deleted || []);
+                    directories.value = directories.value.filter(d => !deleted.has(d.name));
+                    files.value = files.value.filter(f => !deleted.has(f.name));
+                    selection.value = [];
+                    if ((data.failed || []).length) {
+                        toast.warning(`Deleted ${data.deleted.length}; failed: ${data.failed.join(', ')}`);
+                    } else {
+                        toast.success(`Deleted ${data.deleted.length} item${data.deleted.length > 1 ? 's' : ''}.`);
+                    }
+                } catch (e) {
+                    toast.error(e.message || 'Delete failed.');
+                }
+            }
+
+            // ----- Edit Metadata modal -----
+            const metaModalOpen = ref(false);
+            const metaTarget = ref(null); // { type, row }
+            const metaNotes = ref('');
+            const metaTags = ref('');
+            const metaError = ref('');
+            const metaSaving = ref(false);
+            function openMetadata({ type, row }) {
+                metaTarget.value = { type, row };
+                metaNotes.value = row.metadata?.notes || '';
+                const tags = row.metadata?.tags;
+                metaTags.value = Array.isArray(tags) ? tags.join(', ') : '';
+                metaError.value = '';
+                metaModalOpen.value = true;
+            }
+            async function saveMetadata() {
+                const row = metaTarget.value?.row;
+                if (!row) return;
+                metaSaving.value = true;
+                metaError.value = '';
+                try {
+                    // edit_metadata URL is metadataPrefix + <name> (subdir already baked into prefix).
+                    const url = init.urls.metadataPrefix + encodeURIComponent(row.name);
+                    const data = await formPost(url, { notes: metaNotes.value, tags: metaTags.value });
+                    if (data.errors && data.errors.length) {
+                        metaError.value = data.errors.join(' ');
+                        return;
+                    }
+                    row.metadata = { notes: data.notes, tags: data.tags || [] };
+                    metaModalOpen.value = false;
+                    toast.success(`Metadata saved for "${row.name}".`);
+                } catch (e) {
+                    metaError.value = e?.body?.errors?.join(' ') || e.message || 'Could not save metadata.';
+                } finally {
+                    metaSaving.value = false;
+                }
+            }
+
+            function onPreview(_file) { toast.info('File preview — coming in a later update.'); }
 
             // ----- Search tab -----
             const searchQuery = ref('');
@@ -112,19 +243,30 @@ if (mountEl) {
             onMounted(loadListing);
 
             return {
-                canWrite, canDownload, activeTab, tabs,
+                canWrite, canDownload, canDelete,
+                activeTab, tabs,
                 directories, files, loading, loadError, selection,
-                dirHref, fileHref, onEditMetadata, onRename, onPreview,
+                dirHref, fileHref, onPreview,
+                folderModalOpen, folderName, folderError, folderSaving, openFolderModal, createFolder,
+                renameModalOpen, renameTarget, renameTo, renameError, renameSaving, openRename, doRename,
+                deleteSelected,
+                metaModalOpen, metaTarget, metaNotes, metaTags, metaError, metaSaving, openMetadata, saveMetadata,
                 searchQuery, searchResults, searching, searched, runSearch,
                 logColumns, init, fmtDateShort,
             };
         },
         template: `
             <div>
-                <div class="d-flex flex-wrap gap-2 mb-3" v-if="canDownload || canWrite">
+                <div class="d-flex flex-wrap gap-2 mb-3">
                     <DropdownMenu v-if="canDownload" label="Download" variant="primary">
                         <DropdownMenuItem @select="() => window.location = init.urls.downloadZip">Zip file (up to 2 GB)</DropdownMenuItem>
                     </DropdownMenu>
+                    <button v-if="canWrite" type="button" class="btn btn-success" @click="openFolderModal">
+                        <span class="bi bi-folder-plus me-1" aria-hidden="true"></span>New folder
+                    </button>
+                    <button v-if="canDelete" type="button" class="btn btn-danger" :disabled="selection.length === 0" @click="deleteSelected">
+                        <span class="bi bi-trash me-1" aria-hidden="true"></span>Delete<span v-if="selection.length"> ({{ selection.length }})</span>
+                    </button>
                 </div>
 
                 <Tabs v-model="activeTab" :tabs="tabs" aria-label="File browser sections">
@@ -141,8 +283,8 @@ if (mountEl) {
                             :dir-href="dirHref"
                             :file-href="fileHref"
                             @selection-change="sel => selection = sel"
-                            @edit-metadata="onEditMetadata"
-                            @rename="onRename"
+                            @edit-metadata="openMetadata"
+                            @rename="openRename"
                             @preview="onPreview"
                         />
                     </template>
@@ -183,6 +325,51 @@ if (mountEl) {
                         </DataTable>
                     </template>
                 </Tabs>
+
+                <!-- New Folder modal -->
+                <Modal v-model:open="folderModalOpen" title="New folder" size="sm">
+                    <form @submit.prevent="createFolder">
+                        <label for="new-folder-name" class="form-label">Folder name</label>
+                        <input id="new-folder-name" v-model="folderName" class="form-control" :class="{ 'is-invalid': folderError }" autocomplete="off" />
+                        <div v-if="folderError" class="invalid-feedback d-block">{{ folderError }}</div>
+                    </form>
+                    <template #footer>
+                        <button type="button" class="btn btn-outline-secondary" @click="folderModalOpen = false">Cancel</button>
+                        <button type="button" class="btn btn-primary" :disabled="folderSaving" @click="createFolder">Create</button>
+                    </template>
+                </Modal>
+
+                <!-- Rename modal -->
+                <Modal v-model:open="renameModalOpen" :title="renameTarget ? 'Rename &quot;' + renameTarget.row.name + '&quot;' : 'Rename'" size="sm">
+                    <form @submit.prevent="doRename">
+                        <label for="rename-to" class="form-label">New name</label>
+                        <input id="rename-to" v-model="renameTo" class="form-control" :class="{ 'is-invalid': renameError }" autocomplete="off" />
+                        <div v-if="renameError" class="invalid-feedback d-block">{{ renameError }}</div>
+                    </form>
+                    <template #footer>
+                        <button type="button" class="btn btn-outline-secondary" @click="renameModalOpen = false">Cancel</button>
+                        <button type="button" class="btn btn-primary" :disabled="renameSaving" @click="doRename">Rename</button>
+                    </template>
+                </Modal>
+
+                <!-- Edit Metadata modal -->
+                <Modal v-model:open="metaModalOpen" :title="metaTarget ? 'Metadata for &quot;' + metaTarget.row.name + '&quot;' : 'Metadata'" size="md">
+                    <form @submit.prevent="saveMetadata">
+                        <div class="mb-3">
+                            <label for="meta-notes" class="form-label">Notes</label>
+                            <textarea id="meta-notes" v-model="metaNotes" class="form-control" rows="4"></textarea>
+                        </div>
+                        <div>
+                            <label for="meta-tags" class="form-label">Tags</label>
+                            <textarea id="meta-tags" v-model="metaTags" class="form-control" rows="2" placeholder="comma-separated, e.g. important, chimpanzee"></textarea>
+                        </div>
+                        <div v-if="metaError" class="text-danger mt-2">{{ metaError }}</div>
+                    </form>
+                    <template #footer>
+                        <button type="button" class="btn btn-outline-secondary" @click="metaModalOpen = false">Cancel</button>
+                        <button type="button" class="btn btn-primary" :disabled="metaSaving" @click="saveMetadata">Save</button>
+                    </template>
+                </Modal>
             </div>
         `,
     }).mount(mountEl);

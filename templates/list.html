@@ -28,7 +28,7 @@
 <h2 class="h5">{% link_full_path share=share subpath=subdir %}</h2>
 {% endif %}
 
-<div class="alert alert-secondary">
+<div class="border rounded bg-white p-3 mb-3">
     <strong>Owner:</strong> {{ share.owner.username }}
     {% if "admin" in share_perms %}
         <br>
@@ -76,7 +76,11 @@
         "downloadFilePrefix": "{% url 'download_file' share=share.id subpath=subdir|default_if_none:'' %}",
         "searchApi": "{% if subdir %}{% url 'api_search_share' share=share.id subdir=subdir %}{% else %}{% url 'api_search_share' share=share.id %}{% endif %}",
         "logsApi": "/bioshare/api/logs/",
-        "downloadZip": "{% if subdir %}{% url 'download_archive_stream' share=share.id subdir=subdir %}{% else %}{% url 'download_archive_stream' share=share.id %}{% endif %}"
+        "downloadZip": "{% if subdir %}{% url 'download_archive_stream' share=share.id subdir=subdir %}{% else %}{% url 'download_archive_stream' share=share.id %}{% endif %}",
+        "createFolder": "{% if subdir %}{% url 'create_folder' share=share.id subdir=subdir %}{% else %}{% url 'create_folder' share=share.id %}{% endif %}",
+        "modifyName": "{% if subdir %}{% url 'modify_name' share=share.id subdir=subdir %}{% else %}{% url 'modify_name' share=share.id %}{% endif %}",
+        "deletePaths": "{% if subdir %}{% url 'delete_paths' share=share.id subdir=subdir %}{% else %}{% url 'delete_paths' share=share.id %}{% endif %}",
+        "metadataPrefix": "{% url 'api_edit_metadata' share=share.id subpath='' %}{{ subdir|default_if_none:'' }}"
     }
 }</script>
 
