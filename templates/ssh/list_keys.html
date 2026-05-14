@@ -1,29 +1,26 @@
 {% extends "base.html" %}
 {% load static %}
-{% load crispy_forms_tags %}
-{% load i18n %}
+{% block title %}SSH public keys{% endblock %}
 
 {% block content %}
-<h2>SSH Public Keys</h2>
-{% if keys|length != 0%}
-<a class="btn btn-success" href="{% url 'create_ssh_key' %}">Add New</a>
-<table class="table" id="ssh-key-table">
-<thead><tr><th scope="col"><span class="sr-only">Actions</span></th><th scope="col">Name</th><th scope="col">Key</th></tr></thead>
-<tbody>
-{% for key in keys%}
-<tr data-id="{{key.id}}"><td><i class="fam-cross" data-action="delete-key" aria-label="Delete SSH key {{key.name}}" role="button" tabindex="0"></i></td><td>{{key.name}}</td><td>{{key.key}}</td></tr>
-{% endfor %}
-</tbody>
-</table>
-{% else %}
-<h3>You do not have any uploaded SSH keys.  SSH keys are useful because they allow you to upload/download files using more powerful tools such as rsync.</h3>
-<h3><a class="btn btn-success" href="{% url 'create_ssh_key' %}">Upload</a> a new SSH key now!</h3>
-{% endif %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <h1 class="m-0 h3">SSH public keys</h1>
+    <a class="btn btn-sm btn-success" href="{% url 'create_ssh_key' %}">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> Add new
+    </a>
+</div>
+
+{% comment %}Init payload for pages/ssh-keys.js. Keys are emitted here rather
+than via json_script so the view stays untouched (frontend-only migration).{% endcomment %}
+<script id="ssh-keys-init" type="application/json">{
+    "deleteUrl": "{% url 'api_delete_ssh_key' %}",
+    "keys": [{% for key in keys %}{"id": {{ key.id }}, "name": "{{ key.name|escapejs }}", "key": "{{ key.key|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]
+}</script>
+
+<div id="ssh-keys-page-mount"></div>
 {% endblock %}
+
 {% block scripts %}
-{{block.super}}
-<script>
-var delete_key_url = '{% url "api_delete_ssh_key" %}';
-</script>
-<script src="{% static "js/ssh/ssh_keys.js" %}"></script>
+{{ block.super }}
+<script type="module" src="{% static 'js/app/pages/ssh-keys.js' %}"></script>
 {% endblock %}
