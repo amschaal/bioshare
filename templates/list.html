@@ -77,6 +77,7 @@
         "searchApi": "{% if subdir %}{% url 'api_search_share' share=share.id subdir=subdir %}{% else %}{% url 'api_search_share' share=share.id %}{% endif %}",
         "logsApi": "/bioshare/api/logs/",
         "downloadZip": "{% if subdir %}{% url 'download_archive_stream' share=share.id subdir=subdir %}{% else %}{% url 'download_archive_stream' share=share.id %}{% endif %}",
+        "uploadFile": "{% if subdir %}{% url 'upload_file' share=share.id subdir=subdir %}{% else %}{% url 'upload_file' share=share.id %}{% endif %}",
         "createFolder": "{% if subdir %}{% url 'create_folder' share=share.id subdir=subdir %}{% else %}{% url 'create_folder' share=share.id %}{% endif %}",
         "modifyName": "{% if subdir %}{% url 'modify_name' share=share.id subdir=subdir %}{% else %}{% url 'modify_name' share=share.id %}{% endif %}",
         "deletePaths": "{% if subdir %}{% url 'delete_paths' share=share.id subdir=subdir %}{% else %}{% url 'delete_paths' share=share.id %}{% endif %}",

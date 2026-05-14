@@ -17,6 +17,7 @@ import { FileTable } from '/static/js/app/components/FileTable.vue.js';
 import { DataTable } from '/static/js/app/components/DataTable.vue.js';
 import { DropdownMenu, DropdownMenuItem } from '/static/js/app/components/DropdownMenu.vue.js';
 import { Modal } from '/static/js/app/components/Modal.vue.js';
+import { Uploader } from '/static/js/app/components/Uploader.vue.js';
 import { fmtDateShort } from '/static/js/app/format.js';
 
 const initEl = document.getElementById('list-init');
@@ -33,7 +34,7 @@ function formPost(url, fields) {
 
 if (mountEl) {
     createApp({
-        components: { Tabs, FileTable, DataTable, DropdownMenu, DropdownMenuItem, Modal },
+        components: { Tabs, FileTable, DataTable, DropdownMenu, DropdownMenuItem, Modal, Uploader },
         setup() {
             const perms = init.perms || [];
             const canWrite = perms.includes('write_to_share');
@@ -75,6 +76,20 @@ if (mountEl) {
 
             const dirHref = (subdir, name) => `${name}/`;
             const fileHref = (name) => init.urls.downloadFilePrefix + encodeURIComponent(name);
+
+            // ----- Uploader -----
+            const showUploader = ref(false);
+            function onUploaded(fileObj) {
+                // Server descriptor: { name, extension, size, bytes, url, modified, isText }.
+                // Replace an existing same-named row (re-upload) or append.
+                const existing = files.value.findIndex(f => f.name === fileObj.name);
+                const row = { ...fileObj, metadata: {} };
+                if (existing !== -1) files.value.splice(existing, 1, row);
+                else files.value.push(row);
+            }
+            function onUploadFailed(name, message) {
+                toast.error(`${name}: ${message}`);
+            }
 
             // ----- New Folder modal -----
             const folderModalOpen = ref(false);
@@ -247,6 +262,7 @@ if (mountEl) {
                 activeTab, tabs,
                 directories, files, loading, loadError, selection,
                 dirHref, fileHref, onPreview,
+                showUploader, onUploaded, onUploadFailed,
                 folderModalOpen, folderName, folderError, folderSaving, openFolderModal, createFolder,
                 renameModalOpen, renameTarget, renameTo, renameError, renameSaving, openRename, doRename,
                 deleteSelected,
@@ -264,9 +280,28 @@ if (mountEl) {
                     <button v-if="canWrite" type="button" class="btn btn-success" @click="openFolderModal">
                         <span class="bi bi-folder-plus me-1" aria-hidden="true"></span>New folder
                     </button>
+                    <button
+                        v-if="canWrite"
+                        type="button"
+                        class="btn btn-success"
+                        :aria-expanded="showUploader"
+                        aria-controls="file-uploader-panel"
+                        @click="showUploader = !showUploader"
+                    >
+                        <span class="bi bi-upload me-1" aria-hidden="true"></span>Upload
+                    </button>
                     <button v-if="canDelete" type="button" class="btn btn-danger" :disabled="selection.length === 0" @click="deleteSelected">
                         <span class="bi bi-trash me-1" aria-hidden="true"></span>Delete<span v-if="selection.length"> ({{ selection.length }})</span>
                     </button>
+                </div>
+
+                <div v-if="canWrite && showUploader" id="file-uploader-panel" class="mb-3">
+                    <Uploader
+                        :url="init.urls.uploadFile"
+                        @uploaded="onUploaded"
+                        @failed="onUploadFailed"
+                        @all-done="() => {}"
+                    />
                 </div>
 
                 <Tabs v-model="activeTab" :tabs="tabs" aria-label="File browser sections">
