@@ -62,7 +62,7 @@ async function handleResponse(response, opts = {}) {
     }
 
     if (!response.ok) {
-        const message = (body && typeof body === 'object' && (body.detail || body.error)) || `Request failed (${response.status})`;
+        const message = extractErrorMessage(body, response.status);
         if (!opts.suppressErrorToast) toast.error(message);
         const err = new Error(message);
         err.response = response;
@@ -71,6 +71,23 @@ async function handleResponse(response, opts = {}) {
     }
 
     return body;
+}
+
+// Pull the most useful human-readable message out of a non-2xx JSON body.
+// Handles DRF's { detail }, this app's json_error { status, errors: [...] }
+// (where errors entries may themselves be Django ErrorList arrays, so we
+// flatten), and the occasional { error } singular.
+function extractErrorMessage(body, status) {
+    if (body && typeof body === 'object') {
+        if (body.detail) return String(body.detail);
+        if (body.error) return String(body.error);
+        if (Array.isArray(body.errors)) {
+            const flat = body.errors.flat(Infinity).map(x => String(x)).filter(Boolean);
+            if (flat.length) return flat.join(' ');
+        }
+    }
+    if (typeof body === 'string' && body.trim()) return body.trim().slice(0, 300);
+    return `Request failed (${status})`;
 }
 
 export async function apiGet(url, params, opts) {

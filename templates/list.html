@@ -72,6 +72,21 @@
     "subdir": "{{ subdir|default_if_none:''|escapejs }}",
     "perms": {{ share_perms_json|safe }},
     "authenticated": {{ user.is_authenticated|yesno:"true,false" }},
+    "canLink": {{ user.can_link|yesno:"true,false" }},
+    "conn": {
+        "host": "{{ HOST|default:''|escapejs }}",
+        "sftpPort": "{{ SFTP_PORT|default:''|escapejs }}",
+        "rsyncUrl": "{{ rsync_url|default:''|escapejs }}",
+        "sessionCookie": "{{ session_cookie|default:''|escapejs }}",
+        "baseUrl": "{{ request.get_host|escapejs }}",
+        "username": "{{ request.user.username|escapejs }}",
+        "shareSlug": "{{ share.slug_or_id|escapejs }}"
+    },
+    "email": {
+        "recipients": [{% for e in emails %}"{{ e|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+        "defaultSubject": "Bioshare: \"{{ share.name|escapejs }}\" updated",
+        "defaultBody": "Greetings,\n\n\"{{ share.name|escapejs }}\" has been updated on Bioshare. Please visit the following URL to see changes:\n{{ SITE_URL|default:'' }}{% url 'list_directory' share.slug_or_id %}\n"
+    },
     "urls": {
         "downloadFilePrefix": "{% url 'download_file' share=share.id subpath=subdir|default_if_none:'' %}",
         "searchApi": "{% if subdir %}{% url 'api_search_share' share=share.id subdir=subdir %}{% else %}{% url 'api_search_share' share=share.id %}{% endif %}",
@@ -79,9 +94,12 @@
         "downloadZip": "{% if subdir %}{% url 'download_archive_stream' share=share.id subdir=subdir %}{% else %}{% url 'download_archive_stream' share=share.id %}{% endif %}",
         "uploadFile": "{% if subdir %}{% url 'upload_file' share=share.id subdir=subdir %}{% else %}{% url 'upload_file' share=share.id %}{% endif %}",
         "createFolder": "{% if subdir %}{% url 'create_folder' share=share.id subdir=subdir %}{% else %}{% url 'create_folder' share=share.id %}{% endif %}",
+        "createSymlink": "{% if subdir %}{% url 'create_symlink' share=share.id subdir=subdir %}{% else %}{% url 'create_symlink' share=share.id %}{% endif %}",
         "modifyName": "{% if subdir %}{% url 'modify_name' share=share.id subdir=subdir %}{% else %}{% url 'modify_name' share=share.id %}{% endif %}",
         "deletePaths": "{% if subdir %}{% url 'delete_paths' share=share.id subdir=subdir %}{% else %}{% url 'delete_paths' share=share.id %}{% endif %}",
         "movePaths": "{% if subdir %}{% url 'move_paths' share=share.id subdir=subdir %}{% else %}{% url 'move_paths' share=share.id %}{% endif %}",
+        "emailParticipants": "{% url 'api_email_participants' share=share.id subdir=subdir|default_if_none:'' %}",
+        "shareReadOnly": "{% url 'api_share_read_only' share=share.id %}",
         "metadataPrefix": "{% url 'api_edit_metadata' share=share.id subpath='' %}{{ subdir|default_if_none:'' }}",
         "previewPrefix": "{% url 'preview_file' share=share.id subpath='' %}{{ subdir|default_if_none:'' }}"
     }
