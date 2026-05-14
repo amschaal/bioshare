@@ -37,7 +37,8 @@
 {% comment %}Inline init payload for pages/shares.js (json_script handles escaping).{% endcomment %}
 <script id="shares-init" type="application/json">{
     "locked": {{ locked|yesno:"true,false" }},
-    "bad_paths": {{ bad_paths|yesno:"true,false" }}{% if group %},
+    "bad_paths": {{ bad_paths|yesno:"true,false" }},
+    "ownsShares": {{ user.share_set.all.count|yesno:"true,false" }}{% if group %},
     "group": "{{ group.name|escapejs }}"{% endif %}
 }</script>
 <div id="shares-page-mount"></div>

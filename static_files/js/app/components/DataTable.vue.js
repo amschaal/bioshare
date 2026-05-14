@@ -168,6 +168,15 @@ export const DataTable = defineComponent({
             fetchPage();
         });
 
+        // Re-fetch when the consumer changes baseFilters (e.g., the shares
+        // page's Advanced Filters panel). Reset to page 1 since the result
+        // set changes. JSON.stringify gives a cheap deep-equality check.
+        watch(() => JSON.stringify(props.baseFilters || {}), (next, prev) => {
+            if (next === prev) return;
+            page.value = 1;
+            fetchPage();
+        });
+
         // When the consumer mutates column visibility (typically via
         // ColumnPicker), persist the new visibility map to URL state. Deep
         // watch picks up `c.visible` changes inside the reactive array.
