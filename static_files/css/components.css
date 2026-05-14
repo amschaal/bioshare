@@ -109,9 +109,30 @@
     transform: rotate(180deg);
 }
 
+/* ---------------------------------------------------------------- Combobox options */
+/* Reka UI sets data-highlighted on the option under the keyboard cursor (moved
+ * with Arrow keys) and the pointer. Without a visible style, keyboard users
+ * can't tell ArrowDown is doing anything (WCAG 2.4.7). data-state="checked"
+ * marks the currently selected option. */
+[role="option"] {
+    transition: background-color .1s ease-out;
+}
+[role="option"][data-highlighted] {
+    background-color: #0d6efd; /* bootstrap primary */
+    color: #fff;
+    outline: none;
+}
+[role="option"][data-state="checked"]:not([data-highlighted]) {
+    background-color: #e7f1ff;
+    font-weight: 600;
+}
+
 /* ---------------------------------------------------------------- Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .skip-link {
+        transition: none;
+    }
+    [role="option"] {
         transition: none;
     }
 }
