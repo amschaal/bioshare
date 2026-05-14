@@ -225,7 +225,81 @@ if (mountEl) {
                 }
             }
 
-            function onPreview(_file) { toast.info('File preview — coming in a later update.'); }
+            // ----- Move modal -----
+            const moveModalOpen = ref(false);
+            const moveDestination = ref('');
+            const moveError = ref('');
+            const moveSaving = ref(false);
+            function openMoveModal() {
+                if (selection.value.length === 0) return;
+                moveDestination.value = '';
+                moveError.value = '';
+                moveModalOpen.value = true;
+            }
+            async function doMove() {
+                const dest = moveDestination.value.trim();
+                if (!dest) { moveError.value = 'Enter a destination folder.'; return; }
+                moveSaving.value = true;
+                moveError.value = '';
+                try {
+                    const data = await apiPost(init.urls.movePaths, {
+                        json: { destination: dest, selection: selection.value.slice() },
+                    });
+                    const moved = new Set(data.moved || []);
+                    directories.value = directories.value.filter(d => !moved.has(d.name));
+                    files.value = files.value.filter(f => !moved.has(f.name));
+                    selection.value = [];
+                    moveModalOpen.value = false;
+                    if ((data.failed || []).length) {
+                        toast.warning(`Moved ${data.moved.length}; failed: ${data.failed.join(', ')}`);
+                    } else {
+                        toast.success(`Moved ${data.moved.length} item${data.moved.length > 1 ? 's' : ''} to "${dest}".`);
+                    }
+                } catch (e) {
+                    moveError.value = e.message || 'Move failed.';
+                } finally {
+                    moveSaving.value = false;
+                }
+            }
+
+            // ----- File Preview modal -----
+            const PREVIEW_CHUNK = 200;
+            const previewModalOpen = ref(false);
+            const previewFile = ref(null);
+            const previewContent = ref('');
+            const previewLoading = ref(false);
+            const previewFrom = ref(1);
+            const previewTotal = ref(null);
+            const previewHasMore = ref(false);
+            async function loadPreviewChunk(includeTotal) {
+                if (!previewFile.value) return;
+                previewLoading.value = true;
+                try {
+                    const url = init.urls.previewPrefix + encodeURIComponent(previewFile.value.name);
+                    const params = { from: previewFrom.value, for: PREVIEW_CHUNK };
+                    if (includeTotal) params.get_total = '1';
+                    const data = await apiGet(url, params);
+                    const chunk = Array.isArray(data.content) ? data.content.join('') : (data.content || '');
+                    previewContent.value += chunk;
+                    if (data.total != null) previewTotal.value = data.total;
+                    previewFrom.value = data.next?.from || (previewFrom.value + PREVIEW_CHUNK);
+                    previewHasMore.value = previewTotal.value != null && previewFrom.value <= previewTotal.value;
+                } catch (e) {
+                    previewContent.value = 'Unable to preview this file.';
+                    previewHasMore.value = false;
+                } finally {
+                    previewLoading.value = false;
+                }
+            }
+            async function onPreview(file) {
+                previewFile.value = file;
+                previewContent.value = '';
+                previewFrom.value = 1;
+                previewTotal.value = null;
+                previewHasMore.value = false;
+                previewModalOpen.value = true;
+                await loadPreviewChunk(true);
+            }
 
             // ----- Search tab -----
             const searchQuery = ref('');
@@ -263,6 +337,9 @@ if (mountEl) {
                 directories, files, loading, loadError, selection,
                 dirHref, fileHref, onPreview,
                 showUploader, onUploaded, onUploadFailed,
+                moveModalOpen, moveDestination, moveError, moveSaving, openMoveModal, doMove,
+                previewModalOpen, previewFile, previewContent, previewLoading,
+                previewTotal, previewHasMore, loadPreviewChunk,
                 folderModalOpen, folderName, folderError, folderSaving, openFolderModal, createFolder,
                 renameModalOpen, renameTarget, renameTo, renameError, renameSaving, openRename, doRename,
                 deleteSelected,
@@ -289,6 +366,9 @@ if (mountEl) {
                         @click="showUploader = !showUploader"
                     >
                         <span class="bi bi-upload me-1" aria-hidden="true"></span>Upload
+                    </button>
+                    <button v-if="canWrite" type="button" class="btn btn-success" :disabled="selection.length === 0" @click="openMoveModal">
+                        <span class="bi bi-arrows-move me-1" aria-hidden="true"></span>Move<span v-if="selection.length"> ({{ selection.length }})</span>
                     </button>
                     <button v-if="canDelete" type="button" class="btn btn-danger" :disabled="selection.length === 0" @click="deleteSelected">
                         <span class="bi bi-trash me-1" aria-hidden="true"></span>Delete<span v-if="selection.length"> ({{ selection.length }})</span>
@@ -403,6 +483,57 @@ if (mountEl) {
                     <template #footer>
                         <button type="button" class="btn btn-outline-secondary" @click="metaModalOpen = false">Cancel</button>
                         <button type="button" class="btn btn-primary" :disabled="metaSaving" @click="saveMetadata">Save</button>
+                    </template>
+                </Modal>
+
+                <!-- Move modal -->
+                <Modal v-model:open="moveModalOpen" title="Move selected items" size="md">
+                    <form @submit.prevent="doMove">
+                        <p class="text-muted small">
+                            Moving {{ selection.length }} item{{ selection.length === 1 ? '' : 's' }}:
+                            {{ selection.join(', ') }}
+                        </p>
+                        <label for="move-destination" class="form-label">Destination folder</label>
+                        <input
+                            id="move-destination"
+                            v-model="moveDestination"
+                            class="form-control"
+                            :class="{ 'is-invalid': moveError }"
+                            placeholder="path/relative/to/share/root"
+                            autocomplete="off"
+                            aria-describedby="move-destination-help"
+                        />
+                        <div id="move-destination-help" class="form-text">Enter a folder path relative to the share root.</div>
+                        <div v-if="moveError" class="invalid-feedback d-block">{{ moveError }}</div>
+                    </form>
+                    <template #footer>
+                        <button type="button" class="btn btn-outline-secondary" @click="moveModalOpen = false">Cancel</button>
+                        <button type="button" class="btn btn-primary" :disabled="moveSaving" @click="doMove">Move</button>
+                    </template>
+                </Modal>
+
+                <!-- File Preview modal -->
+                <Modal v-model:open="previewModalOpen" :title="previewFile ? 'Preview: ' + previewFile.name : 'Preview'" size="xl">
+                    <textarea
+                        class="form-control font-monospace"
+                        rows="20"
+                        readonly
+                        :aria-label="previewFile ? 'Contents of ' + previewFile.name : 'File contents'"
+                        :value="previewContent"
+                    ></textarea>
+                    <template #footer>
+                        <span class="me-auto small text-muted" aria-live="polite">
+                            <span v-if="previewLoading">Loading…</span>
+                            <span v-else-if="previewTotal != null">{{ previewTotal }} lines total</span>
+                        </span>
+                        <button
+                            v-if="previewHasMore"
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            :disabled="previewLoading"
+                            @click="loadPreviewChunk(false)"
+                        >Load more</button>
+                        <button type="button" class="btn btn-primary" @click="previewModalOpen = false">Close</button>
                     </template>
                 </Modal>
             </div>
