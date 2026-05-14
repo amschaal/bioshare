@@ -1,4 +1,7 @@
 {% extends 'base.html' %}
+{% block title %}Page not found{% endblock %}
 {% block content %}
-<h1>Looks like you might be lost.  We'll help you find your way <a href="{% url 'home' %}">home</a>.</h1>
+<h1 class="h3">Page not found</h1>
+<p>Looks like you might be lost. We'll help you find your way
+   <a href="{% url 'home' %}">home</a>.</p>
 {% endblock %}

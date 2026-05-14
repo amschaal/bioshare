@@ -1,9 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block title %}Server error{% endblock %}
 {% block content %}
-<h1 class="text-center">
-Oops.  Something went wrong.  Please contact the webmaster if the problem persists.<br>
-<img src="{% static 'images/fail.jpg' %}" alt="Server error"/>
-</h1>
-
+<h1 class="h3">Oops. Something went wrong.</h1>
+<p>Please contact the webmaster if the problem persists.</p>
+<img src="{% static 'images/fail.jpg' %}" alt="Server error" class="img-fluid" />
 {% endblock %}

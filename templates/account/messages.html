@@ -1,6 +1,16 @@
 {% extends "base.html" %}
-{% block title %}System message{% endblock %}
-{% block system_messages %}
-<h2>System messages</h2>
-<message-list></message-list>
+{% load static %}
+{% block title %}System messages{% endblock %}
+
+{% comment %}Override the chrome's active-only message strip with the full archive.{% endcomment %}
+{% block system_messages %}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">System messages</h1>
+<div id="message-archive-mount"></div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script type="module" src="{% static 'js/app/pages/messages.js' %}"></script>
 {% endblock %}

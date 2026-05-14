@@ -1,13 +1,23 @@
 {% extends "base.html" %}
-{% load crispy_forms_tags %}
-{% block title %}Hello World!{% endblock %}
+{% block title %}Delete share{% endblock %}
 
 {% block content %}
-  {%if message%}
-  <h2>{{message}}</h2>
-  {% endif %}
-  {%if show_confirm%}
-  <h3>Are you absolutely sure you want to delete "{{share.name}}"?  {% if share.link_to_path %}After deleting the share, the symlink will be removed, but the data will remain.{% else %}All files will be lost.{% endif %}</h3>
-  <a href="{% url 'confirm_delete_share' share.id %}" class="btn btn-danger">Yes, Delete it!</a>
-  {% endif %}
+{% if message %}
+<h1 class="h3 mb-3">{{ message }}</h1>
+{% endif %}
+
+{% if show_confirm %}
+<div class="alert alert-danger" role="alert">
+    <h2 class="h5">Are you absolutely sure you want to delete "{{ share.name }}"?</h2>
+    <p class="mb-0">
+        {% if share.link_to_path %}
+            After deleting the share, the symlink will be removed, but the data will remain.
+        {% else %}
+            All files will be lost.
+        {% endif %}
+    </p>
+</div>
+<a href="{% url 'confirm_delete_share' share.id %}" class="btn btn-danger">Yes, delete it</a>
+<a href="{% url 'list_directory' share.slug_or_id %}" class="btn btn-outline-secondary">Cancel</a>
+{% endif %}
 {% endblock %}
