@@ -13,11 +13,8 @@
     {% compress css %}
     <link rel="stylesheet" href="{% static 'lib/bootstrap5/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'lib/bootstrap-icons/bootstrap-icons.min.css' %}">
-    <link rel="stylesheet" href="{% static 'css/legacy-icon-shim.css' %}">
     <link rel="stylesheet" href="{% static 'css/components.css' %}">
     <link rel="stylesheet" href="{% static 'css/bioshare.css' %}">
-    {# Kept while un-migrated pages still mount ng-table. Removed in Phase F. #}
-    <link rel="stylesheet" href="{% static 'lib/ng-table/ng-table.min.css' %}">
     {% endcompress %}
 
     {% comment %}Boot config consumed by main.js / pages/base.js. Inline (not in a compress block) so it always lands before the module scripts that read it.{% endcomment %}
@@ -42,9 +39,6 @@
             previewFile: "{% url 'preview_file' share='000000000000000' subpath='' %}"
         }
     };
-    /* Legacy globals — kept while un-migrated jQuery code still reads them. Removed in Phase F. */
-    var share_autocomplete_url = "{% url 'api_share_autocomplete' %}";
-    var preview_file_url = "{% url 'preview_file' share='000000000000000' subpath='' %}";
     </script>
 
     {% comment %}Resolves bare specifiers used by Reka UI's bundle internally and by our component modules. All other Reka UI transitive deps are inlined into the bundle.{% endcomment %}
@@ -56,24 +50,10 @@
       }
     }
     </script>
-
-    {% comment %}Legacy stack kept side-by-side during migration. Pages still using AngularJS / jQuery / handlebars depend on these. Removed in Phase F.{% endcomment %}
-    <script src="{% static 'js/jsurls.js' %}"></script>
-    {% compress js %}
-    <script src="{% static 'js/django_js_utils.js' %}"></script>
-    <script src="{% static 'lib/jquery-1.10.1.min.js' %}"></script>
-    <script src="{% static 'lib/angular/angular.min.js' %}"></script>
-    <script src="{% static 'lib/angular/angular-resource.min.js' %}"></script>
-    <script src="{% static 'lib/angular/angular-route.min.js' %}"></script>
-    <script src="{% static 'lib/ng-table/ng-table.min.js' %}"></script>
-    <script src="{% static 'lib/ui-bootstrap/ui-bootstrap.min.js' %}"></script>
-    <script src="{% static 'lib/angular-checklist/checklist-model.js' %}"></script>
-    <script src="{% static 'js/services/ng-page-state.js' %}"></script>
-    {% endcompress %}
     {% endblock %}
   </head>
 
-  <body ng-app="bioshare">
+  <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <header role="banner" class="bg-dark text-white">
@@ -199,18 +179,6 @@
     {% comment %}Singletons (Announce, ToastHost, ConfirmDialog) mount here. main.js provisions the host node if missing, but having it in the template keeps DOM order predictable.{% endcomment %}
     <div id="bioshare-globals"></div>
 
-    {% comment %}Legacy body-bottom scripts. lib.js must load before AngularJS bootstraps because it defines the bioshare module that auto-bootstrap (via ng-app on body) resolves. Order matters: models -> message-directives -> json2 -> handlebars -> csrf -> lib -> bioshare.{% endcomment %}
-    {% compress js %}
-    <script src="{% static 'js/resources/models.js' %}"></script>
-    <script src="{% static 'js/directives/message-directives.js' %}"></script>
-    <script src="{% static 'lib/json2.min.js' %}"></script>
-    <script src="{% static 'lib/handlebars.js' %}"></script>
-    <script src="{% static 'js/csrf.js' %}"></script>
-    <script src="{% static 'js/lib.js' %}"></script>
-    <script src="{% static 'js/bioshare.js' %}"></script>
-    {% endcompress %}
-
-    {% comment %}New stack: module scripts sit OUTSIDE the compress block (django-compressor can't safely concatenate ES modules — it strips type=module and joins as plain text, which breaks import statements).{% endcomment %}
     <script type="module" src="{% static 'js/app/main.js' %}"></script>
     <script type="module" src="{% static 'js/app/pages/base.js' %}"></script>
 
