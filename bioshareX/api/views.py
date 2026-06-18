@@ -110,6 +110,7 @@ def share_autocomplete(request):
     except Exception as e:
         return json_error([str(e)])
 
+@ajax_login_required
 @api_view(['GET'])
 def get_group(request):
     query = request.GET.get('query')
@@ -154,6 +155,7 @@ def set_permissions(request,share):
 
 @ratelimit(key=url_path_key, group='search_share', rate=ratelimit_rate)
 @share_access_decorator(['view_share_files'])
+@safe_path_decorator(path_param='subdir')
 def search_share(request,share,subdir=None):
     from bioshareX.utils import find
     query = request.GET.get('query',False)

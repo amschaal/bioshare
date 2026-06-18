@@ -191,6 +191,10 @@ class Share(models.Model):
             return None
     def create_folder(self,name,subdir=None):
         os.umask(settings.UMASK)
+        # Defense-in-depth: reject traversal in name/subdir regardless of caller.
+        test_path(name)
+        if subdir:
+            test_path(subdir)
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
         if os.path.exists(path):
             folder_path = os.path.join(path,name)
@@ -201,7 +205,15 @@ class Share(models.Model):
         return folder_path
     def delete_path(self,subpath):
         import shutil
-        if subpath is None or subpath == '' or subpath.count('..') != 0:
+        if subpath is None or subpath == '':
+            return False
+        # test_path() is stricter than the old `count('..')` check: it also rejects
+        # absolute paths and leading '~' (os.path.join would otherwise let an
+        # absolute subpath escape the share). Raises -> return False, preserving the
+        # existing False-on-invalid contract.
+        try:
+            test_path(subpath)
+        except Exception:
             return False
         path = os.path.join(self.get_path(),subpath)
         if os.path.exists(path):
@@ -227,7 +239,12 @@ class Share(models.Model):
     def move_path(self,item_subpath,destination_subpath=''):
         os.umask(settings.UMASK)
         import shutil
-        if destination_subpath.count('..') != 0:
+        # Validate both source and destination (the old check only covered the
+        # destination, leaving item_subpath traversal to the caller).
+        try:
+            test_path(item_subpath)
+            test_path(destination_subpath)
+        except Exception:
             return False
         destination_path = os.path.join(self.get_path(),destination_subpath)
         if destination_path != os.path.realpath(destination_path):
@@ -322,6 +339,11 @@ class Share(models.Model):
         from django.http.response import StreamingHttpResponse
         from bioshareX.utils import get_total_size, zipdir
         from settings.settings import ZIPFILE_SIZE_LIMIT_BYTES
+        # Defense-in-depth: reject traversal in subdir/items regardless of caller.
+        if subdir:
+            test_path(subdir)
+        for item in items:
+            test_path(item)
         path = self.get_path() if subdir is None else os.path.join(self.get_path(),subdir)
         if not os.path.exists(path):
             raise Exception('Invalid subdirectory provided')

@@ -344,9 +344,17 @@ class SFTPInterface (SFTPServerInterface):
         parts = path.split(os.path.sep)
         share = self._get_share(path)
         realpath = os.path.realpath(os.path.join(share.get_realpath(),os.path.sep.join(parts[2:])))
-        if not paths_contain(settings.DIRECTORY_WHITELIST,realpath):
+        # Containment must be to THIS share's own root (plus legitimate symlink
+        # targets), NOT the global DIRECTORY_WHITELIST.  DIRECTORY_WHITELIST
+        # includes FILESYSTEM_DIRECTORIES (e.g. /data/shares), the parent of every
+        # share, so checking against it lets a `..` in an SFTP path escape into a
+        # sibling share that the session was never granted access to.  The HTTP
+        # layer avoids this by running test_path() (which rejects `..`); SFTP has
+        # no such step, so we enforce per-share containment here instead.
+        allowed_roots = [share.get_realpath()] + list(getattr(settings, 'LINK_TO_DIRECTORIES', []))
+        if not paths_contain(allowed_roots,realpath):
             share.check_paths()
-            raise PermissionDenied("Encountered a path outside the whitelist")
+            raise PermissionDenied("Encountered a path outside the share")
         return realpath
 #         print self.ROOT + self.canonicalize(path)
 #         return self.ROOT + self.canonicalize(path)

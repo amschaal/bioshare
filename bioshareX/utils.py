@@ -189,7 +189,12 @@ def find(share, pattern, subdir=None,prepend_share_id=True):
     import os
     import subprocess
     path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
-    base_path = os.path.realpath(path) 
+    base_path = os.path.realpath(path)
+    # Defense-in-depth: never let `find` run outside this share's own root (plus
+    # legitimate symlink targets), even if a caller forgot to validate subdir.
+    allowed_roots = [share.get_realpath()] + list(getattr(settings, 'LINK_TO_DIRECTORIES', []))
+    if not paths_contain(allowed_roots, base_path):
+        raise IllegalPathException('Illegal search path')
     output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
 #     output = subprocess.check_output(['find',path,'-name',pattern])
     paths = output.split('\n')
