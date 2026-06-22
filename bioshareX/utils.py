@@ -223,15 +223,14 @@ def validate_email( email ):
 def email_users(users, subject_template=None, body_template=None, ctx_dict={},subject=None,body=None, from_email=settings.DEFAULT_FROM_EMAIL,content_subtype = "html"):
     from django.core.mail import EmailMessage
     from django.template.loader import render_to_string
-    if subject:
-        t = Template(subject)
-        subject = t.render(Context(ctx_dict))
-    else:
+    # `subject`/`body` are passed as literal strings (e.g. user-composed participant
+    # emails). Do NOT compile them as Django templates — that is needless SSTI
+    # surface. Only the *_template file paths (trusted) are rendered with context.
+    if not subject:
         subject = render_to_string(subject_template,ctx_dict)
     subject = ''.join(subject.splitlines())
     if body:
-        t = Template(body)
-        message = t.render(Context(ctx_dict))
+        message = body
     else:
         message = render_to_string(body_template, ctx_dict)
     msg = EmailMessage(subject, message, from_email, [u.email for u in users])

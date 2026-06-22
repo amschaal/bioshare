@@ -456,7 +456,15 @@ class SSHKey(models.Model):
     key = models.TextField(blank=False,null=False)
     def create_authorized_key(self):
         key = self.get_key()
-        return 'command="%s %s/manage.py rsync %s" ssh-rsa %s %s' % (settings.PYTHON_BIN, settings.CURRENT_DIR, self.user.username, key, self.user.username)
+        username = self.user.username
+        # The username is interpolated into an authorized_keys line whose forced
+        # command="... rsync <username>" restricts the key. Any CR/LF, quote, or
+        # whitespace would let a crafted username break out of the forced command
+        # or inject an additional key line, so reject it (defense-in-depth:
+        # usernames are emails today and can't contain these).
+        if any(c in username for c in '\r\n"\\\t '):
+            raise Exception('Illegal characters in username for authorized_keys')
+        return 'command="%s %s/manage.py rsync %s" ssh-rsa %s %s' % (settings.PYTHON_BIN, settings.CURRENT_DIR, username, key, username)
     def get_key(self):
         return self.extract_key(self.key)
     @staticmethod

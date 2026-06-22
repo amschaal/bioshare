@@ -1,13 +1,16 @@
-Django>=5.2,<5.3
-djangorestframework>=3.15,<3.17
+# Minimum versions raised to known-patched releases; pip-audit in CI
+# (.github/workflows/security.yml) is the authoritative recurring vuln check.
+Django>=5.2.13,<5.3
+djangorestframework>=3.16.0,<3.17
 django-compressor>=4.5
 django-crispy-forms>=2.3,<3
 crispy-bootstrap3>=2024.1
 django-filter>=24.3
-django-guardian>=2.4.0
+django-guardian>=2.4.0  # verify latest Django-5.2-compatible release against the test suite
 django-cors-headers>=4.4
 django-ratelimit>=4.1
-Markdown
+Markdown>=3.7
+nh3>=0.2  # HTML sanitizer for user-supplied README.md rendering (XSS fix)
 paramiko>=3.4
 rcssmin
 rjsmin

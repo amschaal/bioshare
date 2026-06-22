@@ -141,6 +141,17 @@ def list_directory(request,share,subdir=None):
         readme = markdown.markdown(text,extensions=['fenced_code','tables','nl2br'])
         download_base = reverse('download_file',kwargs={'share':share.id,'subpath':subdir if subdir else ''})
         readme = re.sub(r'src="(?!http)',r'src="{0}'.format(download_base),readme)
+        # README.md is user-supplied; Python-Markdown passes raw HTML through, so
+        # sanitize as the final step before it is rendered with |safe to prevent
+        # stored XSS (<script>, on* handlers, javascript: URLs are stripped).
+        import nh3
+        readme = nh3.clean(
+            readme,
+            tags={'h1','h2','h3','h4','h5','h6','p','br','hr','strong','em','b','i',
+                  'code','pre','blockquote','ul','ol','li','a','img',
+                  'table','thead','tbody','tr','th','td'},
+            attributes={'a': {'href','title'}, 'img': {'src','alt','title'}},
+        )
     return render(request,'list.html', {"session_cookie":request.COOKIES.get('sessionid'),"files":files,"directories":directories.values(),"errors":errors,"path":PATH,"share":share,"subshare":subshare,"subdir": subdir, "is_realpath": is_realpath,'rsync_url':get_setting('RSYNC_URL',None),'HOST':get_setting('HOST',None),'SFTP_PORT':get_setting('SFTP_PORT',None),"folder_form":FolderForm(),"link_form":SymlinkForm(request.user, share, subdir),"metadata_form":MetaDataForm(), "rename_form":RenameForm(),"request":request,"owner":owner,"share_perms":share_perms,"all_perms":all_perms,"share_perms_json":json.dumps(share_perms),"shared_users":shared_users,"shared_groups":shared_groups,"emails":emails, "readme":readme})
 
 @ratelimit(key=url_path_key, group='wget_listing', rate=ratelimit_rate)
@@ -275,6 +286,7 @@ def delete_share(request, share, confirm=False):
 def view_messages(request):
     return render(request, 'account/messages.html', {})
 
+@login_required
 def locked(request, share):
     share = Share.get_by_slug_or_id(share)
     if not share.locked:

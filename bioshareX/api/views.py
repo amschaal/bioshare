@@ -201,14 +201,21 @@ def delete_ssh_key(request):
 #         remove_me = keystring.replace('/','\\/')#re.escape(key.extract_key())
 #         command = ['/bin/sed','-i','/%s/d'%remove_me,AUTHORIZED_KEYS_FILE]
 #         subprocess.check_call(command)
-        f = open(AUTHORIZED_KEYS_FILE,"r")
-        lines = f.readlines()
-        f.close()
-        f = open(AUTHORIZED_KEYS_FILE,"w")
-        for line in lines:
-            if line.find(keystring) ==-1:
-                f.write(line)
-        f.close()
+        # Hold an exclusive lock across the read-modify-write so concurrent key
+        # deletes can't clobber each other's changes to authorized_keys.
+        import fcntl
+        with open(AUTHORIZED_KEYS_FILE,"r+") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                lines = f.readlines()
+                f.seek(0)
+                f.truncate()
+                for line in lines:
+                    if line.find(keystring) ==-1:
+                        f.write(line)
+                f.flush()
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
 #        subprocess.call(['/bin/chmod','400',AUTHORIZED_KEYS_FILE])
         key.delete()
         SSHKey.objects.filter(key__contains=keystring).delete()
