@@ -1,18 +1,23 @@
 {% extends "base.html" %}
-
 {% block title %}Bioshare - Error{% endblock %}
 
 {% block content %}
-  {% if share %}
-    {% if owner or user.is_superuser %}
-      <a href="{% url 'delete_share' share.id %}" class="btn btn-danger pull-right margin-3"><i class="icon-trash icon-white"></i> Delete {% if share.link_to_path %}(Unlink){% endif %} Share</a>
-      <a href="{% url 'edit_share' share.id %}" class="btn btn-primary pull-right margin-3"><i class="icon-edit icon-white"></i> Edit</a>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <h1 class="h3 m-0">{{ message|safe }}</h1>
+    {% if share and owner or share and user.is_superuser %}
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'edit_share' share.id %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-pencil-square" aria-hidden="true"></i> Edit
+        </a>
+        <a href="{% url 'delete_share' share.id %}" class="btn btn-sm btn-danger">
+            <i class="bi bi-trash" aria-hidden="true"></i> Delete {% if share.link_to_path %}(Unlink){% endif %} share
+        </a>
+    </div>
     {% endif %}
-  {% endif %}
-  <h3>
-    {{message|safe}}
-  </h3>
-  {% if share and subdir %}
-    You may want to try starting at <a href="{% url 'list_directory' share=share.id %}">the main directory of the share</a>.
-  {% endif %}
+</div>
+
+{% if share and subdir %}
+<p>You may want to try starting at
+   <a href="{% url 'list_directory' share=share.id %}">the main directory of the share</a>.</p>
+{% endif %}
 {% endblock %}

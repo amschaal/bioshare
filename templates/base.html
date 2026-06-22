@@ -4,160 +4,197 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-  	<meta name="robots" content="noindex"/>
-	{% block head %}
+    <meta name="robots" content="noindex"/>
+    {% block head %}
     <meta charset="utf-8">
-    <title>BIOSHARE - {% block title %}Default title{%endblock%}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="">
-    <meta name="author" content="">
-	{% compress css %}
-    <!-- Les styles -->
-    <link href="{% static "lib/bootstrap/css/bootstrap.css" %}" rel="stylesheet">
-    <link href="{% static "lib/famfamfam-bootstrap/css/fam-icons.css" %}" rel="stylesheet">
-    <link href="{% static "lib/bootstrap/css/bootstrap-responsive.css" %}" rel="stylesheet">
-	<link href="{% static "css/bioshare.css" %}" rel="stylesheet">
-	<link href="{% static "lib/ng-table/ng-table.min.css" %}" rel="stylesheet">
+    <title>BIOSHARE - {% block title %}Default title{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% compress css %}
+    <link rel="stylesheet" href="{% static 'lib/bootstrap5/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'lib/bootstrap-icons/bootstrap-icons.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bioshare.css' %}">
     {% endcompress %}
-    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="{% static "lib/bootstrap/js/html5shiv.js"></script>
-    <![endif]-->
-    <script src="{% static "js/jsurls.js" %}"></script>
-    {% compress js %}
-    <script src="{% static "js/django_js_utils.js" %}"></script>
-    <script src="{% static "lib/jquery-1.10.1.min.js" %}"></script>
-    <script src="{% static "lib/angular/angular.min.js" %}"></script>
-    <script src="{% static "lib/angular/angular-resource.min.js" %}"></script>
-    <script src="{% static "lib/angular/angular-route.min.js" %}"></script>
-    <script src="{% static "lib/ng-table/ng-table.min.js" %}"></script>
-    <script src="{% static "lib/ui-bootstrap/ui-bootstrap.min.js" %}"></script>
-  	<script src="{% static "lib/angular-checklist/checklist-model.js" %}"></script>
-  	<script src="{% static "js/services/ng-page-state.js" %}"></script>
-  	{% endcompress %}
-  {% endblock %}
+
+    {% comment %}Boot config consumed by main.js / pages/base.js. Inline (not in a compress block) so it always lands before the module scripts that read it.{% endcomment %}
+    <script>
+    window.BIOSHARE = {
+        csrfToken: "{{ csrf_token }}",
+        user: {
+            authenticated: {{ request.user.is_authenticated|yesno:"true,false" }},
+            username: "{{ request.user.username|escapejs }}",
+            isSuperuser: {{ request.user.is_superuser|yesno:"true,false" }}
+        },
+        urls: {
+            login: "{% url 'login' %}",
+            home: "{% url 'home' %}",
+            listShares: "{% url 'list_shares' %}",
+            createShare: "{% url 'create_share' %}",
+            passwordChange: "{% url 'password_change' %}",
+            sshKeys: "{% url 'list_ssh_keys' %}",
+            viewMessages: "{% url 'view_messages' %}",
+            groups: "{% url 'groups' %}",
+            shareAutocomplete: "{% url 'api_share_autocomplete' %}",
+            previewFile: "{% url 'preview_file' share='000000000000000' subpath='' %}"
+        }
+    };
+    </script>
+
+    {% comment %}Resolves bare specifiers used by Reka UI's bundle internally and by our component modules. All other Reka UI transitive deps are inlined into the bundle.{% endcomment %}
+    <script type="importmap">
+    {
+      "imports": {
+        "vue": "{% static 'lib/vue/vue.esm-browser.prod.js' %}",
+        "reka-ui": "{% static 'lib/reka-ui/reka-ui.bundle.esm.js' %}"
+      }
+    }
+    </script>
+    {% endblock %}
   </head>
 
-  <body ng-app="bioshare">
+  <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <header class="navbar navbar-inverse navbar-static-top" role="banner">
-      <div class="navbar-inner">
-        <div class="container-fluid">
-          
-          <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-
-          <div class="nav-collapse collapse" id="nav-collapse">
-          <span class="pull-left" style="color: white;font-size: 30px;padding: 10px;">Bioshare</span>
-          <p class="navbar-text pull-right">
+    <header role="banner" class="bg-dark text-white">
+      <div class="container-fluid d-flex flex-wrap align-items-center gap-3 py-2">
+        <a href="{% url 'home' %}" class="link-light text-decoration-none fs-4 fw-semibold">Bioshare</a>
+        <nav aria-label="Primary navigation" class="flex-grow-1">
+          <ul class="nav align-items-center">
+            <li class="nav-item"><a class="nav-link link-light" href="{% url 'home' %}">Home</a></li>
+            <li class="nav-item"><a class="nav-link link-light" target="_blank" rel="noopener" href="https://bioshare.readthedocs.io/en/latest/">Help</a></li>
+            {% if request.user.is_authenticated %}
+            <li class="nav-item"><div id="nav-shares-dropdown-mount"></div></li>
+            <li class="nav-item"><a class="nav-link link-light" href="{% url 'groups' %}">Groups</a></li>
+            <li class="nav-item"><div id="nav-account-dropdown-mount"></div></li>
+            {% endif %}
+          </ul>
+        </nav>
+        <div class="small">
           {% if request.user.is_authenticated %}
-              Logged in as <a href="#" class="navbar-link">{{request.user.username}}</a>  
-              <a href="{% url 'logout' %}" class="navbar-link">Logout</a>
+            Logged in as <a href="#" class="link-light">{{ request.user.username }}</a>
+            <a href="{% url 'logout' %}" class="link-light ms-2">Logout</a>
           {% else %}
-          	  <a href="{% url 'login' %}" class="navbar-link">Login</a>
+            <a href="{% url 'login' %}" class="link-light">Login</a>
           {% endif %}
-            </p>
-            <nav aria-label="Primary navigation">
-            <ul class="nav pull-right">
-              <li><a href="{% url 'home' %}">Home</a></li>
-              <li><a target="_blank" href="https://bioshare.readthedocs.io/en/latest/">Help</a></li>
-              {% if request.user.is_authenticated %}
-              <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Shares <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-                        	<li><a href="{% url 'list_shares'%}">List</a></li>
-							<li><a href="{% url 'create_share'%}">Create</a></li>
-                        </ul>
-              </li>
-              <li><a href="{% url 'groups'%}">Groups</a></li>
-              <li class="dropdown">
-                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Account <b class="caret"></b></a>
-                        <ul class="dropdown-menu">
-							<li><a href="{% url 'password_change'%}">Update Password</a></li>
-                          <li><a href="{% url 'list_ssh_keys'%}">SSH Keys</a></li>
-                          <li><a href="{% url 'view_messages'%}">System Messages</a></li>
-                        </ul>
-                      </li>
-              {% endif %}
-            </ul>
-            </nav>
-          </div><!--/.nav-collapse -->
         </div>
       </div>
     </header>
-	<main class="container-fluid" id="main-content">
-      <div class="row-fluid">
-        <div class="span3">
-          <nav aria-label="Recent shares">
-          <ul>
-            {% for share in user_shares.recent_shares %}
-              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% elif share.locked %}class="error" title="This share has been locked"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{% if share.locked %}<i class="icon-lock"></i> {% endif %}{{share.name}}</a></li>	
+
+    <main class="container-fluid mt-3" id="main-content">
+      <div class="row">
+        <aside class="col-md-3 mb-3">
+          {% if user_shares.recent_shares %}
+          <nav aria-label="Recent shares" class="mb-3">
+            <ul class="list-unstyled mb-0">
+              {% for share in user_shares.recent_shares %}
+              <li>
+                <a class="text-decoration-none {% if not share.path_exists or share.locked %}link-danger{% endif %}"
+                   href="{% url 'list_directory' share.slug_or_id %}"
+                   {% if not share.path_exists %}title="The path for this share does not exist"{% elif share.locked %}title="This share has been locked"{% else %}title="{{ share.notes }}"{% endif %}>
+                  {% if not share.path_exists %}<i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {% endif %}
+                  {% if share.locked %}<i class="bi bi-lock" aria-hidden="true"></i> {% endif %}
+                  {{ share.name }}
+                </a>
+              </li>
               {% endfor %}
-          </ul>
+            </ul>
           </nav>
-		  {% if request.user.is_authenticated %}
-        {% cache 60 sidebar request.user.username %}
-          <div class="well sidebar-nav">
-            <ul class="nav nav-list">
-              <li class="nav-header">Search Shares</li>
-              <li><label for="share_autocomplete" class="sr-only">Search shares</label><input id="share_autocomplete" type="text" data-provide="typeahead" autocomplete="off" placeholder="Search by share name"></li>
+          {% endif %}
+
+          {% if request.user.is_authenticated %}
+          {% cache 60 sidebar request.user.username %}
+          <div class="card">
+            <div class="card-body p-3">
+              <h2 class="h6">Search shares</h2>
+              <div id="share-autocomplete-mount"></div>
+
               {% if user_shares.bad_share_path.count != 0 %}
-              	<a href="{% url 'home' %}?bad_paths" class="error"><i class="icon-warning-sign"></i> {{user_shares.bad_share_path.count}} bad shares</a>
+              <p class="mt-2 mb-0">
+                <a href="{% url 'home' %}?bad_paths" class="link-danger">
+                  <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                  {{ user_shares.bad_share_path.count }} bad shares
+                </a>
+              </p>
               {% endif %}
               {% if user_shares.locked_shares.count != 0 %}
-              	<a href="{% url 'home' %}?locked" class="error"><i class="icon-lock"></i> {{user_shares.locked_shares.count}} locked shares</a>
+              <p class="mt-2 mb-0">
+                <a href="{% url 'home' %}?locked" class="link-danger">
+                  <i class="bi bi-lock" aria-hidden="true"></i>
+                  {{ user_shares.locked_shares.count }} locked shares
+                </a>
+              </p>
               {% endif %}
+
               {% if user_shares.my_recent_shares|length != 0 %}
-              <li class="nav-header">My Latest Shares</li>
-              {% for share in user_shares.my_recent_shares %}
-              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% elif share.locked %}class="error" title="This share has been locked"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{% if share.locked %}<i class="icon-lock"></i> {% endif %}{{share.name}}</a></li>	
-              {% endfor %}
+              <h2 class="h6 mt-3">My latest shares</h2>
+              <ul class="list-unstyled mb-0">
+                {% for share in user_shares.my_recent_shares %}
+                <li>
+                  <a class="text-decoration-none {% if not share.path_exists or share.locked %}link-danger{% endif %}"
+                     href="{% url 'list_directory' share.slug_or_id %}"
+                     {% if not share.path_exists %}title="The path for this share does not exist"{% elif share.locked %}title="This share has been locked"{% else %}title="{{ share.notes }}"{% endif %}>
+                    {% if not share.path_exists %}<i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {% endif %}
+                    {% if share.locked %}<i class="bi bi-lock" aria-hidden="true"></i> {% endif %}
+                    {{ share.name }}
+                  </a>
+                </li>
+                {% endfor %}
+              </ul>
               {% endif %}
+
               {% if user_shares.shared_with_me|length != 0 %}
-              <li class="nav-header">Recently shared with me</li>
-              {% for share in user_shares.shared_with_me %}
-              <li><a {% if not share.path_exists %}class="error" title="The path for this share does not exist"{% elif share.locked %}class="error" title="This share has been locked"{% else %}title="{{share.notes}}"{% endif %} href="{% url 'list_directory' share.slug_or_id %}" data-toggle="tooltip">{% if not share.path_exists %}<i class="icon-warning-sign"></i> {%endif%}{% if share.locked %}<i class="icon-lock"></i> {% endif %}{{share.name}}</a></li>
-              {% endfor %}
+              <h2 class="h6 mt-3">Recently shared with me</h2>
+              <ul class="list-unstyled mb-0">
+                {% for share in user_shares.shared_with_me %}
+                <li>
+                  <a class="text-decoration-none {% if not share.path_exists or share.locked %}link-danger{% endif %}"
+                     href="{% url 'list_directory' share.slug_or_id %}"
+                     {% if not share.path_exists %}title="The path for this share does not exist"{% elif share.locked %}title="This share has been locked"{% else %}title="{{ share.notes }}"{% endif %}>
+                    {% if not share.path_exists %}<i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {% endif %}
+                    {% if share.locked %}<i class="bi bi-lock" aria-hidden="true"></i> {% endif %}
+                    {{ share.name }}
+                  </a>
+                </li>
+                {% endfor %}
+              </ul>
               {% endif %}
-            </ul>
-          </div><!--/.well -->
+            </div>
+          </div>
           {% endcache %}
-        {% endif %}
-        </div><!--/span-->
-        <div class="{% if request.user.is_authenticated %}span9{% else %}span12{%endif%}">
-        	{% if request.user.is_authenticated %}
-        	{% block system_messages %}<message-list active></message-list>{% endblock %}
-			{% endif %}
-			{% block content %}
-     	 	{% endblock %}
-        </div><!--/span-->
-      </div><!--/row-->
+          {% endif %}
+        </aside>
+
+        <div class="{% if request.user.is_authenticated %}col-md-9{% else %}col-md-12{% endif %}">
+          {% if request.user.is_authenticated %}
+          {% block system_messages %}<div id="message-list-mount"></div>{% endblock %}
+          {% endif %}
+          {% block content %}{% endblock %}
+        </div>
+      </div>
     </main>
+
     <footer>{% include 'footer.html' %}</footer>
 
-    <!-- Le javascript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
+    {% comment %}Singletons (Announce, ToastHost, ConfirmDialog) mount here. main.js provisions the host node if missing, but having it in the template keeps DOM order predictable.{% endcomment %}
+    <div id="bioshare-globals"></div>
+
+    <script type="module" src="{% static 'js/app/main.js' %}"></script>
+    <script type="module" src="{% static 'js/app/pages/base.js' %}"></script>
+
+    {% if debug %}
+    <script src="{% static 'lib/axe-core/axe.min.js' %}"></script>
     <script>
-    	var share_autocomplete_url = "{% url 'api_share_autocomplete'%}";
-    	var preview_file_url = "{% url 'preview_file' share='000000000000000' subpath='' %}";
+      document.addEventListener('DOMContentLoaded', () => {
+        if (!window.axe) return;
+        axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a','wcag2aa','wcag21aa'] } })
+           .then(r => r.violations.length
+             ? console.warn('[axe]', r.violations.length, 'violations:', r.violations)
+             : console.log('[axe] 0 violations'));
+      });
     </script>
-    {% compress js %}
-    <script src="{% static "js/resources/models.js" %}"></script>
-    <script src="{% static "js/directives/message-directives.js" %}"></script>
-    <script src="{% static "lib/json2.min.js" %}"></script>
-    <script src="{% static "lib/handlebars.js" %}"></script>
-    <script src="{% static "js/csrf.js" %}"></script>
-    <script src="{% static "js/lib.js" %}"></script>
-    <script src="{% static "lib/bootstrap/js/bootstrap.min.js" %}"></script>
-    <script src="{% static "lib/jquery.bootstrap-growl.min.js" %}"></script> 
-    <script src="{% static "js/bioshare.js" %}"></script>
-	{% endcompress%}
-	{% block scripts %}{% endblock %}
-	
+    {% endif %}
+
+    {% block scripts %}{% endblock %}
   </body>
 </html>

@@ -7,3 +7,9 @@ bioshareX/migrations/backup
 .project
 .pydevproject
 .venv
+*host_key*
+.DS_Store
+
+# Frontend revamp dev fixtures — local-only test harnesses for Vue primitives.
+# Per frontend_revamp_plan.md Phase A: not collected into production static.
+static_files/dev/

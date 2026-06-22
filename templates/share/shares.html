@@ -6,98 +6,53 @@
 {% block title %}Shares{% endblock %}
 {% block content %}
 {% if group %}
-	{% get_obj_perms request.user for group as "group_permissions" %}
-	<h2>{{group}}
-   	<div class="pull-right">
-	   	{% if request.user.is_staff or 'manage_group' in group_permissions %}
-	   	<a href="{% url 'manage_group' group_id=group.id %}" class="btn btn-small ptn-primary">Manage group</a>
-	   	{% endif %}
-	</div>
-	</h2>
-	<h4>Users</h4>
-	<p>{% for u in group.user_set.all %}{{u}}{% if not forloop.last%}, {% endif %}{% endfor %}</p>
-	<h3>Shares</h3>
+    {% get_obj_perms request.user for group as "group_permissions" %}
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <h2 class="m-0">{{ group }}</h2>
+        {% if request.user.is_staff or 'manage_group' in group_permissions %}
+        <a href="{% url 'manage_group' group_id=group.id %}" class="btn btn-sm btn-primary">Manage group</a>
+        {% endif %}
+    </div>
+    <h3 class="h6">Users</h3>
+    <p>{% for u in group.user_set.all %}{{ u }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    <h3 class="h5 mt-4">Shares</h3>
 {% else %}
-<h2>Shares</h2>
+    <h2 class="mb-3">Shares</h2>
 {% endif %}
 
 {% if locked %}
-<h3>The following shares are locked. View <a href="{% url 'home' %}">all shares.</a></h3>
+<h3 class="h5">The following shares are locked. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
 {% if bad_paths %}
-<h3>The following shares have non existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
+<h3 class="h5">The following shares have non-existent paths. View <a href="{% url 'home' %}">all shares.</a></h3>
 {% endif %}
 {% if group %}
-	{% if 'add_share' in request.user.permissions or request.user.is_superuser %}
-		<a href="{% url 'create_group_share' group_id=group.id %}">Create</a> a new share for "{{group}}"
-	{% endif %}
+    {% if 'add_share' in request.user.permissions or request.user.is_superuser %}
+    <p>
+        <a href="{% url 'create_group_share' group_id=group.id %}">Create</a> a new share for "{{ group }}"
+    </p>
+    {% endif %}
 {% endif %}
 
- <div ng-controller="SharesController" ng-init="init({ {% if locked %}locked:true,{% endif %}{% if bad_paths %}path_exists:false,{% endif %}{% if group %}group:'{{group.name}}'{% endif %}})" ng-cloak>
-	    {% verbatim %}
-	    	<h4>Fields</h4>
-            <div style="margin-bottom: 20px">
-		        <label class="checkbox-inline" ng-repeat="(col,val) in cols">
-		          <input type="checkbox" ng-model-options="{ getterSetter: true }" ng-model="cols[col]"/> {{col}}
-		        </label>
-		      </div>
-			{% endverbatim %}
-			{% if user.share_set.all.count > 0 %}
-			<!-- If a user owns any shares, give them the advanced filters -->
-			{% verbatim %}
-			<h4>
-				<button class="btn btn-link" ng-if="!show_filters" ng-click="toggleFilters()">Show</button>
-				<button class="btn btn-link" ng-if="show_filters" ng-click="toggleFilters()">Hide</button>
-				Advanced Filters
-			</h4>
-			<div style="margin-bottom: 20px" ng-show="show_filters">
-				<!-- <label class="checkbox-inline" ng-repeat="(filter,label) in filter_labels" ng-click="setFilter(filter, filters[filter]);saveState()"> -->
-				<label class="checkbox-inline" ng-repeat="(filter,label) in filter_labels">
-					<input type="checkbox" ng-model-options="{ getterSetter: true }" ng-model="filters[filter]"/> {{filter_labels[filter]}}
-				</label>
-				<label title="Only show shares containing symlinks with a target containing a string.">Symlink target contains 
-					<input ng-model="filters['symlink_target']"/>
-				</label>
-				<button class="btn" ng-click="setAllFilters();">Update</button>
-			</div>
-			{% endverbatim %}
-			{% endif %}
-			{% verbatim %}
-	     <table ng-table="tableParams" class="limit-col-width table table-bordered table-striped table-condensed">
-	      <tr ng-repeat="row in $data track by row.id">
-	        <td ng-if="cols['Share']" data-title="'Share'" filter="{name__icontains: 'text'}" sortable="'name'">
-				<a ng-click="saveState()" ng-if="row.path_exists && !row.locked" href="{{row.url}}">{{row.name}}</a>
-				<span ng-if="!row.path_exists" class="error" title="Share has non existant path">{{row.name}}</span>
-				<a ng-click="saveState()" ng-if="row.locked && row.path_exists" href="{{row.url}}" class="error" title="Share has been locked."><i class="icon-lock" aria-hidden="true"></i> {{row.name}}</a>
-			</td>
-	        <td ng-if="cols['Description']" data-title="'Description'" filter="{notes__icontains: 'text'}">{{row.notes}}</td>
-	        <td ng-if="cols['Tags']" data-title="'Tags'" filter="{tags: 'text'}"><span ng-repeat="tag in row.tags"><button class="btn btn-link" ng-click="setFilter('tags',tag.name)">{{tag.name}}</button>{{$last ? '' : ', '}}</span></td>
-	        <td ng-if="cols['Owner']" data-title="'Owner'" filter="{owner__username__icontains: 'text'}" sortable="'owner__username'"><button class="btn btn-link" ng-click="setFilter('owner__username__icontains',row.owner.username)">{{row.owner.username}}</button></td>
-	        <td ng-if="cols['Users']" data-title="'Users'" filter="{user: 'text'}"><span ng-repeat="u in row.users"><button class="btn btn-link" ng-click="setFilter('user',u)">{{u}}</button>{{$last ? '' : ', '}}</span></td>
-	        <td ng-if="cols['Groups']" data-title="'Groups'" {% if not group %}filter="{group: 'text'}"{% endif %}><span ng-repeat="g in row.groups"><button class="btn btn-link" ng-click="setFilter('group',g)">{{g}}</button>{{$last ? '' : ', '}}</span></td>
-	        <td ng-if="cols['Created']" data-title="'Created'" sortable="'created'">{{row.created | date : 'short'}}</td>
-	        <td ng-if="cols['Modified']" data-title="'Modified'" sortable="'updated'">{{row.updated | date : 'short'}}</td>
-	        <td ng-if="cols['Files']" data-title="'Files*'" sortable="'stats__num_files'">{{row.stats.num_files}}</td>
-	        <td ng-if="cols['Size']" data-title="'Size*'" sortable="'stats__bytes'">{{row.stats.bytes | bytes}}</td>
-	      </tr>
-	    </table>
-	    {% endverbatim %}
-</div>
-<p>
-{{total_size}} of storage being used by {% if group%}{{group}}{% else %}{{request.user.username}}{% endif %}.*
+{% comment %}Inline init payload for pages/shares.js (json_script handles escaping).{% endcomment %}
+<script id="shares-init" type="application/json">{
+    "locked": {{ locked|yesno:"true,false" }},
+    "bad_paths": {{ bad_paths|yesno:"true,false" }},
+    "ownsShares": {{ user.share_set.all.count|yesno:"true,false" }}{% if group %},
+    "group": "{{ group.name|escapejs }}"{% endif %}
+}</script>
+<div id="shares-page-mount"></div>
+
+<p class="mt-3 text-muted small">
+    {{ total_size }} of storage being used by {% if group %}{{ group }}{% else %}{{ request.user.username }}{% endif %}.*<br>
+    *Files statistics updated daily.
 </p>
-*Files statistics updated daily.
-<p><a href="/bioshare/api/shares/export/?ordering=-updated" class="btn btn-primary" title="Export share table">Export</a></p>
+<p>
+    <a href="/bioshare/api/shares/export/?ordering=-updated" class="btn btn-primary" title="Export share table">Export</a>
+</p>
 {% endblock %}
 
 {% block scripts %}
-{{block.super}}
-{% compress js %}
-<script src="{% static "js/services/ng-table-services.js" %}"></script>
-<script src="{% static "js/controllers/shares-controller.js" %}"></script>
-{% endcompress %}
-
-
+{{ block.super }}
+<script type="module" src="{% static 'js/app/pages/shares.js' %}"></script>
 {% endblock %}
-
-
