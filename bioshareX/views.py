@@ -111,6 +111,13 @@ def list_directory(request,share,subdir=None):
         return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
     files,directories,errors = list_share_dir(share,subdir=subdir,ajax=is_ajax(request))
     if is_ajax(request):
+        # Mark directories already published as their own subshare so the file
+        # browser can hide the "create subshare" action on them and link to the
+        # existing share instead (parity with the legacy server-rendered rows).
+        # The full Share object isn't JSON-serializable, so attach a minimal
+        # serializable descriptor rather than the model instance.
+        for s in Share.user_queryset(request.user).filter(real_path__in=directories.keys()).exclude(id=share.id):
+            directories[s.real_path]['share']={'name':s.name,'url':s.get_url()}
         # directories.values() is a dict_values view — not JSON-serializable.
         # (This AJAX branch was previously dead/broken code; the Vue file
         # browser is its first real consumer.)

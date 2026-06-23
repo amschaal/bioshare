@@ -29,12 +29,20 @@ export const FileTable = defineComponent({
         // Permission flags from share_perms — gate which action buttons show.
         canWrite: { type: Boolean, default: false },
         canDownload: { type: Boolean, default: false },
+        // admin permission — gates the "make this folder its own share" action.
+        canAdmin: { type: Boolean, default: false },
+        // link_to_path capability (+ write) — gates the "unlink" action on symlinks.
+        canLink: { type: Boolean, default: false },
+        // false for linked/symlinked directories, where subshare/unlink are disabled.
+        isRealpath: { type: Boolean, default: true },
         // (subdir, name) -> href for a directory link
         dirHref: { type: Function, required: true },
         // (name) -> href for a file download link
         fileHref: { type: Function, required: true },
+        // (name) -> href to the create-subshare page for a directory
+        subshareHref: { type: Function, default: null },
     },
-    emits: ['edit-metadata', 'rename', 'preview', 'selection-change'],
+    emits: ['edit-metadata', 'rename', 'preview', 'unlink', 'selection-change'],
     setup(props, { emit }) {
         // Sort state — null key means "natural" (directories first, then files,
         // each in load order). Sortable columns: name, extension, size, modified.
@@ -185,9 +193,16 @@ export const FileTable = defineComponent({
                     <td></td>
                     <td>{{ dir.modified }}</td>
                     <td>
-                        <span v-if="canWrite" class="d-inline-flex gap-1">
-                            <IconButton icon="tag" label="Edit metadata" variant="link" size="sm" @click="$emit('edit-metadata', { type: 'directory', row: dir })" />
-                            <IconButton icon="pencil" label="Rename" variant="link" size="sm" @click="$emit('rename', { type: 'directory', row: dir })" />
+                        <span class="d-inline-flex gap-1 align-items-center">
+                            <IconButton v-if="canWrite" icon="tag" label="Edit metadata" variant="link" size="sm" @click="$emit('edit-metadata', { type: 'directory', row: dir })" />
+                            <IconButton v-if="canWrite" icon="pencil" label="Rename" variant="link" size="sm" @click="$emit('rename', { type: 'directory', row: dir })" />
+                            <a v-if="dir.share" :href="dir.share.url" class="btn btn-link btn-sm" :aria-label="'Shared as &quot;' + dir.share.name + '&quot;'" :title="'Shared as &quot;' + dir.share.name + '&quot;'">
+                                <span class="bi bi-people" aria-hidden="true"></span>
+                            </a>
+                            <a v-else-if="canAdmin && !dir.target && isRealpath && subshareHref" :href="subshareHref(dir.name)" class="btn btn-link btn-sm" aria-label="Make this folder its own share" title="Make this folder its own share">
+                                <span class="bi bi-share" aria-hidden="true"></span>
+                            </a>
+                            <IconButton v-if="canAdmin && dir.target && canLink && isRealpath" icon="x-circle" label="Unlink this directory" variant="link" size="sm" @click="$emit('unlink', dir)" />
                         </span>
                     </td>
                 </tr>

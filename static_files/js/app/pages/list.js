@@ -60,6 +60,23 @@ if (mountEl) {
             const canLink = !!init.canLink && canWrite;
             const canEmail = perms.includes('write_to_share') || perms.includes('admin');
             const canShareReadOnly = perms.includes('share_read_only');
+            const canAdmin = perms.includes('admin');
+            // Linked/symlinked directories can't be resharred or unlinked (matches
+            // the legacy `is_realpath` gate). `isSubshare` is true when the share
+            // being viewed is itself a subshare of another share.
+            const isRealpath = init.isRealpath !== false;
+            const isSubshare = !!init.isSubshare;
+            // The current directory may be published as its own subshare when the
+            // user is an admin, we're inside a subdirectory, this view isn't
+            // already a subshare, and the directory is a real path (not a symlink).
+            const canCreateSubshare = canAdmin && !!init.subdir && !isSubshare && isRealpath;
+            // create_subshare's <subdir> URL group requires a trailing slash, so it
+            // can't be reversed empty; the template reverses a placeholder we strip
+            // here to get a clean base (preserving Django's real URL prefix).
+            const createSubshareBase = (init.urls.createSubshareBase || '').replace('SUBDIR_PLACEHOLDER/', '');
+            // create_subshare URL for a directory row: base + current subdir + name + '/'
+            const subshareHref = (name) => createSubshareBase + (init.subdir || '') + name + '/';
+            const subshareCurrentHref = createSubshareBase + (init.subdir || '');
 
             // Connection-info command strings (computed from server context;
             // mirror the legacy main.js generate_rsync_* / generate_wget_*).
@@ -374,6 +391,28 @@ if (mountEl) {
                 }
             }
 
+            // ----- Unlink directory (symlink) -----
+            async function unlinkDirectory(dir) {
+                const ok = await openConfirm({
+                    title: 'Unlink directory?',
+                    message: `This removes the symlink "${dir.name}" from this share. The files it points to are not deleted.`,
+                    confirmLabel: 'Unlink',
+                    danger: true,
+                });
+                if (!ok) return;
+                try {
+                    // The unlink view reads no body and isn't method-restricted; a
+                    // GET avoids CSRF and matches the legacy behaviour. It returns
+                    // json_error (HTTP 400) if there's no symlink at the path.
+                    const url = init.urls.unlinkBase + (init.subdir || '') + dir.name;
+                    await apiGet(url, null, { suppressErrorToast: true });
+                    directories.value = directories.value.filter(d => d.name !== dir.name);
+                    toast.success(`Unlinked "${dir.name}".`);
+                } catch (e) {
+                    toast.error(e.message || 'Could not unlink directory.');
+                }
+            }
+
             // ----- Email Participants modal -----
             const emailModalOpen = ref(false);
             const emailAllRecipients = ref(true);
@@ -508,6 +547,7 @@ if (mountEl) {
 
             return {
                 canWrite, canDownload, canDelete, canLink, canEmail, canShareReadOnly,
+                canAdmin, isRealpath, canCreateSubshare, subshareHref, subshareCurrentHref, unlinkDirectory,
                 sftpAvailable, rsyncAvailable,
                 activeTab, tabs,
                 directories, files, loading, loadError, selection,
@@ -563,6 +603,9 @@ if (mountEl) {
                     <button v-if="canShareReadOnly" type="button" class="btn btn-outline-primary" @click="openShareROModal">
                         <span class="bi bi-person-plus me-1" aria-hidden="true"></span>Share
                     </button>
+                    <a v-if="canCreateSubshare" :href="subshareCurrentHref" class="btn btn-warning">
+                        <span class="bi bi-share me-1" aria-hidden="true"></span>Share folder
+                    </a>
                 </div>
 
                 <div v-if="canWrite && showUploader" id="file-uploader-panel" class="mb-3">
@@ -585,12 +628,17 @@ if (mountEl) {
                             :subdir="init.subdir || ''"
                             :can-write="canWrite"
                             :can-download="canDownload"
+                            :can-admin="canAdmin"
+                            :can-link="canLink"
+                            :is-realpath="isRealpath"
                             :dir-href="dirHref"
                             :file-href="fileHref"
+                            :subshare-href="subshareHref"
                             @selection-change="sel => selection = sel"
                             @edit-metadata="openMetadata"
                             @rename="openRename"
                             @preview="onPreview"
+                            @unlink="unlinkDirectory"
                         />
                     </template>
 

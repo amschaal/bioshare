@@ -68,6 +68,11 @@ if (mountEl) {
             const loading = ref(true);
             const saving = ref(false);
             const savingGeneral = ref(false);
+            // The page view is already gated by @share_access_decorator(['admin']),
+            // so non-admins are redirected before this mounts. This handles the
+            // edge case where access is lost mid-session (or the API otherwise
+            // rejects) — show a clean message instead of a broken empty form.
+            const forbidden = ref(false);
 
             const hasModified = computed(() =>
                 entries.some(e => !sameSet(e.original, e.current))
@@ -80,10 +85,11 @@ if (mountEl) {
             async function load() {
                 loading.value = true;
                 try {
-                    const data = await apiGet(urls.getPermissions);
+                    const data = await apiGet(urls.getPermissions, null, { suppressErrorToast: true });
                     replaceEntries(rowsFromResponse(data));
                 } catch (e) {
-                    // api.js already surfaced a toast.
+                    if (e.response?.status === 403) forbidden.value = true;
+                    else toast.error(e.message || 'Could not load permissions.');
                 } finally {
                     loading.value = false;
                 }
@@ -187,13 +193,19 @@ if (mountEl) {
             onMounted(load);
 
             return {
-                entries, secure, emailUsers, loading, saving, savingGeneral,
+                entries, secure, emailUsers, loading, saving, savingGeneral, forbidden,
                 readOnly: !!init.readOnly, hasModified,
                 onAddRecipient, onRemove, save, updateGeneral,
             };
         },
         template: `
             <div>
+                <div v-if="forbidden" class="border rounded bg-white p-4 text-center">
+                    <span class="bi bi-shield-lock fs-1 text-muted d-block mb-2" aria-hidden="true"></span>
+                    <h2 class="h5">Access denied</h2>
+                    <p class="text-muted mb-0">You don't have permission to manage this share's settings.</p>
+                </div>
+                <template v-else>
                 <section class="border rounded bg-white p-3 mb-4">
                     <h2 class="h5">General settings</h2>
                     <div class="form-check">
@@ -257,6 +269,7 @@ if (mountEl) {
                         You have unsaved changes.
                     </span>
                 </section>
+                </template>
             </div>
         `,
     }).mount(mountEl);

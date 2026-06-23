@@ -49,7 +49,7 @@
     {% endif %}
     {% if share.notes %}<br><strong>Description:</strong> {{ share.notes }}{% endif %}
     {% if share.tags.count > 0 %}<br><strong>Tags:</strong> {% for tag in share.tags.all %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}
-    <br><strong>Share size:</strong> {% if share.stats %}{{ share.stats.hr_size }} (updated {{ share.stats.updated }}){% else %}unknown{% endif %}
+    <br><strong>Share size:</strong> {% if share.stats %}{{ share.stats.hr_size }} (updated {{ share.stats.updated }}){% else %}unknown{% endif %}{% if "admin" in share_perms %}{% if not share.stats or share.stats.can_update %} <a href="{% url 'update_stats' share=share.id %}">Update</a>{% endif %}{% endif %}
     {% if share.link_to_path and share.filepath and share.filepath.show_path %}
         <br><strong>System path:</strong> {{ share.get_link_path }}{% if subdir %}{{ subdir }}{% endif %}
     {% endif %}
@@ -73,6 +73,8 @@
     "perms": {{ share_perms_json|safe }},
     "authenticated": {{ user.is_authenticated|yesno:"true,false" }},
     "canLink": {{ user.can_link|yesno:"true,false" }},
+    "isRealpath": {{ is_realpath|yesno:"true,false" }},
+    "isSubshare": {{ subshare|yesno:"true,false" }},
     "conn": {
         "host": "{{ HOST|default:''|escapejs }}",
         "sftpPort": "{{ SFTP_PORT|default:''|escapejs }}",
@@ -101,7 +103,9 @@
         "emailParticipants": "{% url 'api_email_participants' share=share.id subdir=subdir|default_if_none:'' %}",
         "shareReadOnly": "{% url 'api_share_read_only' share=share.id %}",
         "metadataPrefix": "{% url 'api_edit_metadata' share=share.id subpath='' %}{{ subdir|default_if_none:'' }}",
-        "previewPrefix": "{% url 'preview_file' share=share.id subpath='' %}{{ subdir|default_if_none:'' }}"
+        "previewPrefix": "{% url 'preview_file' share=share.id subpath='' %}{{ subdir|default_if_none:'' }}",
+        "createSubshareBase": "{% url 'create_subshare' share=share.id subdir='SUBDIR_PLACEHOLDER/' %}",
+        "unlinkBase": "{% url 'unlink' share=share.id subpath='' %}"
     }
 }</script>
 

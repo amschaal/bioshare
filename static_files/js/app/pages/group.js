@@ -32,6 +32,11 @@ if (mountEl) {
             const loading = ref(true);
             const modalOpen = ref(false);
             const saving = ref(false);
+            // The manage_group page view is gated by @permission_required, so
+            // unauthorized users are redirected before this mounts. This covers
+            // the edge case where the detail API rejects (e.g. access lost
+            // mid-session) — show a clean message rather than an empty manager.
+            const forbidden = ref(false);
 
             // Working copy while the modal is open; discarded on cancel.
             const draft = reactive([]);
@@ -49,9 +54,10 @@ if (mountEl) {
             async function load() {
                 loading.value = true;
                 try {
-                    applyGroup(await apiGet(detailUrl));
+                    applyGroup(await apiGet(detailUrl, null, { suppressErrorToast: true }));
                 } catch (e) {
-                    // api.js already surfaced a toast.
+                    if (e.response?.status === 403) forbidden.value = true;
+                    else toast.error(e.message || 'Could not load this group.');
                 } finally {
                     loading.value = false;
                 }
@@ -125,14 +131,19 @@ if (mountEl) {
             onMounted(load);
 
             return {
-                users, usernames, loading, modalOpen, saving,
+                users, usernames, loading, modalOpen, saving, forbidden,
                 draft, newEmail, checking,
                 groupName: init.groupName,
                 openModal, addUser, removeUser, isManager, toggleManager, save,
             };
         },
         template: `
-            <div class="border rounded bg-white p-3">
+            <div v-if="forbidden" class="border rounded bg-white p-4 text-center">
+                <span class="bi bi-shield-lock fs-1 text-muted d-block mb-2" aria-hidden="true"></span>
+                <h2 class="h5">Access denied</h2>
+                <p class="text-muted mb-0">You don't have permission to manage this group.</p>
+            </div>
+            <div v-else class="border rounded bg-white p-3">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                     <h2 class="h5 m-0">Users</h2>
                     <button type="button" class="btn btn-sm btn-primary" @click="openModal" :disabled="loading">
