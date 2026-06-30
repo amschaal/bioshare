@@ -359,7 +359,11 @@ def list_share_dir(share,subdir=None,ajax=False):
     regex = r'^%s[^/]+/?' % '' if subdir is None else re.escape(os.path.normpath(subdir))+'/'
     metadatas = {}
     for md in MetaData.objects.prefetch_related('tags').filter(share=share,subpath__regex=regex):
-        metadatas[md.subpath]= md if not ajax else md.json()    
+        metadatas[md.subpath]= md if not ajax else md.json()
+    # Resolve the listing directory once; a non-symlink child's realpath is just
+    # this plus its name, which avoids an os.path.realpath() per entry (each
+    # resolves every path component, i.e. an extra lstat chain over NFS).
+    parent_realpath = os.path.realpath(PATH)
     for entry in scandir(PATH):
         subpath= entry.name if subdir is None else os.path.join(subdir,entry.name)
         metadata = metadatas[subpath] if subpath in metadatas else {}
@@ -376,7 +380,11 @@ def list_share_dir(share,subdir=None,ajax=False):
                 dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
                 if entry.is_symlink():
                     dir['target'] = os.readlink(entry.path)
-                directories[os.path.realpath(entry.path)]=dir
+                    # A symlinked dir resolves to its target, so still follow it.
+                    realpath = os.path.realpath(entry.path)
+                else:
+                    realpath = os.path.join(parent_realpath, entry.name)
+                directories[realpath]=dir
         except OSError as e:
             # (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat(follow_symlinks=False)
             errors.append({'name':entry.name, 'is_file': entry.is_file(), 'is_dir': entry.is_dir(), 'extension':entry.name.split('.').pop() if '.' in entry.name else None,'metadata':metadata, 'target': os.readlink(entry.path), 'error': str(e)})
