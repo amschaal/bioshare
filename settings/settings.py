@@ -289,4 +289,10 @@ RATELIMIT_RATES = {
 RATELIMIT_EXEMPT_IPS = [] # List of exempt IP addresses or ranges
 RATELIMIT_EXEMPT_USERNAMES = [] # List of exempt usernames
 
+# Wall-clock ceiling (seconds) for any subprocess (du, find, zfs, md5sum,
+# ssh-keygen, ...) invoked while handling a request. A blocked child past this
+# is killed and raises subprocess.TimeoutExpired so the wsgi worker is freed
+# instead of pinned until a manual restart. Deploys may override in config.py.
+SUBPROCESS_TIMEOUT = 30
+
 from settings.config import *

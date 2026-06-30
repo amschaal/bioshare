@@ -390,7 +390,7 @@ def share_post_save(sender, **kwargs):
                 from settings.settings import FILES_GROUP, FILES_OWNER
                 if instance.get_zfs_path():
                     command = getattr(settings, 'ZFS_CREATE_COMMAND', ['zfs','create'])
-                    subprocess.check_call(command + [instance.get_zfs_path()])
+                    subprocess.check_call(command + [instance.get_zfs_path()], timeout=settings.SUBPROCESS_TIMEOUT)
                 else:
                     os.makedirs(path)
                 uid = pwd.getpwnam(FILES_OWNER).pw_uid
@@ -419,7 +419,7 @@ def share_post_delete(sender, instance, **kwargs):
         instance.unlink()
     elif instance.get_zfs_path():
         command = getattr(settings, 'ZFS_DESTROY_COMMAND', ['zfs','destroy'])
-        subprocess.check_call(command + [instance.get_zfs_path()])
+        subprocess.check_call(command + [instance.get_zfs_path()], timeout=settings.SUBPROCESS_TIMEOUT)
     else:
         if os.path.isdir(path):
             shutil.rmtree(path)

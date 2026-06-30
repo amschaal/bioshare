@@ -195,7 +195,15 @@ def find(share, pattern, subdir=None,prepend_share_id=True):
     allowed_roots = [share.get_realpath()] + list(getattr(settings, 'LINK_TO_DIRECTORIES', []))
     if not paths_contain(allowed_roots, base_path):
         raise IllegalPathException('Illegal search path')
-    output = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE).communicate()[0].decode('utf-8')
+    proc = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE)
+    try:
+        output = proc.communicate(timeout=settings.SUBPROCESS_TIMEOUT)[0].decode('utf-8')
+    except subprocess.TimeoutExpired:
+        # communicate(timeout=) does NOT kill the child on expiry; do it
+        # explicitly so the find process and this worker are both released.
+        proc.kill()
+        proc.communicate()
+        raise
 #     output = subprocess.check_output(['find',path,'-name',pattern])
     paths = output.split('\n')
 #     return paths
@@ -311,7 +319,7 @@ def get_share_stats(share):
         if ZFS_PATH and not share.symlinks_found:
             ZFS_PATH = share.get_path()
             try:
-                total_size = subprocess.check_output(['zfs', 'get', '-H', '-o', 'value', '-p', 'used', ZFS_PATH])
+                total_size = subprocess.check_output(['zfs', 'get', '-H', '-o', 'value', '-p', 'used', ZFS_PATH], timeout=settings.SUBPROCESS_TIMEOUT)
             except Exception as e:
                 total_size = get_size_bytes(path)
         else:
@@ -329,7 +337,12 @@ def du(path, bytes=False):
         # return subprocess.check_output(['du','-shL', path]).split()[0].decode('utf-8')
     flags = '-sbL' if bytes else '-shL'
     try:
-        output = subprocess.check_output(['du', flags, path])
+        output = subprocess.check_output(['du', flags, path], timeout=settings.SUBPROCESS_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        # A du past the ceiling means an unbounded NFS walk — free the worker
+        # rather than fall through to e.output (TimeoutExpired.output is bytes
+        # or None and would crash the size parse below).
+        raise
     except Exception as e:
         output = e.output
     size = output.split()[0].decode('utf-8')
@@ -371,7 +384,7 @@ def list_share_dir(share,subdir=None,ajax=False):
     return (file_list,directories,errors)
 
 def md5sum(path):
-    output = subprocess.check_output([settings.MD5SUM_COMMAND,path]).decode('utf-8') #Much more efficient than reading file contents into python and using hashlib
+    output = subprocess.check_output([settings.MD5SUM_COMMAND,path], timeout=settings.SUBPROCESS_TIMEOUT).decode('utf-8') #Much more efficient than reading file contents into python and using hashlib
     #IE: output = 4968966191e485885a0ed8854c591720  /tmp/Project/Undetermined_S0_L002_R2_001.fastq.gz
     return re.findall(r'([0-9a-fA-F]{32})',output)[0]
 
@@ -379,12 +392,12 @@ def find_symlink(path): #pretty crude check to make sure the path is not and doe
     if os.path.isfile(path):
         return os.path.islink(path)
     elif os.path.isdir(path):
-        output = subprocess.check_output(['find', path, '-type', 'l', '-ls'])
+        output = subprocess.check_output(['find', path, '-type', 'l', '-ls'], timeout=settings.SUBPROCESS_TIMEOUT)
         return bool(output)
 
 def find_symlinks(path):
     symlinks = {}
-    for p in subprocess.check_output(['find', path, '-type', 'l']).decode().split('\n'):
+    for p in subprocess.check_output(['find', path, '-type', 'l'], timeout=settings.SUBPROCESS_TIMEOUT).decode().split('\n'):
         if p and os.path.islink(p):
             symlinks[p] = os.path.realpath(p)
     return symlinks
@@ -426,7 +439,7 @@ def get_all_symlinks(path, max_depth=1):
         if not warning and not error and realpath not in previous:
             previous.add(realpath)
             if exists:
-                for p in subprocess.check_output(['find', realpath, '-type', 'l']).decode().split('\n'):
+                for p in subprocess.check_output(['find', realpath, '-type', 'l'], timeout=settings.SUBPROCESS_TIMEOUT).decode().split('\n'):
                     queue.append({'path': p, 'depth': depth+1, 'previous': previous})
     return symlinks
 
