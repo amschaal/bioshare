@@ -23,12 +23,16 @@ TIME_ZONE = 'America/Los_Angeles'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql', 
-        'NAME': 'bioshare',   
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'bioshare',
         'USER': 'username',
         'PASSWORD': 'password',
         'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
         'PORT': '',                      # Set to empty string for default.
+        # For PostgreSQL, settings.py auto-injects a 30s statement_timeout and
+        # a 10s connect_timeout (so a degraded query can't pin a wsgi worker).
+        # To change them, set OPTIONS here and they will be preserved, e.g.:
+        # 'OPTIONS': {'connect_timeout': 10, 'options': '-c statement_timeout=30000'},
     },
 }
 

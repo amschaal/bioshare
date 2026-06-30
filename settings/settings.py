@@ -303,3 +303,15 @@ SUBPROCESS_TIMEOUT = 30
 EMAIL_TIMEOUT = 10
 
 from settings.config import *
+
+# Bound how long a single statement may run (and how long a connection attempt
+# may block) so a degraded query plan or an unreachable DB host can't pin a
+# wsgi worker until a manual restart. Injected here, after the per-deploy
+# DATABASES block is imported, so it applies everywhere; a deploy can still
+# override by pre-setting these OPTIONS in config.py. PostgreSQL-only
+# (statement_timeout is passed via libpq `options`).
+_default_db = DATABASES.get('default', {}) if 'DATABASES' in dir() else {}
+if _default_db.get('ENGINE', '').endswith('postgresql'):
+    _db_options = _default_db.setdefault('OPTIONS', {})
+    _db_options.setdefault('connect_timeout', 10)
+    _db_options.setdefault('options', '-c statement_timeout=30000')
