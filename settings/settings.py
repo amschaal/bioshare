@@ -295,4 +295,11 @@ RATELIMIT_EXEMPT_USERNAMES = [] # List of exempt usernames
 # instead of pinned until a manual restart. Deploys may override in config.py.
 SUBPROCESS_TIMEOUT = 30
 
+# Socket timeout (seconds) Django passes to the SMTP backend. Email is sent
+# synchronously inside request handlers (share/permission notifications,
+# password reset); without this a slow or stalled mail server (e.g. a hung
+# TLS handshake) blocks the EmailMessage.send() call and pins the worker
+# indefinitely. Deploys may override in config.py.
+EMAIL_TIMEOUT = 10
+
 from settings.config import *
