@@ -1,7 +1,10 @@
 # Create your views here.
 import csv
+import hashlib
 import os
 from functools import reduce
+
+from django.core.cache import cache
 
 from django.contrib.auth.models import Group, User
 from django.contrib.contenttypes.models import ContentType
@@ -303,7 +306,15 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
         share = self.get_object()
         subdir = request.query_params.get('subdir','')
         test_path(subdir,share=share)
-        size = du(os.path.join(share.get_path(),subdir))
+        # Cache the du() result briefly: without this every poll re-walks the
+        # (NFS-backed) subtree, and concurrent requests for the same folder each
+        # pin a worker. Key on share + subdir; hash subdir so arbitrary paths
+        # produce a memcached-safe key. Mirrors get_size_used_group/user.
+        cache_key = 'directory_size_{}_{}'.format(share.id, hashlib.md5(subdir.encode('utf-8')).hexdigest())
+        size = cache.get(cache_key)
+        if size is None:
+            size = du(os.path.join(share.get_path(),subdir))
+            cache.set(cache_key, size, 60)
         return Response({'share':share.id,'subdir':subdir,'size':size})
     @action(detail=False, methods=['GET'], permission_classes=[IsAuthenticated])
     def export(self, request):
