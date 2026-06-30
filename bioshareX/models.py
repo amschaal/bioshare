@@ -96,7 +96,7 @@ class Share(models.Model):
     link_to_path = models.CharField(max_length=200,blank=True,null=True)
     filepath = models.ForeignKey(FilePath,blank=True,null=True, on_delete=models.RESTRICT)
     sub_directory = models.CharField(max_length=200,blank=True,null=True)
-    real_path = models.CharField(max_length=200,blank=True,null=True)
+    real_path = models.CharField(max_length=200,blank=True,null=True,db_index=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
     path_exists = models.BooleanField(default=True)
     symlinks_found = models.DateTimeField(null=True)
@@ -494,6 +494,13 @@ class ShareLog(models.Model):
     action = models.CharField(max_length=30,null=True,blank=True)
     text = models.TextField(null=True,blank=True)
     paths = models.JSONField()
+    class Meta:
+        # Supports per-share log retrieval ordered by time (the FK index on
+        # `share` alone doesn't help the timestamp ordering) on this
+        # continuously-growing table.
+        indexes = [
+            models.Index(fields=['share', 'timestamp'], name='sharelog_share_ts_idx'),
+        ]
     @staticmethod
     def create(share,action,user=None,text='',paths=[],subdir=None,share_updated=True):
         if subdir:
