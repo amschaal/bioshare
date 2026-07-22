@@ -4,8 +4,4 @@ Greetings,<br>
 User {{sharer.username}} has shared '{{share.name}}' with you on Bioshare.  You may access the share at the following URL:
 <a href="{{ site_url }}{% url 'list_directory' share.slug_or_id %}">{{ site_url }}{% url 'list_directory' share.slug_or_id %}</a>
 </p>
-<p>
-Kind regards,
-<br><br>
-The UC Davis Bioinformatics Core
-</p>
+{{ footer|safe }}

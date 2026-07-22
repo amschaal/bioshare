@@ -7,3 +7,4 @@ bioshareX/migrations/backup
 .project
 .pydevproject
 .venv
+.env.dev

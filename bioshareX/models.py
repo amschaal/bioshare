@@ -80,6 +80,20 @@ class FilePath(models.Model):
     def __str__(self):
         return '%s: %s' %(self.name, self.path) if self.name else self.path
 
+class EmailFooter(models.Model):
+    title = models.CharField(max_length=100)
+    content = models.TextField(help_text='HTML content appended to share notification emails.')
+    group = models.ForeignKey(Group, related_name='email_footers', on_delete=models.CASCADE)
+    is_default = models.BooleanField(default=False, help_text='Use as the default footer for this group.')
+    class Meta:
+        ordering = ['group__name', 'title']
+        constraints = [
+            models.UniqueConstraint(fields=['group'], condition=Q(is_default=True),
+                                    name='unique_default_footer_per_group')
+        ]
+    def __str__(self):
+        return '%s (%s)' % (self.title, self.group.name)
+
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     slug = models.SlugField(max_length=50,blank=True,null=True)
@@ -104,6 +118,8 @@ class Share(models.Model):
     last_checked = models.DateTimeField(null=True)
     last_data_access = models.DateTimeField(null=True)
     meta = models.JSONField(default=dict)
+    email_footer = models.ForeignKey(EmailFooter, null=True, blank=True,
+                                     on_delete=models.SET_NULL, related_name='shares')
     PERMISSION_VIEW = 'view_share_files'
     PERMISSION_DELETE = 'delete_share_files'
     PERMISSION_DOWNLOAD = 'download_share_files'
@@ -127,6 +143,11 @@ class Share(models.Model):
         if subpath:
             return reverse('list_directory',kwargs={'share':self.slug_or_id,'subpath':subpath})
         return reverse('list_directory',kwargs={'share':self.slug_or_id})
+    def get_email_footer_html(self):
+        from django.template.loader import render_to_string
+        if self.email_footer:
+            return self.email_footer.content
+        return render_to_string('share/email_footer.txt')
     def get_stats(self, min_hours_since_update=None):
         stats = ShareStats.objects.get_or_create(share=self)[0]
         stats.update_stats(min_hours_since_update=min_hours_since_update)
