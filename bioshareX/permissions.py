@@ -55,7 +55,7 @@ class SharePermissions(object):
             u.profile.created_by = shared_by
             u.profile.save()
         try:
-            email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':self.share,'sharer':shared_by,'site_url':SITE_URL})
+            email_users([u],'share/share_subject.txt','share/share_new_email_body.txt',{'user':u,'password':password,'share':self.share,'sharer':shared_by,'site_url':SITE_URL,'footer':self.share.get_email_footer_html()})
             self.created.append(username)
             self.emailed.append(username)
             return u
@@ -69,10 +69,11 @@ class SharePermissions(object):
         current_perms = get_perms(group, self.share)
         removed_perms = list(set(current_perms) - set(permissions))
         added_perms = list(set(permissions) - set(current_perms))
+        footer = self.share.get_email_footer_html()
         for u in group.user_set.all():
             if len(self.get_user_permissions(u,user_specific=False)) == 0 and len(added_perms) > 0 and email:
                 try:
-                    email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':self.share,'sharer':shared_by,'site_url':SITE_URL})
+                    email_users([u],'share/share_subject.txt','share/share_email_body.txt',{'user':u,'share':self.share,'sharer':shared_by,'site_url':SITE_URL,'footer':footer})
                     self.emailed.append(u.username)
                 except:
                     self.failed.append(u.username)
@@ -89,13 +90,16 @@ class SharePermissions(object):
             username = user.username
         if not user and len(permissions) > 0:
             user = self.create_user(username, shared_by=shared_by)
+            # create_user already sent the new-account email; flag it so the
+            # generic share notification below isn't sent as a duplicate.
+            new_user = True
         if user:
             current_perms = self.get_user_permissions(user,user_specific=True)
             removed_perms = list(set(current_perms) - set(permissions))
             added_perms = list(set(permissions) - set(current_perms))
             if not new_user and len(current_perms) == 0 and email:
                 try:
-                    email_users([user],'share/share_subject.txt','share/share_email_body.txt',{'user':user,'share':self.share,'sharer':shared_by,'site_url':SITE_URL})
+                    email_users([user],'share/share_subject.txt','share/share_email_body.txt',{'user':user,'share':self.share,'sharer':shared_by,'site_url':SITE_URL,'footer':self.share.get_email_footer_html()})
                     self.emailed.append(username)
                 except:
                     self.failed.append(username)

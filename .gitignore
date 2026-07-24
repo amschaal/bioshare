@@ -7,6 +7,7 @@ bioshareX/migrations/backup
 .project
 .pydevproject
 .venv
+.env.dev
 *host_key*
 .DS_Store
 

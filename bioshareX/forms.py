@@ -6,7 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.contrib.auth.models import Group, User
 from django.utils.translation import gettext_lazy as _
 
-from bioshareX.models import FilePath, GroupProfile, Share, SSHKey
+from bioshareX.models import EmailFooter, FilePath, GroupProfile, Share, SSHKey
 from bioshareX.utils import check_symlinks_dfs, paths_contain, search_illegal_symlinks, test_path
 
 
@@ -48,6 +48,25 @@ class ShareForm(forms.ModelForm):
                 self.fields.pop('filesystem',None)
                 self.fields.pop('link_to_path',None)
                 self.fields.pop('read_only',None)
+        if user.is_superuser:
+            footer_qs = EmailFooter.objects.all()
+        elif user.is_authenticated:
+            footer_qs = EmailFooter.objects.filter(group__in=user.groups.all())
+        else:
+            footer_qs = EmailFooter.objects.none()
+        if self.the_instance and self.the_instance.email_footer_id:
+            # On edit, keep the current selection valid even if the editor is
+            # not in that footer's group, so saving doesn't clear it.
+            footer_qs = (footer_qs | EmailFooter.objects.filter(pk=self.the_instance.email_footer_id)).distinct()
+        if footer_qs.exists():
+            self.fields['email_footer'].queryset = footer_qs
+            self.fields['email_footer'].empty_label = 'Standard footer'
+            if not self.the_instance and not self.initial.get('email_footer'):
+                default_footer = footer_qs.filter(is_default=True).order_by('group__name').first()
+                if default_footer:
+                    self.initial['email_footer'] = default_footer
+        else:
+            self.fields.pop('email_footer', None)
     def clean_link_to_path(self):
         path = self.cleaned_data['link_to_path']
         file_paths = [fp.path for fp in self.file_paths]
@@ -113,9 +132,9 @@ class ShareForm(forms.ModelForm):
         return share
     class Meta:
         model = Share
-        fields = ('name','owner','slug', 'notes','filesystem','link_to_path','read_only')
-        labels = {'slug':'Friendly URL','notes':'Description'}
-        help_texts = {'slug':'Optionally enter a string to be used in the URL instead of the randomly generated ID.','owner':'Optionally specify a different owner.'}
+        fields = ('name','owner','slug', 'notes','filesystem','link_to_path','read_only','email_footer')
+        labels = {'slug':'Friendly URL','notes':'Description','email_footer':'Email footer'}
+        help_texts = {'slug':'Optionally enter a string to be used in the URL instead of the randomly generated ID.','owner':'Optionally specify a different owner.','email_footer':'Sign-off appended to share notification emails.'}
 
 class SubShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
@@ -140,7 +159,7 @@ class SSHKeyForm(forms.Form):
         file = self.cleaned_data['rsa_key']
         if not file:
             raise forms.ValidationError("SSH RSA key required")
-        return_code = subprocess.call(['ssh-keygen','-l','-f',file.temporary_file_path()])
+        return_code = subprocess.call(['ssh-keygen','-l','-f',file.temporary_file_path()], timeout=settings.SUBPROCESS_TIMEOUT)
         if return_code == 1:
             raise forms.ValidationError("Not a valid SSH RSA key!")
         contents = file.read().decode('utf-8')
@@ -225,7 +244,6 @@ class SymlinkForm(forms.Form):
         base_path, link_name = os.path.split(self.link_path)
         # Make sure that everything leading up to the link is a regular old directory.  If it doesn't exist, one will be made.
         while base_path:
-            print('base_path', base_path)
             if os.path.exists(base_path) and (not os.path.isdir(base_path) or os.path.islink(base_path)):
                 raise forms.ValidationError('The path at {} exists and is not a regular directory.  Symlinks are only allowed in regular directories.'.format(base_path))
             new_path, end = os.path.split(base_path)

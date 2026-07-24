@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as OriginalUserAdmin
 from django.contrib.auth.models import User
 from guardian.admin import GuardedModelAdmin
 
-from bioshareX.models import FilePath, Filesystem, Message, Share, UserProfile
+from bioshareX.models import EmailFooter, FilePath, Filesystem, Message, Share, UserProfile
 
 
 class ShareAdmin(GuardedModelAdmin):
@@ -57,7 +57,13 @@ finally:
 class MessageAdmin(admin.ModelAdmin):
     exclude = ('viewed_by',)
 
+class EmailFooterAdmin(admin.ModelAdmin):
+    list_display = ('title', 'group', 'is_default')
+    list_filter = ('group',)
+    search_fields = ('title', 'content')
+
 admin.site.register(Share, ShareAdmin)
 admin.site.register(Filesystem, FilesystemAdmin)
 admin.site.register(FilePath, FilePathAdmin)
 admin.site.register(Message,MessageAdmin)
+admin.site.register(EmailFooter, EmailFooterAdmin)

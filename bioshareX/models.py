@@ -80,6 +80,20 @@ class FilePath(models.Model):
     def __str__(self):
         return '%s: %s' %(self.name, self.path) if self.name else self.path
 
+class EmailFooter(models.Model):
+    title = models.CharField(max_length=100)
+    content = models.TextField(help_text='HTML content appended to share notification emails.')
+    group = models.ForeignKey(Group, related_name='email_footers', on_delete=models.CASCADE)
+    is_default = models.BooleanField(default=False, help_text='Use as the default footer for this group.')
+    class Meta:
+        ordering = ['group__name', 'title']
+        constraints = [
+            models.UniqueConstraint(fields=['group'], condition=Q(is_default=True),
+                                    name='unique_default_footer_per_group')
+        ]
+    def __str__(self):
+        return '%s (%s)' % (self.title, self.group.name)
+
 class Share(models.Model):
     id = models.CharField(max_length=15,primary_key=True,default=pkgen)
     slug = models.SlugField(max_length=50,blank=True,null=True)
@@ -96,7 +110,7 @@ class Share(models.Model):
     link_to_path = models.CharField(max_length=200,blank=True,null=True)
     filepath = models.ForeignKey(FilePath,blank=True,null=True, on_delete=models.RESTRICT)
     sub_directory = models.CharField(max_length=200,blank=True,null=True)
-    real_path = models.CharField(max_length=200,blank=True,null=True)
+    real_path = models.CharField(max_length=200,blank=True,null=True,db_index=True)
     filesystem = models.ForeignKey(Filesystem, on_delete=models.PROTECT)
     path_exists = models.BooleanField(default=True)
     symlinks_found = models.DateTimeField(null=True)
@@ -104,6 +118,8 @@ class Share(models.Model):
     last_checked = models.DateTimeField(null=True)
     last_data_access = models.DateTimeField(null=True)
     meta = models.JSONField(default=dict)
+    email_footer = models.ForeignKey(EmailFooter, null=True, blank=True,
+                                     on_delete=models.SET_NULL, related_name='shares')
     PERMISSION_VIEW = 'view_share_files'
     PERMISSION_DELETE = 'delete_share_files'
     PERMISSION_DOWNLOAD = 'download_share_files'
@@ -127,6 +143,11 @@ class Share(models.Model):
         if subpath:
             return reverse('list_directory',kwargs={'share':self.slug_or_id,'subpath':subpath})
         return reverse('list_directory',kwargs={'share':self.slug_or_id})
+    def get_email_footer_html(self):
+        from django.template.loader import render_to_string
+        if self.email_footer:
+            return self.email_footer.content
+        return render_to_string('share/email_footer.txt')
     def get_stats(self, min_hours_since_update=None):
         stats = ShareStats.objects.get_or_create(share=self)[0]
         stats.update_stats(min_hours_since_update=min_hours_since_update)
@@ -390,7 +411,7 @@ def share_post_save(sender, **kwargs):
                 from settings.settings import FILES_GROUP, FILES_OWNER
                 if instance.get_zfs_path():
                     command = getattr(settings, 'ZFS_CREATE_COMMAND', ['zfs','create'])
-                    subprocess.check_call(command + [instance.get_zfs_path()])
+                    subprocess.check_call(command + [instance.get_zfs_path()], timeout=settings.SUBPROCESS_TIMEOUT)
                 else:
                     os.makedirs(path)
                 uid = pwd.getpwnam(FILES_OWNER).pw_uid
@@ -419,7 +440,7 @@ def share_post_delete(sender, instance, **kwargs):
         instance.unlink()
     elif instance.get_zfs_path():
         command = getattr(settings, 'ZFS_DESTROY_COMMAND', ['zfs','destroy'])
-        subprocess.check_call(command + [instance.get_zfs_path()])
+        subprocess.check_call(command + [instance.get_zfs_path()], timeout=settings.SUBPROCESS_TIMEOUT)
     else:
         if os.path.isdir(path):
             shutil.rmtree(path)
@@ -494,6 +515,13 @@ class ShareLog(models.Model):
     action = models.CharField(max_length=30,null=True,blank=True)
     text = models.TextField(null=True,blank=True)
     paths = models.JSONField()
+    class Meta:
+        # Supports per-share log retrieval ordered by time (the FK index on
+        # `share` alone doesn't help the timestamp ordering) on this
+        # continuously-growing table.
+        indexes = [
+            models.Index(fields=['share', 'timestamp'], name='sharelog_share_ts_idx'),
+        ]
     @staticmethod
     def create(share,action,user=None,text='',paths=[],subdir=None,share_updated=True):
         if subdir:
@@ -553,6 +581,11 @@ Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']
 
 def lowercase_user(sender, instance, **kwargs):
+    # Never lowercase guardian's anonymous user: get_anonymous_user() looks the
+    # row up by exact ANONYMOUS_USER_NAME, so rewriting it breaks all anonymous
+    # access on databases created after this signal was introduced.
+    if instance.username == getattr(settings, 'ANONYMOUS_USER_NAME', 'AnonymousUser'):
+        return
     if instance.username != instance.username.lower() or instance.email != instance.email.lower():
         User.objects.filter(id=instance.id).update(username=instance.username.lower(),email=instance.email.lower())
 post_save.connect(lowercase_user, sender=User)

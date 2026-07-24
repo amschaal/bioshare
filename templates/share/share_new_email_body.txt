@@ -12,8 +12,4 @@ password: {{password}}
 <p>
 Please be sure to reset your password after logging on for the first time.
 </p>
-<p>
-Kind regards,
-<br><br>
-The UC Davis Bioinformatics Core
-</p>
+{{ footer|safe }}

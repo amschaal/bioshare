@@ -289,4 +289,29 @@ RATELIMIT_RATES = {
 RATELIMIT_EXEMPT_IPS = [] # List of exempt IP addresses or ranges
 RATELIMIT_EXEMPT_USERNAMES = [] # List of exempt usernames
 
+# Wall-clock ceiling (seconds) for any subprocess (du, find, zfs, md5sum,
+# ssh-keygen, ...) invoked while handling a request. A blocked child past this
+# is killed and raises subprocess.TimeoutExpired so the wsgi worker is freed
+# instead of pinned until a manual restart. Deploys may override in config.py.
+SUBPROCESS_TIMEOUT = 30
+
+# Socket timeout (seconds) Django passes to the SMTP backend. Email is sent
+# synchronously inside request handlers (share/permission notifications,
+# password reset); without this a slow or stalled mail server (e.g. a hung
+# TLS handshake) blocks the EmailMessage.send() call and pins the worker
+# indefinitely. Deploys may override in config.py.
+EMAIL_TIMEOUT = 10
+
 from settings.config import *
+
+# Bound how long a single statement may run (and how long a connection attempt
+# may block) so a degraded query plan or an unreachable DB host can't pin a
+# wsgi worker until a manual restart. Injected here, after the per-deploy
+# DATABASES block is imported, so it applies everywhere; a deploy can still
+# override by pre-setting these OPTIONS in config.py. PostgreSQL-only
+# (statement_timeout is passed via libpq `options`).
+_default_db = DATABASES.get('default', {}) if 'DATABASES' in dir() else {}
+if _default_db.get('ENGINE', '').endswith('postgresql'):
+    _db_options = _default_db.setdefault('OPTIONS', {})
+    _db_options.setdefault('connect_timeout', 10)
+    _db_options.setdefault('options', '-c statement_timeout=30000')

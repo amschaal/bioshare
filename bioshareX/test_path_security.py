@@ -487,12 +487,9 @@ class _ShareSetupMixin(_TempDirMixin):
             username="testuser", password="testpass", email="test@example.com"
         )
         # django-guardian requires an anonymous user row to exist when it
-        # resolves permissions for unauthenticated requests.  The row is
-        # normally created by the post_migrate signal, but not in a fresh
-        # test database.
-        # The lowercase_user signal lowercases usernames on save, so the
-        # anonymous user row is stored in lowercase regardless of ANONYMOUS_USER_NAME.
-        anon_name = getattr(settings, 'ANONYMOUS_USER_NAME', 'AnonymousUser').lower()
+        # resolves permissions for unauthenticated requests.  It must match
+        # ANONYMOUS_USER_NAME exactly (the lowercase_user signal exempts it).
+        anon_name = getattr(settings, 'ANONYMOUS_USER_NAME', 'AnonymousUser')
         User.objects.get_or_create(username=anon_name, defaults={'is_active': False})
         self.filesystem = Filesystem.objects.create(
             name="test_fs",
