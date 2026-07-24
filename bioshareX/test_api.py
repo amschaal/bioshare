@@ -401,10 +401,14 @@ class TestFileEndpoints(ShareTestBase):
         self.assertIn('docs', [d['name'] for d in data['directories']])
 
     def test_list_directory_html(self):
+        # File entries are client-rendered (Vue file browser fed by the AJAX
+        # endpoint, covered above); the HTML page guarantees the share header
+        # and the browser bootstrap config.
         self.login(self.viewer)
         response = self.client.get(reverse('list_directory', kwargs={'share': self.share.id}))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'hello.txt')
+        self.assertContains(response, self.share.name)
+        self.assertContains(response, self.share.id)
 
     def test_wget_listing(self):
         self.login(self.downloader)
