@@ -1,16 +1,16 @@
 """
-This file demonstrates writing tests using the unittest module. These will pass
-when you run "manage.py test".
+bioshareX backend test suite.
 
-Replace this with more appropriate tests for your application.
+The tests are organized by concern:
+
+  test_path_security.py  - path/filename validation, traversal, symlink
+                           escapes, whitelist enforcement (unit + HTTP)
+  test_api.py            - functional coverage of every API/JSON endpoint
+                           and the file-operation views
+  test_api_security.py   - authentication, authorization boundaries, share
+                           states (secure/read-only/locked), object scoping
+                           (IDOR), CSRF, rate limiting
+  test_base.py           - shared fixtures (ShareTestBase)
+
+Run everything with:  python manage.py test bioshareX
 """
-
-from django.test import TestCase
-
-
-class SimpleTest(TestCase):
-    def test_basic_addition(self):
-        """
-        Tests that 1 + 1 always equals 2.
-        """
-        self.assertEqual(1 + 1, 2)
