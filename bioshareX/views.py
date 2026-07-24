@@ -111,7 +111,8 @@ def list_directory(request,share,subdir=None):
         return render(request,'error.html', {"message": "Unable to locate the files.  It is possible that the directory has been moved, renamed, or deleted.","share":share,"subdir":subdir})
     files,directories,errors = list_share_dir(share,subdir=subdir,ajax=is_ajax(request))
     if is_ajax(request):
-        return json_response({'files':files,'directories':directories.values()})
+        # directories is keyed by realpath; dict_values is not JSON serializable
+        return json_response({'files':files,'directories':list(directories.values())})
     #Find any shares that point at this directory
     for s in Share.user_queryset(request.user).filter(real_path__in=directories.keys()).exclude(id=share.id):
         directories[s.real_path]['share']=s

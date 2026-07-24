@@ -581,6 +581,11 @@ Group._meta.permissions += (('manage_group', 'Manage group'),)
 User._meta.ordering = ['username']
 
 def lowercase_user(sender, instance, **kwargs):
+    # Never lowercase guardian's anonymous user: get_anonymous_user() looks the
+    # row up by exact ANONYMOUS_USER_NAME, so rewriting it breaks all anonymous
+    # access on databases created after this signal was introduced.
+    if instance.username == getattr(settings, 'ANONYMOUS_USER_NAME', 'AnonymousUser'):
+        return
     if instance.username != instance.username.lower() or instance.email != instance.email.lower():
         User.objects.filter(id=instance.id).update(username=instance.username.lower(),email=instance.email.lower())
 post_save.connect(lowercase_user, sender=User)

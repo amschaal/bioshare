@@ -244,7 +244,6 @@ class SymlinkForm(forms.Form):
         base_path, link_name = os.path.split(self.link_path)
         # Make sure that everything leading up to the link is a regular old directory.  If it doesn't exist, one will be made.
         while base_path:
-            print('base_path', base_path)
             if os.path.exists(base_path) and (not os.path.isdir(base_path) or os.path.islink(base_path)):
                 raise forms.ValidationError('The path at {} exists and is not a regular directory.  Symlinks are only allowed in regular directories.'.format(base_path))
             new_path, end = os.path.split(base_path)

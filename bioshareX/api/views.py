@@ -281,7 +281,10 @@ def share_read_only(request,share):
         if perms.set_user_permissions(email, [Share.PERMISSION_VIEW, Share.PERMISSION_DOWNLOAD], request.user, email=True):
             response = {'status':'success', 'message': 'Successfully shared with {}'.format(email)}
             return JsonResponse(response)
-    response = {'status':'error','error':'Unable to share with email {}'.format(form.cleaned_data['email'])}
+    # form.cleaned_data has no 'email' key when validation failed; fall back to
+    # the raw submitted value so an invalid address returns 400, not a KeyError.
+    email = form.cleaned_data.get('email', form.data.get('email', ''))
+    response = {'status':'error','error':'Unable to share with email {}'.format(email)}
     return JsonResponse(response, status=status.HTTP_400_BAD_REQUEST)
 
 class ShareLogList(generics.ListAPIView):
@@ -290,7 +293,9 @@ class ShareLogList(generics.ListAPIView):
     filterset_class = ShareLogFilterSet
     def get_queryset(self):
         shares = Share.user_queryset(self.request.user,include_stats=False)
-        return ShareLog.objects.filter(share__in=shares).select_related('user')
+        # Deterministic default ordering so pagination is stable (newest first,
+        # served by the (share, timestamp) index); ?ordering= still overrides.
+        return ShareLog.objects.filter(share__in=shares).select_related('user').order_by('-timestamp')
 
 class ShareViewset(viewsets.ReadOnlyModelViewSet):
     serializer_class = ShareSerializer
@@ -299,7 +304,9 @@ class ShareViewset(viewsets.ReadOnlyModelViewSet):
     filterset_fields = {'name':['icontains'],'notes':['icontains'],'owner__username':['icontains'],'path_exists':['exact'],'locked':['exact']}
     ordering_fields = ('name','owner__username','created','updated','stats__num_files','stats__bytes')
     def get_queryset(self):
-        return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags','user_permissions__user','group_permissions__group')
+        # Deterministic default ordering so pagination is stable; ?ordering=
+        # (OrderingFilter) still overrides.
+        return Share.user_queryset(self.request.user,include_stats=False).select_related('owner','stats').prefetch_related('tags','user_permissions__user','group_permissions__group').order_by('-created')
     @action(methods=['GET'], detail=True)
     @throttle_classes([UserRateThrottle])
     def directory_size(self, request, *args, **kwargs):
@@ -334,10 +341,11 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = {'name':['icontains']}
     model = Group
     def get_queryset(self):
+        # Deterministic default ordering so pagination is stable.
         if self.request.user.is_superuser or self.request.user.is_staff:
-            return Group.objects.all()
+            return Group.objects.order_by('name')
         else:
-            return self.request.user.groups.all()
+            return self.request.user.groups.order_by('name')
     @action(methods=['POST'], detail=True,permission_classes=[ManageGroupPermission])
     def update_users(self, request, *args, **kwargs):
         users =  request.data.get('users')

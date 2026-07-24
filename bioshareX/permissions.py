@@ -90,6 +90,9 @@ class SharePermissions(object):
             username = user.username
         if not user and len(permissions) > 0:
             user = self.create_user(username, shared_by=shared_by)
+            # create_user already sent the new-account email; flag it so the
+            # generic share notification below isn't sent as a duplicate.
+            new_user = True
         if user:
             current_perms = self.get_user_permissions(user,user_specific=True)
             removed_perms = list(set(current_perms) - set(permissions))
