@@ -42,6 +42,21 @@ def ajax_login_required(view_func):
         return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']},status=status.HTTP_401_UNAUTHORIZED)
     return wrapper
 
+def share_not_found_response(request):
+    """Response for a share ID that doesn't resolve.
+
+    Unauthenticated clients get exactly what an existing-but-forbidden share
+    would give them (login redirect / 401), so response codes don't reveal
+    which share IDs exist.  Authenticated users get a 404 message page.
+    """
+    if not request.user.is_authenticated:
+        if is_ajax(request):
+            return JsonResponse({'status':'error','unauthenticated':True,'errors':['You do not have access to this resource.']},status=status.HTTP_401_UNAUTHORIZED)
+        return redirect(reverse('login') + '?next=%s' % request.get_full_path())
+    if is_ajax(request):
+        return json_error(['No share with that ID exists.'], http_status=status.HTTP_404_NOT_FOUND)
+    return render(request,'errors/message.html', {'message':'No share with that ID exists.'},status=404)
+
 class share_access_decorator(object):
 
     def __init__(self, perms,share_param='share'):
@@ -62,7 +77,7 @@ class share_access_decorator(object):
             try:
                 share = Share.get_by_slug_or_id(kwargs[self.share_param])
             except Share.DoesNotExist:
-                return render(args[0],'errors/message.html', {'message':'No share with that ID exists.'},status=500)
+                return share_not_found_response(args[0])
             kwargs[self.share_param]=share
             request = args[0]
             user_permissions = share.get_user_permissions(request.user)
@@ -113,7 +128,7 @@ class safe_path_decorator(object):
                     try:
                         share = Share.get_by_slug_or_id(share)
                     except Share.DoesNotExist:
-                        return render(args[0],'errors/message.html', {'message':'No share with that ID exists.'},status=500)
+                        return share_not_found_response(args[0])
                 if not paths_contain(settings.DIRECTORY_WHITELIST,share.get_realpath()):
                     return json_error(messages=['Share has an invalid root path: %s'%share.get_realpath()])
                     # raise Exception('Share has an invalid root path: %s'%share.get_realpath())

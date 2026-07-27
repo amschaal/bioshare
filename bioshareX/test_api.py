@@ -249,11 +249,11 @@ class TestShareCreationAndAdmin(ShareTestBase):
         self.share.refresh_from_db()
         self.assertGreater(self.share.stats.bytes, 0)
 
-    def test_nonexistent_share_returns_500_message_page(self):
+    def test_nonexistent_share_returns_404_message_page(self):
         self.login(self.owner)
         response = self.client.get(
             reverse('list_directory', kwargs={'share': 'zzzzzzzzzzzzzzz'}))
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, 404)
 
 
 class TestFileEndpoints(ShareTestBase):
