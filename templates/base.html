@@ -55,8 +55,11 @@
           <span class="pull-left" style="color: white;font-size: 30px;padding: 10px;">Bioshare</span>
           <p class="navbar-text pull-right">
           {% if request.user.is_authenticated %}
-              Logged in as <a href="#" class="navbar-link">{{request.user.username}}</a>  
-              <a href="{% url 'logout' %}" class="navbar-link">Logout</a>
+              Logged in as <a href="#" class="navbar-link">{{request.user.username}}</a>
+              {# Django 5 removed GET logout; LogoutView only accepts POST. #}
+              <form action="{% url 'logout' %}" method="post" class="navbar-form" style="display:inline;margin:0;padding:0;">{% csrf_token %}
+                <button type="submit" class="btn btn-link navbar-link" style="padding:0;border:0;vertical-align:baseline;">Logout</button>
+              </form>
           {% else %}
           	  <a href="{% url 'login' %}" class="navbar-link">Login</a>
           {% endif %}
