@@ -73,7 +73,10 @@
         <div class="small">
           {% if request.user.is_authenticated %}
             Logged in as <a href="#" class="link-light">{{ request.user.username }}</a>
-            <a href="{% url 'logout' %}" class="link-light ms-2">Logout</a>
+            {# Django 5 removed GET logout; LogoutView only accepts POST. #}
+            <form action="{% url 'logout' %}" method="post" class="d-inline ms-2">{% csrf_token %}
+              <button type="submit" class="btn btn-link link-light p-0 align-baseline">Logout</button>
+            </form>
           {% else %}
             <a href="{% url 'login' %}" class="link-light">Login</a>
           {% endif %}

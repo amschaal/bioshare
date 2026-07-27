@@ -508,6 +508,22 @@ class TestCsrfProtection(ShareTestBase):
         self.assertTrue(self.share.secure)
 
 
+class TestLogout(ShareTestBase):
+    """Django 5 made logout POST-only; the header renders a POST form."""
+
+    def test_logout_rejects_get(self):
+        self.login(self.viewer)
+        self.assertEqual(self.client.get(reverse('logout')).status_code, 405)
+
+    def test_post_logout_clears_session_and_redirects_to_login(self):
+        self.login(self.viewer)
+        response = self.client.post(reverse('logout'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login', response['Location'])
+        response = self.client.get(reverse('list_shares'))
+        self.assertEqual(response.status_code, 302)  # anonymous again
+
+
 class TestRateLimiting(ShareTestBase):
     """The rate limiter is wired to the middleware and returns 429s."""
 
