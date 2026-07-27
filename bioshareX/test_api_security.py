@@ -435,6 +435,40 @@ class TestObjectScoping(ShareTestBase):
         self.assertTrue(SSHKey.objects.filter(id=key.id).exists())
 
 
+class TestShareIdEnumeration(ShareTestBase):
+    """Unauthenticated responses must not reveal whether a share ID exists:
+    a missing share and an existing-but-forbidden share look identical."""
+
+    MISSING = 'zzzzzzzzzzzzzzz'
+
+    def test_anonymous_html_responses_are_identical(self):
+        existing = self.client.get(reverse('list_directory', kwargs={'share': self.share.id}))
+        missing = self.client.get(reverse('list_directory', kwargs={'share': self.MISSING}))
+        self.assertEqual(existing.status_code, 302)
+        self.assertEqual(missing.status_code, 302)
+        self.assertIn('login', existing['Location'])
+        self.assertIn('login', missing['Location'])
+
+    def test_anonymous_ajax_responses_are_identical(self):
+        existing = self.client.get(
+            reverse('list_directory', kwargs={'share': self.share.id}), **AJAX)
+        missing = self.client.get(
+            reverse('list_directory', kwargs={'share': self.MISSING}), **AJAX)
+        self.assertEqual(existing.status_code, 401)
+        self.assertEqual(missing.status_code, 401)
+        self.assertEqual(existing.content, missing.content)
+
+    def test_authenticated_missing_share_is_404(self):
+        self.login(self.other)
+        response = self.client.get(
+            reverse('list_directory', kwargs={'share': self.MISSING}))
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(
+            reverse('list_directory', kwargs={'share': self.MISSING}), **AJAX)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(self.json_of(response)['status'], 'error')
+
+
 class TestSymlinkEscapeOverHttp(ShareTestBase):
     """A symlink placed inside a share must not leak files outside the
     whitelist through the download endpoint."""
