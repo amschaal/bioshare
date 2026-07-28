@@ -534,6 +534,10 @@ if (mountEl) {
                 }
             }
 
+            // window is not reachable from template expressions (not in Vue's
+            // template globals allow-list), so navigation lives here in setup.
+            const downloadZip = () => { window.location = init.urls.downloadZip; };
+
             // ----- Logs tab -----
             const logColumns = [
                 { key: 'timestamp', label: 'Timestamp', sortable: true, visible: true },
@@ -564,7 +568,7 @@ if (mountEl) {
                 emailModalOpen, emailAllRecipients, emailSelected, emailSubject, emailBody,
                 emailSending, emailError, emailRecipients, openEmailModal, sendEmail,
                 shareROModalOpen, shareROEmail, shareROError, shareROSaving, openShareROModal, doShareReadOnly,
-                connModalOpen, connModalTitle, connModalBlocks, showConnInfo,
+                connModalOpen, connModalTitle, connModalBlocks, showConnInfo, downloadZip,
                 searchQuery, searchResults, searching, searched, runSearch,
                 logColumns, init, fmtDateShort,
             };
@@ -573,7 +577,7 @@ if (mountEl) {
             <div>
                 <div class="d-flex flex-wrap gap-2 mb-3">
                     <DropdownMenu v-if="canDownload" label="Download" variant="primary">
-                        <DropdownMenuItem @select="() => window.location = init.urls.downloadZip">Zip file (up to 2 GB)</DropdownMenuItem>
+                        <DropdownMenuItem @select="downloadZip">Zip file (up to 2 GB)</DropdownMenuItem>
                         <DropdownMenuItem v-if="sftpAvailable" @select="showConnInfo('sftp')">SFTP</DropdownMenuItem>
                         <DropdownMenuItem v-if="rsyncAvailable" @select="showConnInfo('rsync-download')">Rsync</DropdownMenuItem>
                         <DropdownMenuItem @select="showConnInfo('wget')">Wget</DropdownMenuItem>
