@@ -138,7 +138,18 @@ class ShareForm(forms.ModelForm):
 
 class SubShareForm(forms.ModelForm):
     name = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-:,]+$',error_messages={'invalid':'Please avoid special characters'})
-    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:,\/]+$',error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}),required=False)
+    notes = forms.RegexField(regex=r'^[\w\d\s\'"\.!\?\-@:,\/]+$',label='Description',error_messages={'invalid':'Please avoid special characters'},widget=forms.Textarea(attrs={'rows':5,'cols':80}),required=False)
+    def __init__(self, *args, **kwargs):
+        super(SubShareForm, self).__init__(*args, **kwargs)
+        from crispy_forms.helper import FormHelper
+        self.helper = FormHelper()
+        # The template supplies the <form> tag and csrf token; rendering our own
+        # would nest forms and detach the template's submit button.
+        self.helper.form_tag = False
+        self.helper.disable_csrf = True
+        self.helper.form_class = 'form-horizontal'
+        self.helper.label_class = 'col-sm-3'
+        self.helper.field_class = 'col-sm-9'
     class Meta:
         model = Share
         fields = ('name', 'notes')
