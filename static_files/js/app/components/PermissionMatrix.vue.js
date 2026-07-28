@@ -28,6 +28,7 @@
 //   remove(entry) - the row's remove button was pressed
 
 import { defineComponent, computed } from 'vue';
+import { announce } from '/static/js/app/state.js';
 import { IconButton } from '/static/js/app/components/IconButton.vue.js';
 
 const ALL_COLUMNS = [
@@ -76,6 +77,9 @@ export const PermissionMatrix = defineComponent({
         }
         function setAll(entry, on) {
             entry.current = on ? columns.value.map(c => c.key) : [];
+            announce(on
+                ? `Granted all permissions to ${entry.name}. Save to apply.`
+                : `Cleared all permissions for ${entry.name}. Save to apply.`);
         }
 
         return { columns, isModified, willEmail, has, toggle, setAll, emit };

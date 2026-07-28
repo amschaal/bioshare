@@ -230,7 +230,7 @@ if (mountEl) {
 
                     <div class="mb-3" style="max-width: 28rem;">
                         <label class="form-label" for="add-recipient">Add a user or group</label>
-                        <EmailAutocomplete @add="onAddRecipient" />
+                        <EmailAutocomplete input-id="add-recipient" @add="onAddRecipient" />
                         <p class="form-text mb-0">
                             Pick a known address or group, or type a full email address to
                             invite a new user.

@@ -27,6 +27,7 @@ export const EmailAutocomplete = defineComponent({
     name: 'EmailAutocomplete',
     components: { Combobox },
     props: {
+        inputId: { type: String, default: null },
         placeholder: { type: String, default: 'Add a user by email or a group' },
     },
     emits: ['add'],
@@ -72,6 +73,7 @@ export const EmailAutocomplete = defineComponent({
     template: `
         <Combobox
             :fetch-fn="fetchFn"
+            :input-id="inputId"
             :placeholder="placeholder"
             item-key="key"
             item-label="label"

@@ -25,6 +25,7 @@ export const Combobox = defineComponent({
     props: {
         modelValue: { type: [String, Number, Object, Array], default: null },
         fetchFn: { type: Function, required: true },         // async (query) => item[]
+        inputId: { type: String, default: null },            // id for the <input>, so an external <label for> can target it
         placeholder: { type: String, default: 'Search...' },
         multiple: { type: Boolean, default: false },
         debounceMs: { type: Number, default: 250 },
@@ -87,6 +88,7 @@ export const Combobox = defineComponent({
             <combobox-anchor class="position-relative">
                 <combobox-input
                     v-model="searchTerm"
+                    :id="inputId || undefined"
                     :placeholder="placeholder"
                     class="form-control"
                     :aria-busy="loading || undefined"
