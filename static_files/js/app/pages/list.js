@@ -536,7 +536,13 @@ if (mountEl) {
 
             // window is not reachable from template expressions (not in Vue's
             // template globals allow-list), so navigation lives here in setup.
-            const downloadZip = () => { window.location = init.urls.downloadZip; };
+            const downloadZip = () => {
+                let url = init.urls.downloadZip;
+                if (selection.value.length) {
+                    url += '?selection=' + encodeURIComponent(selection.value.join(','));
+                }
+                window.location = url;
+            };
 
             // ----- Logs tab -----
             const logColumns = [
@@ -577,7 +583,7 @@ if (mountEl) {
             <div>
                 <div class="d-flex flex-wrap gap-2 mb-3">
                     <DropdownMenu v-if="canDownload" label="Download" variant="primary">
-                        <DropdownMenuItem @select="downloadZip">Zip file (up to 2 GB)</DropdownMenuItem>
+                        <DropdownMenuItem @select="downloadZip">{{ selection.length ? 'Zip selected (' + selection.length + ')' : 'Zip file (up to 2 GB)' }}</DropdownMenuItem>
                         <DropdownMenuItem v-if="sftpAvailable" @select="showConnInfo('sftp')">SFTP</DropdownMenuItem>
                         <DropdownMenuItem v-if="rsyncAvailable" @select="showConnInfo('rsync-download')">Rsync</DropdownMenuItem>
                         <DropdownMenuItem @select="showConnInfo('wget')">Wget</DropdownMenuItem>
