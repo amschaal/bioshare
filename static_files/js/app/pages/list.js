@@ -162,7 +162,7 @@ if (mountEl) {
                     const formErr = formErrorText(data);
                     if (formErr) { folderError.value = formErr; return; }
                     for (const obj of (data.objects || [])) {
-                        directories.value.push({ name: obj.name, modified: obj.modified, metadata: {} });
+                        directories.value.push({ name: obj.name, modified: obj.modified, mtime: obj.mtime, metadata: {} });
                     }
                     folderModalOpen.value = false;
                     toast.success(`Folder "${folderName.value.trim()}" created.`);
@@ -376,10 +376,10 @@ if (mountEl) {
                     if (formErr) { linkError.value = formErr; return; }
                     for (const obj of (data.objects || [])) {
                         if (obj.type === 'directory') {
-                            directories.value.push({ name: obj.name, modified: obj.modified, metadata: {}, target: obj.target });
+                            directories.value.push({ name: obj.name, modified: obj.modified, mtime: obj.mtime, metadata: {}, target: obj.target });
                         } else {
                             // symlink to a file shows in the directories list with a target (matches legacy)
-                            directories.value.push({ name: obj.name, modified: obj.modified, metadata: {}, target: obj.target });
+                            directories.value.push({ name: obj.name, modified: obj.modified, mtime: obj.mtime, metadata: {}, target: obj.target });
                         }
                     }
                     linkModalOpen.value = false;

@@ -386,13 +386,13 @@ def list_share_dir(share,subdir=None,ajax=False):
         try:
             if entry.is_file():
                 (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-                file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'metadata':metadata,'isText':True}
+                file={'name':entry.name,'extension':entry.name.split('.').pop() if '.' in entry.name else None,'size':sizeof_fmt(size),'bytes':size,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'mtime':mtime,'metadata':metadata,'isText':True}
                 if entry.is_symlink():
                     file['target'] = os.readlink(entry.path)
                 file_list.append(file)
             else: #directory
                 (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = entry.stat()
-                dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M")}
+                dir={'name':entry.name,'size':None,'metadata':metadata,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'mtime':mtime}
                 if entry.is_symlink():
                     dir['target'] = os.readlink(entry.path)
                     # A symlinked dir resolves to its target, so still follow it.

@@ -67,7 +67,7 @@ export const FileTable = defineComponent({
         function cmp(a, b, key) {
             let av, bv;
             if (key === 'size') { av = a.bytes ?? -1; bv = b.bytes ?? -1; }
-            else if (key === 'modified') { av = a.modified || ''; bv = b.modified || ''; }
+            else if (key === 'modified') { av = a.mtime ?? -1; bv = b.mtime ?? -1; }
             else if (key === 'extension') { av = a.extension || ''; bv = b.extension || ''; }
             else { av = (a.name || '').toLowerCase(); bv = (b.name || '').toLowerCase(); }
             if (av < bv) return -1;

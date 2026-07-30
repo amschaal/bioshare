@@ -61,7 +61,7 @@ def upload_file(request, share, subdir=None):
             subpath = filename if subdir is None else subdir + filename
             url = reverse('download_file',kwargs={'share':share.id,'subpath':subpath})
             (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(FILE_PATH)
-            data['files'].append({'name':filename,'extension':filename.split('.').pop() if '.' in filename else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'isText':istext(FILE_PATH)}) 
+            data['files'].append({'name':filename,'extension':filename.split('.').pop() if '.' in filename else '','size':sizeof_fmt(size),'bytes':size, 'url':url,'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'mtime':mtime, 'isText':istext(FILE_PATH)})
         except Exception as e:
             data['errors'].append('Unable to upload file: "{}". Exception: "{}"'.format(filename, str(e))) 
 #         response['url']=reverse('download_file',kwargs={'share':share.id,'subpath':details['subpath']})
@@ -80,7 +80,7 @@ def create_folder(request, share, subdir=None):
         except Exception as e:
             return json_error([str(e)])
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(folder_path)
-        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'type': 'directory'}]
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'mtime':mtime, 'type': 'directory'}]
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_FOLDER_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
         return json_response(data)
     else:
@@ -98,9 +98,9 @@ def create_symlink(request, share, subdir=None):
     if form.is_valid():
         link_path = form.create_link()
         (mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime) = os.stat(link_path)
-        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'target': form.cleaned_data['target'], 'display': os.sep not in form.cleaned_data['name'], 'type': 'symlink'}]
+        data['objects']=[{'name':form.cleaned_data['name'],'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'mtime':mtime, 'target': form.cleaned_data['target'], 'display': os.sep not in form.cleaned_data['name'], 'type': 'symlink'}]
         for dir in form.directories_created:
-            data['objects'].append({'name':dir, 'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"), 'type': 'directory', 'display': os.sep not in dir})
+            data['objects'].append({'name':dir, 'modified':datetime.datetime.fromtimestamp(mtime).strftime("%m/%d/%Y %H:%M"),'mtime':mtime, 'type': 'directory', 'display': os.sep not in dir})
         ShareLog.create(share=share,user=request.user,action=ShareLog.ACTION_LINK_CREATED,paths=[form.cleaned_data['name']],subdir=subdir)
         share.check_paths(True)
         return json_response(data)
