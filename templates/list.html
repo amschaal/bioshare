@@ -91,6 +91,7 @@
     },
     "urls": {
         "downloadFilePrefix": "{% url 'download_file' share=share.id subpath=subdir|default_if_none:'' %}",
+        "listDirPrefix": "{% if subdir %}{% url 'list_directory' share=share.slug_or_id subdir=subdir %}{% else %}{% url 'list_directory' share=share.slug_or_id %}{% endif %}",
         "searchApi": "{% if subdir %}{% url 'api_search_share' share=share.id subdir=subdir %}{% else %}{% url 'api_search_share' share=share.id %}{% endif %}",
         "logsApi": "/bioshare/api/logs/",
         "downloadZip": "{% if subdir %}{% url 'download_archive_stream' share=share.id subdir=subdir %}{% else %}{% url 'download_archive_stream' share=share.id %}{% endif %}",

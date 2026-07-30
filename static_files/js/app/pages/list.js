@@ -533,6 +533,29 @@ if (mountEl) {
                     searching.value = false;
                 }
             }
+            // Results are "/<share.id>/<path relative to the current directory>",
+            // with a trailing "/" on directories. Turn each into breadcrumb-style
+            // segments: intermediate components (always directories) and directory
+            // results link to their listing page; file results link to the direct
+            // download URL.
+            const parsedResults = computed(() => searchResults.value.map(raw => {
+                const prefix = '/' + init.share + '/';
+                const rel = raw.startsWith(prefix) ? raw.slice(prefix.length) : raw.replace(/^\/+/, '');
+                const isDir = rel.endsWith('/');
+                const parts = rel.replace(/\/+$/, '').split('/').filter(Boolean);
+                let cumulative = '';
+                const segments = parts.map((name, idx) => {
+                    cumulative += encodeURIComponent(name);
+                    const isLastFile = !isDir && idx === parts.length - 1;
+                    // Match FileTable: no download link for files without the perm.
+                    const href = isLastFile
+                        ? (canDownload ? init.urls.downloadFilePrefix + cumulative : null)
+                        : init.urls.listDirPrefix + cumulative + '/';
+                    cumulative += '/';
+                    return { name, href };
+                });
+                return { isDir, segments };
+            }));
 
             // window is not reachable from template expressions (not in Vue's
             // template globals allow-list), so navigation lives here in setup.
@@ -575,7 +598,7 @@ if (mountEl) {
                 emailSending, emailError, emailRecipients, openEmailModal, sendEmail,
                 shareROModalOpen, shareROEmail, shareROError, shareROSaving, openShareROModal, doShareReadOnly,
                 connModalOpen, connModalTitle, connModalBlocks, showConnInfo, downloadZip,
-                searchQuery, searchResults, searching, searched, runSearch,
+                searchQuery, searchResults, parsedResults, searching, searched, runSearch,
                 logColumns, init, fmtDateShort,
             };
         },
@@ -665,9 +688,9 @@ if (mountEl) {
                         <div aria-live="polite">
                             <p v-if="searching" class="text-muted">Searching…</p>
                             <p v-else-if="searched && searchResults.length === 0" class="text-muted">No matches.</p>
-                            <ul v-else-if="searchResults.length" class="list-unstyled">
-                                <li v-for="(path, i) in searchResults" :key="i">
-                                    <span class="bi bi-file-earmark me-1" aria-hidden="true"></span>{{ path }}
+                            <ul v-else-if="parsedResults.length" class="list-unstyled">
+                                <li v-for="(result, i) in parsedResults" :key="i">
+                                    <span class="bi me-1" :class="result.isDir ? 'bi-folder' : 'bi-file-earmark'" aria-hidden="true"></span><template v-for="(seg, j) in result.segments" :key="j"><a v-if="seg.href" :href="seg.href">{{ seg.name }}</a><span v-else>{{ seg.name }}</span><span v-if="j < result.segments.length - 1"> / </span></template>
                                 </li>
                             </ul>
                         </div>

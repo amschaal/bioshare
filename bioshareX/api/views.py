@@ -164,7 +164,20 @@ def search_share(request,share,subdir=None):
     query = request.GET.get('query',False)
     response={}
     if query:
-        response['results'] = find(share,"*%s*"%query,subdir)
+        # Results look like "/<share.id>/<path relative to the search base>".
+        # Mark directories with a trailing slash so the client can link
+        # folders to the listing view and files to the download view.
+        base_path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
+        prefix = '/%s/'%share.id
+        results = []
+        for result in find(share,"*%s*"%query,subdir):
+            rel = result[len(prefix):] if result.startswith(prefix) else ''
+            if not rel:
+                continue # the search base directory itself matched the pattern
+            if os.path.isdir(os.path.join(base_path,rel)):
+                result += '/'
+            results.append(result)
+        response['results'] = results
     else:
         response = {'status':'error'}
     return json_response(response)
