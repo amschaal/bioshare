@@ -126,7 +126,9 @@ MIDDLEWARE = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django_ratelimit.middleware.RatelimitMiddleware'
+    'django_ratelimit.middleware.RatelimitMiddleware',
+    # Last, so it only fills in a Cache-Control that nothing else set.
+    'bioshareX.middleware.HTMLCacheControlMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
