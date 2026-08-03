@@ -8,6 +8,10 @@
 //    <th scope="row"> for each principal, so AT announces "Browse permission
 //    for jdoe" etc. Each checkbox also carries an explicit aria-label.
 //  - Rotated text headers are gone — labels are horizontal and spelled out.
+//  - What each permission actually allows is explained in a plain <dl> behind a
+//    disclosure above the grid, not in header tooltips: one tab stop instead of
+//    six, and the text is reachable by hover, keyboard and touch alike. Header
+//    cells stay inert text so tabbing goes straight to the checkboxes.
 //  - "Modified" rows are not signalled by colour alone (WCAG 1.4.1): they get
 //    a left border, a pencil icon, and visually-hidden "Modified" text in the
 //    row header in addition to the .table-warning background.
@@ -27,17 +31,47 @@
 // Emits:
 //   remove(entry) - the row's remove button was pressed
 
-import { defineComponent, computed } from 'vue';
+import { defineComponent, computed, ref } from 'vue';
 import { announce } from '/static/js/app/state.js';
 import { IconButton } from '/static/js/app/components/IconButton.vue.js';
 
+// `hint` is the description shown in the "What do these permissions mean?"
+// legend. The permissions are independent, not a ladder: each endpoint checks
+// its own codename (see share_access_decorator), so e.g. Admin alone does not
+// let someone read the files.
 const ALL_COLUMNS = [
-    { key: 'view_share_files',     label: 'Browse' },
-    { key: 'download_share_files', label: 'Download' },
-    { key: 'write_to_share',       label: 'Write',     writeOnly: true },
-    { key: 'delete_share_files',   label: 'Delete',    writeOnly: true },
-    { key: 'share_read_only',      label: 'Read-only' },
-    { key: 'admin',                label: 'Admin' },
+    {
+        key: 'view_share_files',
+        label: 'Browse',
+        hint: 'Open the share and list its files and folders. Needed to see the share at all.',
+    },
+    {
+        key: 'download_share_files',
+        label: 'Download',
+        hint: 'Download and preview files, including downloading folders as a zip archive.',
+    },
+    {
+        key: 'write_to_share',
+        label: 'Write',
+        writeOnly: true,
+        hint: 'Upload files, create folders, and rename or move items in the share.',
+    },
+    {
+        key: 'delete_share_files',
+        label: 'Delete',
+        writeOnly: true,
+        hint: 'Delete files and folders from the share.',
+    },
+    {
+        key: 'share_read_only',
+        label: 'Share',
+        hint: 'Invite other people to the share, granting them Browse and Download only.',
+    },
+    {
+        key: 'admin',
+        label: 'Admin',
+        hint: 'Manage the share: edit its settings and permissions, create subshares, and delete it. Does not grant file access on its own.',
+    },
 ];
 
 function sameSet(a, b) {
@@ -59,6 +93,8 @@ export const PermissionMatrix = defineComponent({
         const columns = computed(() =>
             ALL_COLUMNS.filter(c => !(c.writeOnly && props.readOnly))
         );
+
+        const showLegend = ref(false);
 
         const isModified = (entry) => !sameSet(entry.original, entry.current);
 
@@ -82,14 +118,33 @@ export const PermissionMatrix = defineComponent({
                 : `Cleared all permissions for ${entry.name}. Save to apply.`);
         }
 
-        return { columns, isModified, willEmail, has, toggle, setAll, emit };
+        return { columns, showLegend, isModified, willEmail, has, toggle, setAll, emit };
     },
     template: `
+        <div>
+        <button
+            type="button"
+            class="btn btn-link p-0 mb-2 text-decoration-none"
+            :aria-expanded="showLegend"
+            aria-controls="permission-legend"
+            @click="showLegend = !showLegend"
+        >
+            <span :class="showLegend ? 'bi bi-chevron-down' : 'bi bi-chevron-right'" aria-hidden="true"></span>
+            What do these permissions mean?
+        </button>
+        <dl v-show="showLegend" id="permission-legend" class="row border rounded p-3 mb-3 small">
+            <template v-for="col in columns" :key="col.key">
+                <dt class="col-sm-3 col-lg-2">{{ col.label }}</dt>
+                <dd class="col-sm-9 col-lg-10 mb-2">{{ col.hint }}</dd>
+            </template>
+        </dl>
         <div class="table-responsive">
             <table class="table table-bordered align-middle mb-0">
                 <caption class="visually-hidden">
                     Permissions grid. Each row is a user or group; tick a box to grant
-                    that permission. Changed rows are marked "Modified".
+                    that permission. What each permission allows is described under
+                    "What do these permissions mean?" before the grid. Changed rows
+                    are marked "Modified".
                 </caption>
                 <thead>
                     <tr>
@@ -169,6 +224,7 @@ export const PermissionMatrix = defineComponent({
                     </tr>
                 </tbody>
             </table>
+        </div>
         </div>
     `,
 });
