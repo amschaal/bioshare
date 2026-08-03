@@ -136,12 +136,16 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
 #     'django.contrib.sites',
     'django.contrib.messages',
+    # bioshareX precedes django.contrib.staticfiles so its management/commands/
+    # runserver.py shadows the staticfiles one (get_commands() lets the earliest
+    # app win). That override adds revalidation headers to /static/ in dev --
+    # see bioshareX/management/commands/runserver.py.
+    'bioshareX',
     'django.contrib.staticfiles',
     # Uncomment the next line to enable the admin:
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-    'bioshareX',
     'crispy_forms',
     'crispy_bootstrap5',
     'guardian',
