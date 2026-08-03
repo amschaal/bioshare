@@ -506,6 +506,73 @@ class TestSearchAndMetadata(ShareTestBase):
         response = self.client.get(url)
         self.assertEqual(self.json_of(response)['status'], 'error')
 
+    def test_search_is_case_insensitive_by_default(self):
+        self.login(self.viewer)
+        self.write_share_file('MixedCase.TXT', b'mixed\n')
+        url = reverse('api_search_share', kwargs={'share': self.share.id})
+        response = self.client.get(url, {'query': 'mixedcase'})
+        self.assertEqual(response.status_code, 200)
+        results = self.json_of(response)['results']
+        self.assertIn('/%s/MixedCase.TXT' % self.share.id, results)
+
+    def test_search_case_sensitive_flag_excludes_mismatched_case(self):
+        self.login(self.viewer)
+        self.write_share_file('MixedCase.TXT', b'mixed\n')
+        url = reverse('api_search_share', kwargs={'share': self.share.id})
+        response = self.client.get(url, {'query': 'mixedcase', 'case_sensitive': '1'})
+        self.assertEqual(response.status_code, 200)
+        data = self.json_of(response)
+        self.assertTrue(data['case_sensitive'])
+        self.assertNotIn('/%s/MixedCase.TXT' % self.share.id, data['results'])
+        # ...but the exactly-cased query still matches.
+        response = self.client.get(url, {'query': 'MixedCase', 'case_sensitive': '1'})
+        self.assertIn('/%s/MixedCase.TXT' % self.share.id, self.json_of(response)['results'])
+
+    def test_search_rejects_query_below_minimum_length(self):
+        self.login(self.viewer)
+        url = reverse('api_search_share', kwargs={'share': self.share.id})
+        response = self.client.get(url, {'query': 'h'})
+        data = self.json_of(response)
+        self.assertEqual(data['status'], 'error')
+        self.assertNotIn('results', data)
+
+    def test_search_rejects_whitespace_padded_short_query(self):
+        self.login(self.viewer)
+        url = reverse('api_search_share', kwargs={'share': self.share.id})
+        response = self.client.get(url, {'query': '  h  '})
+        self.assertEqual(self.json_of(response)['status'], 'error')
+
+    def test_search_accepts_query_at_minimum_length(self):
+        self.login(self.viewer)
+        url = reverse('api_search_share', kwargs={'share': self.share.id})
+        response = self.client.get(url, {'query': 'he'})
+        data = self.json_of(response)
+        self.assertNotEqual(data.get('status'), 'error')
+        self.assertIn('/%s/hello.txt' % self.share.id, data['results'])
+
+    @override_settings(MAX_SEARCH_RESULTS=3)
+    def test_search_caps_results_and_flags_truncation(self):
+        self.login(self.viewer)
+        for i in range(10):
+            self.write_share_file('capped_%d.txt' % i, b'x\n')
+        url = reverse('api_search_share', kwargs={'share': self.share.id})
+        data = self.json_of(self.client.get(url, {'query': 'capped'}))
+        self.assertEqual(len(data['results']), 3)
+        self.assertTrue(data['truncated'])
+        self.assertEqual(data['limit'], 3)
+
+    @override_settings(MAX_SEARCH_RESULTS=3)
+    def test_search_under_cap_is_not_flagged_truncated(self):
+        self.login(self.viewer)
+        for i in range(3):
+            self.write_share_file('capped_%d.txt' % i, b'x\n')
+        url = reverse('api_search_share', kwargs={'share': self.share.id})
+        # Exactly at the cap must not report truncation -- the loop only trips
+        # the flag when a hit beyond the cap actually exists.
+        data = self.json_of(self.client.get(url, {'query': 'capped'}))
+        self.assertEqual(len(data['results']), 3)
+        self.assertFalse(data['truncated'])
+
     def test_edit_metadata_sets_tags_and_notes(self):
         self.login(self.writer)
         url = reverse('api_edit_metadata',

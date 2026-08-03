@@ -73,6 +73,7 @@
     "perms": {{ share_perms_json|safe }},
     "authenticated": {{ user.is_authenticated|yesno:"true,false" }},
     "canLink": {{ user.can_link|yesno:"true,false" }},
+    "minSearchLength": {{ min_search_length|default:2 }},
     "isRealpath": {{ is_realpath|yesno:"true,false" }},
     "isSubshare": {{ subshare|yesno:"true,false" }},
     "conn": {

@@ -200,7 +200,7 @@ def fetchall(sql,args=[]):
     return cursor.fetchall()
 
 
-def find(share, pattern, subdir=None,prepend_share_id=True):
+def find(share, pattern, subdir=None,prepend_share_id=True,case_sensitive=False):
     import os
     import subprocess
     path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
@@ -210,7 +210,16 @@ def find(share, pattern, subdir=None,prepend_share_id=True):
     allowed_roots = [share.get_realpath()] + list(getattr(settings, 'LINK_TO_DIRECTORIES', []))
     if not paths_contain(allowed_roots, base_path):
         raise IllegalPathException('Illegal search path')
-    proc = subprocess.Popen(['find',base_path,'-name',pattern], stdout=subprocess.PIPE)
+    # Case-insensitive is the default -- people expect a file-browser search box
+    # to ignore case. The extra cost is negligible: the walk (readdir/stat per
+    # entry) dominates, not the per-name fnmatch.
+    name_flag = '-name' if case_sensitive else '-iname'
+    # -iname folds case according to LC_CTYPE, and wsgi workers commonly run
+    # with LANG unset (i.e. the C locale, which folds ASCII only). Pin a UTF-8
+    # locale so accented filenames fold too; if the locale is missing on the
+    # host, find degrades to the ASCII-only behaviour we'd have had anyway.
+    env = dict(os.environ, LC_ALL=getattr(settings, 'SUBPROCESS_LOCALE', 'C.UTF-8'))
+    proc = subprocess.Popen(['find',base_path,name_flag,pattern], stdout=subprocess.PIPE, env=env)
     try:
         output = proc.communicate(timeout=settings.SUBPROCESS_TIMEOUT)[0].decode('utf-8')
     except subprocess.TimeoutExpired:

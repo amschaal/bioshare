@@ -289,11 +289,26 @@ RATELIMIT_RATES = {
 RATELIMIT_EXEMPT_IPS = [] # List of exempt IP addresses or ranges
 RATELIMIT_EXEMPT_USERNAMES = [] # List of exempt usernames
 
+# Shortest accepted file-search query. Searches are a full `find` walk of the
+# share with no index, so a one-character query matches most of a large share
+# and costs a stat per hit. Deploys may override in config.py.
+MIN_SEARCH_QUERY_LENGTH = 2
+
+# Most file-search hits returned in one response. Each hit past this point
+# costs an isdir() stat plus payload for a result list nobody scrolls through;
+# the client is told when it hit the cap. Deploys may override in config.py.
+MAX_SEARCH_RESULTS = 50
+
 # Wall-clock ceiling (seconds) for any subprocess (du, find, zfs, md5sum,
 # ssh-keygen, ...) invoked while handling a request. A blocked child past this
 # is killed and raises subprocess.TimeoutExpired so the wsgi worker is freed
 # instead of pinned until a manual restart. Deploys may override in config.py.
 SUBPROCESS_TIMEOUT = 30
+
+# Locale handed to subprocesses whose behaviour is locale-sensitive -- notably
+# `find -iname`, whose case folding is ASCII-only under the C locale that wsgi
+# workers usually inherit. Deploys may override in config.py.
+SUBPROCESS_LOCALE = 'C.UTF-8'
 
 # Socket timeout (seconds) Django passes to the SMTP backend. Email is sent
 # synchronously inside request handlers (share/permission notifications,

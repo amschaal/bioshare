@@ -33,7 +33,7 @@ from bioshareX.forms import MetaDataForm, ShareForm, ShareReadOnlyForm, json_for
 from bioshareX.models import Message, MetaData, Share, ShareLog, SSHKey, Tag
 from bioshareX.permissions import ManageGroupPermission, SharePermissions
 from bioshareX.utils import (ajax_login_required, du,
-                             email_users, json_error, json_response,
+                             email_users, get_setting, json_error, json_response,
                              safe_path_decorator, share_access_decorator,
                              test_path, validate_email)
 from settings.settings import AUTHORIZED_KEYS_FILE, SITE_URL
@@ -161,26 +161,37 @@ def set_permissions(request,share):
 @safe_path_decorator(path_param='subdir')
 def search_share(request,share,subdir=None):
     from bioshareX.utils import find
-    query = request.GET.get('query',False)
-    response={}
-    if query:
-        # Results look like "/<share.id>/<path relative to the search base>".
-        # Mark directories with a trailing slash so the client can link
-        # folders to the listing view and files to the download view.
-        base_path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
-        prefix = '/%s/'%share.id
-        results = []
-        for result in find(share,"*%s*"%query,subdir):
-            rel = result[len(prefix):] if result.startswith(prefix) else ''
-            if not rel:
-                continue # the search base directory itself matched the pattern
-            if os.path.isdir(os.path.join(base_path,rel)):
-                result += '/'
-            results.append(result)
-        response['results'] = results
-    else:
-        response = {'status':'error'}
-    return json_response(response)
+    query = (request.GET.get('query') or '').strip()
+    # Short queries match most of a share, and every hit costs an isdir() stat
+    # below plus payload, so they are rejected rather than served slowly.
+    min_length = get_setting('MIN_SEARCH_QUERY_LENGTH', 2)
+    if len(query) < min_length:
+        return json_response({'status':'error','error':'Please enter at least %d characters to search.'%min_length})
+    # Searches ignore case unless the client explicitly opts out.
+    case_sensitive = (request.GET.get('case_sensitive') or '').lower() in ('1','true','yes','on')
+    # Results look like "/<share.id>/<path relative to the search base>".
+    # Mark directories with a trailing slash so the client can link
+    # folders to the listing view and files to the download view.
+    base_path = share.get_path() if subdir is None else os.path.join(share.get_path(),subdir)
+    prefix = '/%s/'%share.id
+    limit = get_setting('MAX_SEARCH_RESULTS', 50)
+    results = []
+    truncated = False
+    for result in find(share,"*%s*"%query,subdir,case_sensitive=case_sensitive):
+        rel = result[len(prefix):] if result.startswith(prefix) else ''
+        if not rel:
+            continue # the search base directory itself matched the pattern
+        # Stop before the isdir() stat: past the cap we only need to know that
+        # more matches exist, not what they are. (The `find` walk itself has
+        # already happened -- this caps the per-hit stat and the payload.)
+        if len(results) >= limit:
+            truncated = True
+            break
+        if os.path.isdir(os.path.join(base_path,rel)):
+            result += '/'
+        results.append(result)
+    return json_response({'results':results,'case_sensitive':case_sensitive,
+                          'truncated':truncated,'limit':limit})
 
 @api_view(['POST'])
 @safe_path_decorator()

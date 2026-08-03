@@ -516,19 +516,40 @@ if (mountEl) {
             }
 
             // ----- Search tab -----
+            const minSearchLength = init.minSearchLength || 2;
             const searchQuery = ref('');
+            const searchCaseSensitive = ref(false);
             const searchResults = ref([]);
             const searching = ref(false);
             const searched = ref(false);
+            const searchError = ref('');
+            const searchTruncated = ref(false);
+            const searchLimit = ref(0);
+            const searchTooShort = computed(() => searchQuery.value.trim().length < minSearchLength);
             async function runSearch() {
-                if (!searchQuery.value.trim()) return;
+                // The server enforces this too; checking here keeps a doomed
+                // request from eating one of the 20/h search rate-limit slots.
+                if (searchTooShort.value) {
+                    searchError.value = 'Please enter at least ' + minSearchLength + ' characters to search.';
+                    searched.value = false;
+                    searchResults.value = [];
+                    searchTruncated.value = false;
+                    return;
+                }
                 searching.value = true;
                 searched.value = true;
+                searchError.value = '';
                 try {
-                    const r = await apiGet(init.urls.searchApi, { query: searchQuery.value });
+                    const params = { query: searchQuery.value.trim() };
+                    if (searchCaseSensitive.value) params.case_sensitive = '1';
+                    const r = await apiGet(init.urls.searchApi, params);
                     searchResults.value = r.results || [];
+                    searchTruncated.value = !!r.truncated;
+                    searchLimit.value = r.limit || 0;
+                    if (r.status === 'error') searchError.value = r.error || 'Search failed.';
                 } catch (e) {
                     searchResults.value = [];
+                    searchTruncated.value = false;
                 } finally {
                     searching.value = false;
                 }
@@ -598,7 +619,8 @@ if (mountEl) {
                 emailSending, emailError, emailRecipients, openEmailModal, sendEmail,
                 shareROModalOpen, shareROEmail, shareROError, shareROSaving, openShareROModal, doShareReadOnly,
                 connModalOpen, connModalTitle, connModalBlocks, showConnInfo, downloadZip,
-                searchQuery, searchResults, parsedResults, searching, searched, runSearch,
+                searchQuery, searchCaseSensitive, searchResults, parsedResults, searching, searched,
+                searchError, searchTruncated, searchLimit, minSearchLength, runSearch,
                 logColumns, init, fmtDateShort,
             };
         },
@@ -677,16 +699,35 @@ if (mountEl) {
 
                     <template #search>
                         <ul class="text-muted small">
-                            <li>Use "*" for wildcard</li>
-                            <li>Search is case sensitive</li>
+                            <!-- The query is wrapped in *…* server-side, so leading/trailing
+                                 wildcards are implied; only interior ones change anything. -->
+                            <li>Matches any part of a name; use "*" to skip characters, e.g. "sample*.fastq"</li>
+                            <li>At least {{ minSearchLength }} characters</li>
+                            <li>Case is ignored unless you check "Match case"</li>
                         </ul>
-                        <form class="d-flex gap-2 mb-3" @submit.prevent="runSearch">
+                        <form class="d-flex flex-wrap align-items-center gap-2 mb-3" @submit.prevent="runSearch">
                             <label for="file-search-box" class="visually-hidden">Search files in this share</label>
-                            <input id="file-search-box" v-model="searchQuery" class="form-control" style="max-width: 24rem;" placeholder="Search files…" />
+                            <input id="file-search-box" v-model="searchQuery" class="form-control" style="max-width: 24rem;"
+                                   :aria-describedby="searchError ? 'file-search-error' : null"
+                                   :aria-invalid="searchError ? 'true' : null"
+                                   placeholder="Search files…" />
+                            <div class="form-check mb-0">
+                                <input id="file-search-case" type="checkbox" class="form-check-input" v-model="searchCaseSensitive" />
+                                <label for="file-search-case" class="form-check-label">Match case</label>
+                            </div>
+                            <!-- Deliberately not disabled when the query is too short: a disabled
+                                 submit button also blocks Enter-to-submit, so the user would get no
+                                 feedback at all. Let runSearch() explain instead. -->
                             <button type="submit" class="btn btn-primary" :disabled="searching">Search</button>
                         </form>
                         <div aria-live="polite">
-                            <p v-if="searching" class="text-muted">Searching…</p>
+                            <!-- Separate v-if, deliberately not part of the chain below: this
+                                 warning accompanies the results rather than replacing them. -->
+                            <p v-if="searchTruncated" class="text-warning-emphasis">
+                                <span class="bi bi-exclamation-triangle me-1" aria-hidden="true"></span>Showing the first {{ searchLimit }} {{ searchLimit === 1 ? 'match' : 'matches' }}. Narrow your search to see the rest.
+                            </p>
+                            <p v-if="searchError" id="file-search-error" class="text-danger">{{ searchError }}</p>
+                            <p v-else-if="searching" class="text-muted">Searching…</p>
                             <p v-else-if="searched && searchResults.length === 0" class="text-muted">No matches.</p>
                             <ul v-else-if="parsedResults.length" class="list-unstyled">
                                 <li v-for="(result, i) in parsedResults" :key="i">
