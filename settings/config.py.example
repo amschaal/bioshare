@@ -2,6 +2,12 @@
 
 DEBUG = True
 
+# Serve /static/ with content-hashed filenames (see README "Static assets").
+# Defaults to `not DEBUG`, which is almost always what you want. Set it to True
+# alongside DEBUG = True only to rehearse the production collectstatic pipeline
+# locally; setting it False in production disables cache busting entirely.
+# STATIC_MANIFEST = False
+
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )

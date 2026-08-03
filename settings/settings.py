@@ -61,6 +61,19 @@ STATICFILES_FINDERS = (
     'compressor.finders.CompressorFinder',
 )
 
+# Content-hashed filenames for /static/, with the ES module import graph rewritten
+# to match, so Apache can serve hashed assets immutable (see apache_example.conf).
+# Requires `manage.py collectstatic` on every deploy -- see README. Overridden
+# below DEBUG's definition at the end of this file for development.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'bioshareX.storage.ESMManifestStaticFilesStorage',
+    },
+}
+
 APPEND_SLASH = True
 # # List of callables that know how to import templates from various sources.
 # TEMPLATE_LOADERS = (
@@ -334,3 +347,22 @@ if _default_db.get('ENGINE', '').endswith('postgresql'):
     _db_options = _default_db.setdefault('OPTIONS', {})
     _db_options.setdefault('connect_timeout', 10)
     _db_options.setdefault('options', '-c statement_timeout=30000')
+
+# runserver serves static straight from the finders, where only the unhashed source
+# names exist and no staticfiles.json has been built, so hashed storage is a
+# development-only liability. Dev cache-busting is handled instead by the
+# revalidation headers in bioshareX/management/commands/runserver.py.
+#
+# Set STATIC_MANIFEST = True in config.py to rehearse the production pipeline
+# locally: post_process() does not consult DEBUG, so collectstatic will hash and
+# rewrite even with DEBUG on. Declared here, after config.py is imported, because
+# DEBUG does not exist yet where STORAGES is defined above.
+STATIC_MANIFEST = globals().get('STATIC_MANIFEST', not globals().get('DEBUG', False))
+if not STATIC_MANIFEST:
+    # Rebuild rather than mutate, so a STORAGES supplied by config.py survives.
+    STORAGES = {
+        **STORAGES,
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }
