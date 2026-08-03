@@ -1,6 +1,5 @@
 {% load static %}
 {% load cache %}
-{% load compress %}
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,14 +9,12 @@
     <title>BIOSHARE - {% block title %}Default title{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {% compress css %}
     <link rel="stylesheet" href="{% static 'lib/bootstrap5/css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'lib/bootstrap-icons/bootstrap-icons.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/components.css' %}">
     <link rel="stylesheet" href="{% static 'css/bioshare.css' %}">
-    {% endcompress %}
 
-    {% comment %}Boot config consumed by main.js / pages/base.js. Inline (not in a compress block) so it always lands before the module scripts that read it.{% endcomment %}
+    {% comment %}Boot config consumed by main.js / pages/base.js. Inline so it always lands before the module scripts that read it.{% endcomment %}
     <script>
     window.BIOSHARE = {
         csrfToken: "{{ csrf_token }}",

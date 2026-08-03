@@ -2,7 +2,6 @@
 # (.github/workflows/security.yml) is the authoritative recurring vuln check.
 Django>=5.2.13,<5.3
 djangorestframework>=3.16.0,<3.17
-django-compressor>=4.5
 django-crispy-forms>=2.3,<3
 crispy-bootstrap5>=2024.10
 django-filter>=24.3
@@ -12,8 +11,6 @@ django-ratelimit>=4.1
 Markdown>=3.7
 nh3>=0.2  # HTML sanitizer for user-supplied README.md rendering (XSS fix)
 paramiko>=3.4
-rcssmin
-rjsmin
 zipstream-ng>=1.7
 psycopg2-binary>=2.9.9
 # Uncomment pymemcache if planning to use memcached

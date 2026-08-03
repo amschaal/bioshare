@@ -58,7 +58,6 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'compressor.finders.CompressorFinder',
 )
 
 # Content-hashed filenames for /static/, with the ES module import graph rewritten
@@ -167,7 +166,6 @@ INSTALLED_APPS = (
     'django_filters',
     'rest_framework',
     'rest_framework.authtoken',
-    'compressor',
     'corsheaders',
 )
 
