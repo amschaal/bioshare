@@ -10,7 +10,7 @@ bioshareX/migrations/backup
 .env.dev
 *host_key*
 .DS_Store
-
+.playwright-mcp
 # Frontend revamp dev fixtures — local-only test harnesses for Vue primitives.
 # Per frontend_revamp_plan.md Phase A: not collected into production static.
 static_files/dev/
