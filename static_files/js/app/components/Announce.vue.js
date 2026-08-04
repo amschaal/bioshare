@@ -7,7 +7,7 @@
 // Bootstrap 5 + components.css supply `.announce-region` for sr-only
 // positioning.
 
-import { defineComponent } from '/static/lib/vue/vue.esm-browser.prod.js';
+import { defineComponent } from 'vue';
 import { state } from '/static/js/app/state.js';
 
 export const Announce = defineComponent({

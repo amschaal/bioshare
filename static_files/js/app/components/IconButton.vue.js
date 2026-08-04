@@ -3,7 +3,7 @@
 // <i role="button" tabindex="0"> and <a href="#"> action site-wide so all icon
 // actions are keyboard-operable and announced correctly (WCAG 2.1.1, 4.1.2).
 
-import { defineComponent, computed } from '/static/lib/vue/vue.esm-browser.prod.js';
+import { defineComponent, computed } from 'vue';
 
 export const IconButton = defineComponent({
     name: 'IconButton',

@@ -4,7 +4,7 @@
 // Toast + announce queues are imperative APIs that page code or components
 // call without needing to know who's listening.
 
-import { reactive } from '/static/lib/vue/vue.esm-browser.prod.js';
+import { reactive } from 'vue';
 
 const BIOSHARE = (typeof window !== 'undefined' && window.BIOSHARE) || {};
 

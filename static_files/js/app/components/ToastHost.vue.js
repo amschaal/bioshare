@@ -3,7 +3,7 @@
 // class in components.css. Errors get role="alert" + aria-live="assertive"
 // (interrupting), other kinds get role="status" + aria-live="polite".
 
-import { defineComponent } from '/static/lib/vue/vue.esm-browser.prod.js';
+import { defineComponent } from 'vue';
 import { state, dismissToast } from '/static/js/app/state.js';
 
 const ICON_BY_KIND = {
