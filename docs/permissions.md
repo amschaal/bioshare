@@ -36,14 +36,18 @@ Use **Add a user or group** to pick someone. You can:
 To share with a group rather than an individual, select the group from the same
 box. Groups are covered in [Groups](groups.md).
 
-!!! important "Adding somebody does not yet grant them anything"
+Choosing someone adds a row to the grid, already ticked for **Browse** and
+**Download** — the usual starting point for somebody receiving data. Adjust the
+boxes from there.
 
-    A newly added row appears in the table with no permissions ticked. Tick the
-    boxes you want, then click **Update permissions**. Nothing takes effect until
-    you do — this catches people out regularly.
+!!! important "Nothing is saved until you click Update permissions"
 
-    Rows with unsaved changes are highlighted. After a successful save the
-    highlighting clears and a confirmation appears.
+    Adding a row changes only what is on screen. The row is flagged **Modified**
+    and a "You have unsaved changes" notice appears beneath the grid; the access
+    itself is not granted until you click **Update permissions**.
+
+    After a successful save the Modified flags clear and a "Permissions saved"
+    confirmation appears. If you navigate away before saving, the change is lost.
 
 ## What each permission allows
 
@@ -80,7 +84,20 @@ If your instance defines email footers, a share can carry one — a standard sig
 appended to these notifications, usually identifying the group or facility sending
 the data. Pick one on the share's create or edit form.
 
-## Removing access
+If you are unsure what a column means while working through the grid, **What do
+these permissions mean?** just above it expands an explanation in place.
 
-Use the **Actions** column to remove a user or group from the list, then click
-**Update permissions** to apply it — the same two-step rule as granting.
+## Changing and removing access
+
+The **Actions** column at the end of each row has three shortcuts:
+
+- **Grant all** — tick every permission for that user or group
+- **Clear all** — untick every permission, leaving the row in place
+- **Remove** — take the user or group off the share entirely
+
+All three are subject to the same rule as everything else on this page: click
+**Update permissions** afterwards, or nothing changes.
+
+Note that clearing every permission is not the same as removing the row. A row with
+nothing ticked still lists that person as associated with the share; removing takes
+them off it.
