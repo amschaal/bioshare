@@ -1,0 +1,12 @@
+{
+  "name": "bioshare-docs-screenshots",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Regenerates the screenshots used in the BioShare user manual",
+  "scripts": {
+    "capture": "node capture.js"
+  },
+  "dependencies": {
+    "playwright": "1.62.1"
+  }
+}

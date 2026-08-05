@@ -16,3 +16,8 @@ bioshareX/migrations/backup
 static_files/dev/
 # STATIC_ROOT — build output of `manage.py collectstatic`, never edited by hand.
 /static/
+
+# Playwright session cache for the docs screenshot scripts. Contains a live
+# session cookie -- never commit.
+tools/screenshots/auth.json
+tools/screenshots/node_modules/

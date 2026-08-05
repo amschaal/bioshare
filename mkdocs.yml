@@ -1,0 +1,79 @@
+site_name: BioShare
+site_description: User guide for BioShare, a web application for sharing large datasets.
+site_url: https://amschaal.github.io/bioshare/
+repo_url: https://github.com/amschaal/bioshare
+repo_name: amschaal/bioshare
+edit_uri: edit/master/docs/
+
+# Fail the build on a broken internal link or a nav entry pointing at a missing
+# page. The previous docs drifted silently for years; this at least makes
+# structural rot loud.
+strict: true
+
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.instant
+    - content.code.copy
+    - search.highlight
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+  - glightbox:          # click a screenshot to view it full size
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      slide_effect: slide
+      width: 100%
+      auto_caption: false
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+# Ordered for the primary audience: people who have been sent a share, and who
+# need to get in, find their files, and get them off the server. Tasks that only
+# share owners perform come afterwards.
+nav:
+  - Introduction: index.md
+  - Getting started: getting-started.md
+  - Browsing a share: browsing-shares.md
+  - Downloading and uploading: transfers.md
+  - For share owners:
+      - Creating shares: creating-shares.md
+      - Permissions: permissions.md
+      - Managing shares: managing-shares.md
+      - Groups: groups.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/amschaal/bioshare
