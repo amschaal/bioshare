@@ -35,6 +35,14 @@ class Command(BaseCommand):
                  'removed; the account itself is never deleted. '
                  'Default: test@fake.com',
         )
+        parser.add_argument(
+            '--prune-orphans', action='store_true',
+            help='Also delete directories under the configured filesystems that '
+                 'have no Share row pointing at them. Use this to clean up after '
+                 'a seed run that failed part-way: the directory is created by '
+                 'share_post_save before the rest of the seeding happens, so an '
+                 'aborted run can leave directories behind with no share.',
+        )
 
     def handle(self, *args, **options):
         if not settings.DEBUG:
@@ -90,5 +98,43 @@ class Command(BaseCommand):
                 self.stdout.write(f'  - user {user.username}')
             users.delete()
 
+        if options['prune_orphans']:
+            self._prune_orphans()
+
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('Demo data removed.'))
+
+    def _prune_orphans(self):
+        """Delete filesystem directories with no Share row pointing at them.
+
+        A share directory is named after the share id, so any immediate child of a
+        filesystem path whose name is not a known share id is unreferenced. Only
+        directories are considered, and only ones matching the 15-character id
+        format that pkgen produces, so unrelated content sitting on the volume is
+        never touched.
+        """
+        import os
+        import re
+        import shutil
+
+        from bioshareX.models import Filesystem
+
+        known = set(Share.objects.values_list('id', flat=True))
+        id_format = re.compile(r'^[0-9a-z]{15}$')
+        pruned = 0
+
+        for filesystem in Filesystem.objects.all():
+            root = filesystem.path
+            if not os.path.isdir(root):
+                continue
+            for entry in sorted(os.listdir(root)):
+                path = os.path.join(root, entry)
+                if entry in known or not id_format.match(entry):
+                    continue
+                if os.path.islink(path) or not os.path.isdir(path):
+                    continue
+                shutil.rmtree(path)
+                self.stdout.write(f'  - orphaned directory {path}')
+                pruned += 1
+
+        self.stdout.write(f'  {pruned} orphaned director{"y" if pruned == 1 else "ies"} pruned')

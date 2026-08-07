@@ -16,7 +16,6 @@ import random
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 from guardian.shortcuts import assign_perm
 
 from bioshareX.models import (EmailFooter, Filesystem, GroupProfile, MetaData,
@@ -72,14 +71,20 @@ class Command(BaseCommand):
                     'first -- see the "Filesystem" section of the README.'
                 )
 
-        with transaction.atomic():
-            users = self._create_users()
-            users['docs'] = docs_user
-            groups = self._create_groups(users, docs_user)
-            self._create_email_footers(groups)
-            shares = self._create_shares(users, groups, filesystem, docs_user)
-            self._create_logs(shares, users, docs_user)
-            self._create_ssh_key(docs_user)
+        # Deliberately NOT wrapped in transaction.atomic(). Creating a Share makes
+        # its directory on disk via share_post_save, and that is not covered by the
+        # database transaction: a rollback would leave orphaned directories full of
+        # files with no rows pointing at them, and the next run would allocate new
+        # share ids and orphan another set. Since every step here is idempotent, a
+        # partial run is simply resumable -- re-run it, or use unseed_docs_demo,
+        # which deletes by slug and takes the directories with it.
+        users = self._create_users()
+        users['docs'] = docs_user
+        groups = self._create_groups(users, docs_user)
+        self._create_email_footers(groups)
+        shares = self._create_shares(users, groups, filesystem, docs_user)
+        self._create_logs(shares, users, docs_user)
+        self._create_ssh_key(docs_user)
 
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS(
@@ -231,20 +236,24 @@ class Command(BaseCommand):
 
     # -- activity log --------------------------------------------------------
     def _create_logs(self, shares, users, docs_user):
+        # Idempotency is per share, not per log entry. ShareLog.paths is declared
+        # as a JSONField but the column is TEXT in this schema, so filtering on it
+        # makes Postgres compare `text = jsonb` and fail; inserting is fine. A
+        # share that already has any history is therefore left untouched, which
+        # also avoids trampling real activity.
         created = 0
-        for slug, action_attr, text, paths in demo.DEMO_LOGS:
-            share = shares.get(slug)
-            if not share:
+        for slug, share in shares.items():
+            if ShareLog.objects.filter(share=share).exists():
                 continue
-            action = getattr(ShareLog, action_attr)
-            if ShareLog.objects.filter(share=share, action=action,
-                                       text=text, paths=paths).exists():
-                continue
-            # share_updated=False: bumping the share's modified timestamp on every
-            # seed would make the home page's Modified column churn between runs.
-            ShareLog.create(share, action, user=docs_user, text=text,
-                            paths=paths, share_updated=False)
-            created += 1
+            for log_slug, action_attr, text, paths in demo.DEMO_LOGS:
+                if log_slug != slug:
+                    continue
+                # share_updated=False: bumping the share's modified timestamp on
+                # every seed would make the home page's Modified column churn.
+                ShareLog.create(share, getattr(ShareLog, action_attr),
+                                user=docs_user, text=text, paths=paths,
+                                share_updated=False)
+                created += 1
         self.stdout.write(f'  + {created} activity log entries')
 
     # -- ssh key -------------------------------------------------------------
