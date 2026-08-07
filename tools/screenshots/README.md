@@ -6,18 +6,38 @@ re-run the script and see from `git diff` exactly which screens moved.
 
 ## Running
 
-Against a **development** instance only:
+Against a **development** instance only.
+
+First create the demo dataset the screenshots show — realistic shares, groups,
+accounts, permissions, activity and files. This is a Django management command, so
+run it wherever `manage.py` runs (the app container), not here:
+
+```sh
+python manage.py seed_docs_demo
+```
+
+Then capture:
 
 ```sh
 cd tools/screenshots
 npm ci
 npx playwright install chromium     # one-time, ~110 MB
-node seed.js                        # once, to create the demo share
 node capture.js
 ```
 
-This lives outside `docs/` on purpose: everything under `docs/` is copied into the
-published site, and shipping `node_modules/` to GitHub Pages would be unfortunate.
+And when you are finished, remove the demo data again:
+
+```sh
+python manage.py unseed_docs_demo --yes
+```
+
+Both commands refuse to run unless `DEBUG` is on, and the teardown only deletes
+objects named in `bioshareX/management/commands/_docs_demo.py` — it cannot match a
+real share or account. See that module for the full manifest.
+
+This directory lives outside `docs/` on purpose: everything under `docs/` is copied
+into the published site, and shipping `node_modules/` to GitHub Pages would be
+unfortunate.
 
 Defaults target the devcontainer app at `http://bioshare:9999`. Override with:
 

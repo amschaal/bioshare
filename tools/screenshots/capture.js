@@ -27,6 +27,11 @@ const OUT = path.resolve(__dirname, '..', '..', 'docs', 'images', 'screenshots')
 // loop gets later screens served the throttle page instead of content.
 const PAUSE_MS = Number(process.env.BIOSHARE_CAPTURE_PAUSE_MS || 2500);
 
+// Slug of the share to feature. `manage.py seed_docs_demo` creates it; when it is
+// absent the script falls back to whichever healthy share has the most rows.
+// Pinning it keeps screenshots stable as other shares come and go.
+const PREFERRED_SLUG = process.env.BIOSHARE_DEMO_SLUG || 'okafor-rnaseq-timecourse';
+
 // Viewport is fixed in session.js so re-runs are byte-comparable: 1280x800 suits
 // the docs content width and keeps the sidebar visible (below ~992px Bootstrap
 // stacks it).
@@ -68,6 +73,18 @@ const SCREENS = [
         url: (ctx) => `/bioshare/view/${ctx.shareId}/`,
         waitFor: 'table',
         prepare: async (page) => openMenu(page, 'Upload'),
+    },
+    {
+        name: 'email-participants',
+        url: (ctx) => `/bioshare/view/${ctx.shareId}/`,
+        waitFor: 'table',
+        prepare: async (page) => {
+            const button = page.getByRole('button', { name: /^Email/ });
+            if (await button.count()) {
+                await button.first().click();
+                await page.waitForTimeout(800);
+            }
+        },
     },
     {
         name: 'permissions',
@@ -169,6 +186,7 @@ async function discoverShareId(page) {
     for (const href of hrefs) {
         const id = (href.match(/\/bioshare\/view\/([^/]+)\//) || [])[1];
         if (!id) continue;
+        if (id === PREFERRED_SLUG) return id;
         await page.goto(BASE + href, { waitUntil: 'networkidle' });
         await settle(page, 'table');
         const body = await page.innerText('body').catch(() => '');
