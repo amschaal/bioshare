@@ -59,7 +59,8 @@
         <nav aria-label="Primary navigation" class="flex-grow-1">
           <ul class="nav align-items-center">
             <li class="nav-item"><a class="nav-link link-light" href="{% url 'home' %}">Home</a></li>
-            <li class="nav-item"><a class="nav-link link-light" target="_blank" rel="noopener" href="https://bioshare.readthedocs.io/en/latest/">Help</a></li>
+            {# User guide, built from docs/ and published by .github/workflows/docs.yml. #}
+            <li class="nav-item"><a class="nav-link link-light" target="_blank" rel="noopener" href="https://amschaal.github.io/bioshare/">Help</a></li>
             {% if request.user.is_authenticated %}
             <li class="nav-item"><div id="nav-shares-dropdown-mount"></div></li>
             <li class="nav-item"><a class="nav-link link-light" href="{% url 'groups' %}">Groups</a></li>
