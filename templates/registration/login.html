@@ -1,28 +1,39 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% block title %}{% trans "Log in" %}{% endblock %}
 
 {% block content %}
-<form method="post" action="#">
-  <legend>Login</legend>
-  {% csrf_token %} 
-  {{ form|crispy }}
-
-  <button type="submit" class="btn btn-primary">{% trans 'Log in' %}</button>
-  {% if next%}
-  <input type="hidden" name="next" value="{{next}}" />
-  {% else %}
-  <input type="hidden" name="next" value="{% url 'home' %}" />
-  {% endif %}
-  
-</form>
-
-<p>{% trans "Forgot password" %}? <a href="{% url 'password_reset' %}">{% trans "Reset it" %}</a>!</p>
-<h3>Update: July 15, 2015</h3>
-<p>
-For improved performance, Bioshare has been migrated to a new server.  In addition to hopefully being a bit snappier, Bioshare also now has support for downloading files via SFTP!  For instructions on downloading via SFTP, while viewing a share, click on "Download" then "SFTP".
-</p>
-<p>
-Please report any issues you may encounter to <a href="mailto:webmaster@genomecenter.ucdavis.edu">webmaster@genomecenter.ucdavis.edu</a>.
-</p>
+<div class="row">
+  <div class="col-md-6 col-lg-5">
+    <h1 class="h3 mb-3">{% trans "Log in" %}</h1>
+    <form method="post" action="" class="border rounded bg-white p-3">
+      {% csrf_token %}
+      {{ form|crispy }}
+      {% if next %}
+      <input type="hidden" name="next" value="{{ next }}" />
+      {% else %}
+      <input type="hidden" name="next" value="{% url 'home' %}" />
+      {% endif %}
+      <button type="submit" class="btn btn-primary">{% trans 'Log in' %}</button>
+    </form>
+    <p class="mt-2">
+      {% trans "Forgot password" %}?
+      <a href="{% url 'password_reset' %}">{% trans "Reset it" %}</a>
+    </p>
+  </div>
+  <div class="col-md-6 col-lg-7">
+    <h2 class="h5">Update: July 15, 2015</h2>
+    <p>
+      For improved performance, Bioshare has been migrated to a new server. In
+      addition to hopefully being a bit snappier, Bioshare also now has support
+      for downloading files via SFTP! For instructions on downloading via SFTP,
+      while viewing a share, click on "Download" then "SFTP".
+    </p>
+    <p>
+      Please report any issues you may encounter to
+      <a href="mailto:webmaster@genomecenter.ucdavis.edu">webmaster@genomecenter.ucdavis.edu</a>.
+    </p>
+  </div>
+</div>
 {% endblock %}

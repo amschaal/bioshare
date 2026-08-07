@@ -1,0 +1,5 @@
+<p>
+Kind regards,
+<br><br>
+The UC Davis Bioinformatics Core
+</p>

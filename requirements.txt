@@ -1,19 +1,17 @@
-Django>=1.11.27,<2.0
-django-appconf==1.0.2
-django-compressor==2.1.1
-django-crispy-forms==1.6.0
-django-filter==0.13.0
-django-guardian==1.4.2
-django-sendfile==0.3.10
-djangorestframework==3.9.4
-djangorestframework-filters==0.11.1
-jsonfield==1.0.3
-longerusername==0.4
-Markdown==2.6.5
-paramiko>=2.1.6
-rcssmin==1.0.6
-rjsmin==1.0.12
-scandir==1.5
-zipstream==1.1.0
-django-cors-headers
-psycopg2
+# Minimum versions raised to known-patched releases; pip-audit in CI
+# (.github/workflows/security.yml) is the authoritative recurring vuln check.
+Django>=5.2.13,<5.3
+djangorestframework>=3.16.0,<3.17
+django-crispy-forms>=2.3,<3
+crispy-bootstrap5>=2024.10
+django-filter>=24.3
+django-guardian>=2.4.0  # verify latest Django-5.2-compatible release against the test suite
+django-cors-headers>=4.4
+django-ratelimit>=4.1
+Markdown>=3.7
+nh3>=0.2  # HTML sanitizer for user-supplied README.md rendering (XSS fix)
+paramiko>=3.4
+zipstream-ng>=1.7
+psycopg2-binary>=2.9.9
+# Uncomment pymemcache if planning to use memcached
+pymemcache

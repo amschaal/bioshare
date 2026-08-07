@@ -1,0 +1,5 @@
+# Build dependencies for the user guide (see .github/workflows/docs.yml).
+# These are documentation-only and deliberately separate from the application's
+# requirements.txt.
+mkdocs-material>=9.5,<10
+mkdocs-glightbox>=0.4,<1

@@ -3,17 +3,14 @@
 {% block title %}{% if group.id %}Modify{% else %}Create{% endif %} group{% endblock %}
 
 {% block content %}
-  <form class="form-horizontal" method="POST" action="#">
-  <fieldset>
-	  <legend>{% if group.id %}Modify{% else %}Create{% endif %} group</legend>
-	    {{ group_form|crispy }}
-	    {{ profile_form|crispy }}
-	  <div class="control-group">
-	    <div class="controls">
-	    	<button type="submit" class="btn">{% if group.id %}Modify{% else %}Create{% endif %}</button>
-	    </div>
-	  </div>
-  </fieldset>
-  {% csrf_token %}
-  </form>
+<h1 class="h3 mb-3">{% if group.id %}Modify{% else %}Create{% endif %} group</h1>
+
+<form method="POST" action="" class="border rounded bg-white p-3" style="max-width: 40rem;">
+    {% csrf_token %}
+    {{ group_form|crispy }}
+    {{ profile_form|crispy }}
+    <button type="submit" class="btn btn-primary">
+        {% if group.id %}Save changes{% else %}Create group{% endif %}
+    </button>
+</form>
 {% endblock %}

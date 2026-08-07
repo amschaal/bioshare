@@ -2,6 +2,12 @@
 
 DEBUG = True
 
+# Serve /static/ with content-hashed filenames (see README "Static assets").
+# Defaults to `not DEBUG`, which is almost always what you want. Set it to True
+# alongside DEBUG = True only to rehearse the production collectstatic pipeline
+# locally; setting it False in production disables cache busting entirely.
+# STATIC_MANIFEST = False
+
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
@@ -23,12 +29,16 @@ TIME_ZONE = 'America/Los_Angeles'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql', 
-        'NAME': 'bioshare',   
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'bioshare',
         'USER': 'username',
         'PASSWORD': 'password',
         'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
         'PORT': '',                      # Set to empty string for default.
+        # For PostgreSQL, settings.py auto-injects a 30s statement_timeout and
+        # a 10s connect_timeout (so a degraded query can't pin a wsgi worker).
+        # To change them, set OPTIONS here and they will be preserved, e.g.:
+        # 'OPTIONS': {'connect_timeout': 10, 'options': '-c statement_timeout=30000'},
     },
 }
 
@@ -59,9 +69,22 @@ SFTP_PORT = 2200
 HOST = 'server.domain.net'
 SITE_URL = 'https://server.domain.net'
 
-SFTP_SSH_PORT = 2222
+SFTP_SSH_PORT = 2200
 # Note, you can generate a new host key like this:
 # ssh-keygen -t rsa -N '' -f host_key
 SFTP_HOST_KEY = '/tmp/host_key'
+# Path to the rotated SFTP server log (manage.py start_sftp). Rotates daily, keeps 30 days.
+# The parent directory must exist and be writable by the user running the server.
+SFTP_LOG_FILE = '/home/bioshare/sftp.log'
 #The share modified date can be updated whenever modifications are made over SFTP.  Set the minimum number of seconds between updates.
 SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS = 60
+
+# Caching using memcached
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+        "LOCATION": "127.0.0.1:11211",
+    }
+}
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'

@@ -21,12 +21,10 @@ SITE_ID = 1
 # to load the internationalization machinery.
 USE_I18N = True
 
-# If you set this to False, Django will not format dates, numbers and
-# calendars according to the current locale.
-USE_L10N = True
-
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/var/www/example.com/media/"
@@ -60,8 +58,20 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'compressor.finders.CompressorFinder',
 )
+
+# Content-hashed filenames for /static/, with the ES module import graph rewritten
+# to match, so Apache can serve hashed assets immutable (see apache_example.conf).
+# Requires `manage.py collectstatic` on every deploy -- see README. Overridden
+# below DEBUG's definition at the end of this file for development.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'bioshareX.storage.ESMManifestStaticFilesStorage',
+    },
+}
 
 APPEND_SLASH = True
 # # List of callables that know how to import templates from various sources.
@@ -108,13 +118,16 @@ TEMPLATES = [
     }
 ]
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django_ratelimit.middleware.RatelimitMiddleware',
+    # Last, so it only fills in a Cache-Control that nothing else set.
+    'bioshareX.middleware.HTMLCacheControlMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -137,17 +150,22 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
 #     'django.contrib.sites',
     'django.contrib.messages',
+    # bioshareX precedes django.contrib.staticfiles so its management/commands/
+    # runserver.py shadows the staticfiles one (get_commands() lets the earliest
+    # app win). That override adds revalidation headers to /static/ in dev --
+    # see bioshareX/management/commands/runserver.py.
+    'bioshareX',
     'django.contrib.staticfiles',
     # Uncomment the next line to enable the admin:
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
-    'bioshareX',
     'crispy_forms',
+    'crispy_bootstrap5',
     'guardian',
+    'django_filters',
     'rest_framework',
     'rest_framework.authtoken',
-    'compressor',
     'corsheaders',
 )
 
@@ -188,31 +206,55 @@ AUTHENTICATION_BACKENDS = (
     'guardian.backends.ObjectPermissionBackend',
 )
 
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+     'OPTIONS': {'min_length': 12}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         #'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ),
-    'DEFAULT_FILTER_BACKENDS': ('rest_framework_filters.backends.DjangoFilterBackend','rest_framework.filters.OrderingFilter'),
+    # Authenticated-by-default. Every current view sets explicit permissions (and
+    # public share access uses non-DRF function views), so this only backstops any
+    # future endpoint that forgets to declare permission_classes.
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    # 'DEFAULT_FILTER_BACKENDS': ('rest_framework_filters.backends.DjangoFilterBackend','rest_framework.filters.OrderingFilter'),
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend', 'rest_framework.filters.OrderingFilter',),
     'DEFAULT_PAGINATION_CLASS': 'bioshareX.pagination.StandardPagePagination',
     'PAGE_SIZE': 10,
     'PAGINATE_BY_PARAM': 'page_size',  # Allow client to override, using `?page_size=xxx`.
     'MAX_PAGINATE_BY': 1000,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'bioshareX.api.throttles.BurstRateThrottle',
+        'bioshareX.api.throttles.SustainedRateThrottle'
+    ],
     'DEFAULT_THROTTLE_RATES': {
-        'burst': '10/min',
-#         'sustained': '1000/day'
+        'burst': '20/minute',
+        'sustained': '1000/day'
     }
 }
 
 ANONYMOUS_USER_ID = -1 #Guardian
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
+CRISPY_TEMPLATE_PACK = 'bootstrap5'
+
+DEFAULT_FILESYSTEM_ID = None #Replace with integer filesystem id
 
 FILE_UPLOAD_HANDLERS = (
     "django.core.files.uploadhandler.TemporaryFileUploadHandler",
 )
 SSH_WRAPPER_SCRIPT = os.path.join(CURRENT_DIR, 'sshwrapper.py')
 
-UMASK = '0002'
+UMASK = 0o002
 
 INCLUDE_REGISTER_URL = False
 
@@ -220,4 +262,107 @@ STRIP_REGEX = r'[^\w\.\- \*^]+'
 UNDERSCORE_REGEX = r'[ ]+'
 MD5SUM_COMMAND = 'md5sum'
 
+ENABLE_SYMLINKS = False
+SYMLINK_DEPTH_DEFAULT = 1 # default depth that symlinks are allowed, can be overridden
+SYMLINK_DEPTH_MAX = 3 # absolute maximum depth
+
+ZFS_CREATE_COMMAND =  ['zfs','create']
+ZFS_DESTROY_COMMAND =  ['zfs','destroy']
+
+USE_DU = False # Whether to use "du" linux command instead of python os utils for calculating share sizes
+
+# RATELIMIT_EXCEPTION_CLASS = 'bioshareX.exceptions.ThrottledException'
+RATELIMIT_VIEW = 'bioshareX.views.ratelimit_exceeded'
+
+# Custom settings so it is easy to override per view rates in config, rather than changing source code
+RATELIMIT_RATES = {
+    'default': '10/m',
+    'user': '10/m',
+    'anon': '5/m',
+    'groups': {
+        'list_directory': {
+            'user': '5/m',
+            'anon': '2/m'
+        },
+        'wget_listing': '5/h',
+        'create_symlink': '10/h',
+        'download_stream_archive': '5/h',
+        'download_file': {
+            'user': '5/h',
+            'anon': '2/h' 
+        },
+        'get_md5sum': {
+            'user': '3/h',
+            'anon': '2/d'
+        },
+        'search_share': {
+            'user': '20/h',
+            'anon': '5/h'
+        },
+        'email_participants': '3/d'
+    }
+}
+
+RATELIMIT_EXEMPT_IPS = [] # List of exempt IP addresses or ranges
+RATELIMIT_EXEMPT_USERNAMES = [] # List of exempt usernames
+
+# Shortest accepted file-search query. Searches are a full `find` walk of the
+# share with no index, so a one-character query matches most of a large share
+# and costs a stat per hit. Deploys may override in config.py.
+MIN_SEARCH_QUERY_LENGTH = 2
+
+# Most file-search hits returned in one response. Each hit past this point
+# costs an isdir() stat plus payload for a result list nobody scrolls through;
+# the client is told when it hit the cap. Deploys may override in config.py.
+MAX_SEARCH_RESULTS = 50
+
+# Wall-clock ceiling (seconds) for any subprocess (du, find, zfs, md5sum,
+# ssh-keygen, ...) invoked while handling a request. A blocked child past this
+# is killed and raises subprocess.TimeoutExpired so the wsgi worker is freed
+# instead of pinned until a manual restart. Deploys may override in config.py.
+SUBPROCESS_TIMEOUT = 30
+
+# Locale handed to subprocesses whose behaviour is locale-sensitive -- notably
+# `find -iname`, whose case folding is ASCII-only under the C locale that wsgi
+# workers usually inherit. Deploys may override in config.py.
+SUBPROCESS_LOCALE = 'C.UTF-8'
+
+# Socket timeout (seconds) Django passes to the SMTP backend. Email is sent
+# synchronously inside request handlers (share/permission notifications,
+# password reset); without this a slow or stalled mail server (e.g. a hung
+# TLS handshake) blocks the EmailMessage.send() call and pins the worker
+# indefinitely. Deploys may override in config.py.
+EMAIL_TIMEOUT = 10
+
 from settings.config import *
+
+# Bound how long a single statement may run (and how long a connection attempt
+# may block) so a degraded query plan or an unreachable DB host can't pin a
+# wsgi worker until a manual restart. Injected here, after the per-deploy
+# DATABASES block is imported, so it applies everywhere; a deploy can still
+# override by pre-setting these OPTIONS in config.py. PostgreSQL-only
+# (statement_timeout is passed via libpq `options`).
+_default_db = DATABASES.get('default', {}) if 'DATABASES' in dir() else {}
+if _default_db.get('ENGINE', '').endswith('postgresql'):
+    _db_options = _default_db.setdefault('OPTIONS', {})
+    _db_options.setdefault('connect_timeout', 10)
+    _db_options.setdefault('options', '-c statement_timeout=30000')
+
+# runserver serves static straight from the finders, where only the unhashed source
+# names exist and no staticfiles.json has been built, so hashed storage is a
+# development-only liability. Dev cache-busting is handled instead by the
+# revalidation headers in bioshareX/management/commands/runserver.py.
+#
+# Set STATIC_MANIFEST = True in config.py to rehearse the production pipeline
+# locally: post_process() does not consult DEBUG, so collectstatic will hash and
+# rewrite even with DEBUG on. Declared here, after config.py is imported, because
+# DEBUG does not exist yet where STORAGES is defined above.
+STATIC_MANIFEST = globals().get('STATIC_MANIFEST', not globals().get('DEBUG', False))
+if not STATIC_MANIFEST:
+    # Rebuild rather than mutate, so a STORAGES supplied by config.py survives.
+    STORAGES = {
+        **STORAGES,
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    }

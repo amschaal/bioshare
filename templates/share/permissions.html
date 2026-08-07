@@ -1,83 +1,31 @@
 {% extends "base.html" %}
 {% load static %}
-{% load crispy_forms_tags %}
-{% load guardian_tags %}
-{% block title %}Permissions: {{share.name}}{% endblock %}
+{% block title %}Permissions: {{ share.name }}{% endblock %}
 
 {% block content %}
-<style>
-.verticalText
-{
-text-align: center;
-vertical-align: middle;
-width: 20px;
-margin: 0px;
-padding: 0px;
-padding-left: 3px;
-padding-right: 3px;
-padding-top: 10px;
-white-space: nowrap;
--webkit-transform: rotate(-90deg);
--moz-transform: rotate(-90deg);
-}
-table.permissions{
-margin-top: 50px;
-}
-table.permissions tr td{
-border: thin solid #ccc;
-text-align:center;
-}
-table.permissions tr td:first-child{
-text-align: left;
-}
-table.permissions tr td input{
-margin:0px;
-}
-table.permissions tr.modified{
-background-color:yellow;
-}
-</style>
-
-<h1>Permissions: <a href="{% url 'list_directory' share.slug_or_id %}">{{share.name}}</a></h1>
-<div class="row">
-  <div class="span5">
-    <legend>General Settings</legend>
- 	<label class="checkbox" data-toggle="tooltip" title="If this is not selected, anyone with the URL may view or download files."><input id="secure" type="checkbox" {% if share.secure %}checked{%endif%}/>Secure share</label>
-  	<button class="btn" id="updateGeneralSettings">Update</button>
-  </p>
-
- <legend>Permissions</legend>
- <textarea id="addUser" class="no-margin" type="text" placeholder="joe@example.com, susan@example.com, ..." style="width:400px;height:100px;"></textarea><br><button id="addUserButton" class="btn">Add</button>
-
-<div id="user-permission-section" style="display:none">
-	<table id="user_permissions" class="permissions">
-	<thead>
-	<tr><th>User</th><th><div class="verticalText">Browse</div></th><th><div class="verticalText">Download</div></th>{% if not share.read_only %}<th><div class="verticalText">Write</div></th><th><div class="verticalText">Delete</div></th>{% endif %}<th><div class="verticalText">Administer</div></th><th></th></tr>
-	</thead>
-	<tbody>
-	<!-- <tr><td>Username</td><td><input type="checkbox"></td><td><input type="checkbox"></td><td><input type="checkbox"></td></tr> -->
-	</tbody>
-	</table>
-	<label class="checkbox" data-toggle="tooltip" title="Email users who previously had no permissions.  Users who already had permissions will not be emailed.  Newly created accounts will receive emails regardless of this setting."><input id="email_users" type="checkbox" checked/>Send email</label>
-	<button class="btn" id="updateUserPermissions">Update</button>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <h1 class="m-0 h3">
+        Permissions:
+        <a href="{% url 'list_directory' share.slug_or_id %}">{{ share.name }}</a>
+    </h1>
 </div>
- 
-</div>
-  <div class="span7"><div id="messages"></div></div>
-</div>
+
+{% comment %}Init payload for pages/permissions.js.{% endcomment %}
+<script id="permissions-init" type="application/json">{
+    "readOnly": {{ share.read_only|yesno:"true,false" }},
+    "secure": {{ share.secure|yesno:"true,false" }},
+    "urls": {
+        "getPermissions": "{% url 'api_get_permissions' share=share.id %}",
+        "setPermissions": "{% url 'api_set_permissions' share=share.id %}",
+        "shareWith": "{% url 'api_share_with' share=share.id %}",
+        "updateShare": "{% url 'api_update_share' share=share.id %}"
+    }
+}</script>
+
+<div id="permissions-page-mount"></div>
 {% endblock %}
 
 {% block scripts %}
-{{block.super}}
-<script>
-var get_permissions_url = '{% url 'api_get_permissions' share=share.id %}';
-var set_permissions_url = '{% url 'api_set_permissions' share=share.id %}';
-var share_with_url = '{% url 'api_share_with' share=share.id %}';
-var get_group_url = '{% url 'api_get_group' %}';
-var update_share_url = '{% url 'api_update_share' share=share.id %}'; 
-var read_only = {% if share.read_only %}true{% else %}false{% endif %};
-
-</script>
-<script src="{% static "lib/textcomplete/jquery.textcomplete.js" %}"></script>
-<script src="{% static "js/share/permissions.js" %}"></script>
+{{ block.super }}
+<script type="module" src="{% static 'js/app/pages/permissions.js' %}"></script>
 {% endblock %}

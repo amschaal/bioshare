@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% block title %}{% trans "Account activated" %}{% endblock %}
 
 {% block content %}
-<p>{% trans "Your account is now activated." %}</p>
+<h1 class="h3">{% trans "Your account is now activated." %}</h1>
+<p><a href="{% url 'login' %}">{% trans "Log in" %}</a></p>
 {% endblock %}

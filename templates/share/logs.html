@@ -1,0 +1,14 @@
+{% comment %}
+Reusable share activity-log partial. Include it anywhere a share is in
+context; it mounts a Vue DataTable bound to /bioshare/api/logs/?share=<id>.
+Replaces the AngularJS LogController + ng-table version.
+{% endcomment %}
+{% load static %}
+
+<script id="log-table-init" type="application/json">{
+    "share": "{{ share.id|escapejs }}"
+}</script>
+
+<div id="log-table-mount"></div>
+
+<script type="module" src="{% static 'js/app/pages/log-table.js' %}"></script>

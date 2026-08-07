@@ -1,9 +1,32 @@
-from rest_framework import filters
-from django.contrib.auth.models import User, Group
-from guardian.shortcuts import get_objects_for_user, get_objects_for_group
-from bioshareX.models import Share
-from django.db.models.query_utils import Q
 import datetime
+
+import django_filters
+from django.contrib.auth.models import Group, User
+from django.db.models import JSONField
+from django.db.models.query_utils import Q
+from rest_framework import filters
+from bioshareX.api.filter_utils import gen_sql_filter_json_array
+
+from bioshareX.models import Share, ShareLog
+
+
+class ShareLogFilterSet(django_filters.FilterSet):
+    class Meta:
+        model = ShareLog
+        fields = {
+            'action': ['icontains'],
+            'user__username': ['icontains'],
+            'text': ['icontains'],
+            'paths': ['icontains'],
+            'share': ['exact'],
+        }
+        # django-filter 23+ refuses to auto-generate filters for JSONField; tell it to
+        # treat paths (JSONField storing a list of file paths) as a plain CharFilter so
+        # `?paths__icontains=foo` substring-matches the jsonb text representation.
+        filter_overrides = {
+            JSONField: {'filter_class': django_filters.CharFilter},
+        }
+
 
 class UserShareFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
@@ -39,4 +62,26 @@ class ActiveMessageFilter(filters.BaseFilterBackend):
         active = view.request.query_params.get('active',None)
         if not active:
             return queryset
-        return queryset.filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=request.user.id)        
+        return queryset.filter(Q(expires__gte=datetime.datetime.today())|Q(expires=None)).exclude(viewed_by__id=request.user.id)
+
+class ContainsSymlinkFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        contains_symlink = view.request.query_params.get('contains_symlinks','false')
+        if contains_symlink.lower() not in ['true', True]:
+            return queryset
+        return queryset.filter(Q(symlinks_found__isnull=False)|Q(link_to_path__isnull=False))
+
+class SymlinkTargetFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        symlink_target = view.request.query_params.get('symlink_target')
+        if not symlink_target:
+            return queryset
+        query = gen_sql_filter_json_array(Share, "meta->'symlinks'", 'target', 'ILIKE', symlink_target)
+        return queryset.filter(id__in=query)
+
+class SymlinkWarningFilter(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        if view.request.query_params.get('has_symlink_warning', 'false').lower() != 'true':
+            return queryset
+        query = gen_sql_filter_json_array(Share, "meta->'symlinks'", 'warning', 'not null')
+        return queryset.filter(id__in=query)

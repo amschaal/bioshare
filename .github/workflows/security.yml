@@ -1,0 +1,29 @@
+name: security
+
+# Authoritative recurring dependency-vulnerability check. Runs on PRs, on pushes
+# to master, and weekly (to catch CVEs newly disclosed against unchanged pins).
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'  # Mondays 06:00 UTC
+
+jobs:
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pip-audit
+        run: python -m pip install --upgrade pip pip-audit
+      - name: Audit declared dependencies
+        # --strict fails the job on any known vulnerability; --desc prints details.
+        run: pip-audit -r requirements.txt --strict --desc
+
+  # Optional: enable a test job here once a CI test settings module + a Postgres
+  # service are configured (the app's models use ArrayField/JSONField, so the
+  # suite requires PostgreSQL, not SQLite). Run locally meanwhile:
+  #   docker compose -f compose-claude.yaml exec bioshare python manage.py test bioshareX

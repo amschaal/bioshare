@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 import django.db.models.deletion
-import jsonfield.fields
 
 
 class Migration(migrations.Migration):
@@ -21,7 +20,7 @@ class Migration(migrations.Migration):
                 ('timestamp', models.DateTimeField(auto_now_add=True)),
                 ('action', models.CharField(blank=True, max_length=30, null=True)),
                 ('text', models.CharField(blank=True, max_length=250, null=True)),
-                ('paths', jsonfield.fields.JSONField()),
+                ('paths', models.JSONField()),
             ],
         ),
         migrations.AlterField(

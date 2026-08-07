@@ -1,20 +1,13 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
-{% block title %}Hello World!{% endblock %}
+{% block title %}Create a share{% endblock %}
 
 {% block content %}
-  <p>
-  <form class="form-horizontal" method="POST" action="#">
-  <fieldset>
-	  <legend>Create a New Share</legend>
-	    {{ form|crispy }}
-	  <div class="control-group">
-	    <div class="controls">
-	    	<button type="submit" class="btn">Create</button>
-	    </div>
-	  </div>
-  </fieldset>
-  {% csrf_token %}
-  </form>
-  </p>
+<h1 class="h3 mb-3">Create a new share</h1>
+
+<form method="POST" action="" class="border rounded bg-white p-3">
+    {% csrf_token %}
+    {% crispy form %}
+    <button type="submit" class="btn btn-primary">Create share</button>
+</form>
 {% endblock %}

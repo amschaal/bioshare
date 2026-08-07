@@ -8,11 +8,13 @@ Installation
 
 ### Requirements ###
 
-1. Linux (tested w/ Ubuntu 14.04) 
+1. Linux (tested w/ Ubuntu 22.04) 
 2. Apache 2.4+, mod_ssl, mod_wsgi, mod_xsendfile
-3. Python 2.7.x (virtualenv recommended)
+3. Python 3.8+ (virtualenv recommended)
 4. PostgreSQL Server
- 
+5. Optionally, ZFS (see ZFS.md)
+5. Optionally, install Memcached for session caching
+
 Clone the repository:
 ~~~
 git clone https://github.com/amschaal/bioshare.git
@@ -33,8 +35,10 @@ pip install -r requirements.txt
 
 Collect all of the static files (CSS, JS, images, ...) into the static directory to serve from the web server:
 ~~~
-python manage.py collectstatic
+python manage.py collectstatic --noinput --ignore=dev
 ~~~
+This is not just an install step — it must be re-run on **every deploy**, alongside
+`migrate`. See [Static assets](#static-assets) below for why.
 
 Ensure that you've created an empty PostgreSQL database granting full privileges to the user specified in your config.py file.  You may now run the database migrations:
 ~~~
@@ -52,6 +56,35 @@ python manage.py runserver
 ~~~
 
 Please only use the development server to test your configuration.  Once that is working properly, you'll want to set it up with a production web server.  A sample Apache configuration is included in the apache_example.conf file.
+
+###Static assets###
+Outside of `DEBUG`, static files are served with **content-hashed filenames**
+(`main.js` becomes `main.a1b2c3d4e5f6.js`) and the ES module import graph inside the
+JavaScript is rewritten to match. That is what lets `apache_example.conf` cache
+`/static/` for a year without users ever getting stale JS or CSS. There is no npm or
+bundler involved — this is `manage.py collectstatic` plus
+`bioshareX/storage.py`.
+
+Consequences worth knowing:
+
+* **`collectstatic` is mandatory on every deploy**, next to `migrate`. Until it has
+  run, `{% static %}` raises `Missing staticfiles manifest entry` and every page
+  returns 500 — including the error page itself, since `templates/500.html` extends
+  `base.html`, so you get an opaque bare WSGI 500 rather than a useful message. If
+  the site dies right after a deploy with no traceback, this is the first thing to
+  check.
+* **`--ignore=dev`** keeps the local-only Vue test harnesses in `static_files/dev/`
+  out of production.
+* **Old hashed files are left in place on purpose.** A browser that loaded a page
+  seconds before the deploy can still fetch the assets that page references. Prune
+  them with `collectstatic --clear --noinput` during a maintenance window only —
+  `--clear` empties `STATIC_ROOT` before repopulating it, which opens a live 404
+  window if you run it against a serving site.
+* In development this is all bypassed: `runserver` serves unhashed files straight
+  from the finders, with revalidation headers from
+  `bioshareX/management/commands/runserver.py` so an ordinary reload always picks up
+  your edits. To rehearse the production pipeline locally, set
+  `STATIC_MANIFEST = True` in `settings/config.py`.
 
 Hopefully you are able to bring up Bioshare in your browser, and are able to log in with your superuser you created.  At this point you'll need to configure one or more filesystems in the Django admin.  Navigate to "https://yourbiosharedomain.net/admin/bioshareX/filesystem/add/", and add a place on the filesystem where you want to store data.  Be sure that apache has read, write, and execute permissions on any directories you add.
 

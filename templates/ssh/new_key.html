@@ -1,20 +1,13 @@
 {% extends "base.html" %}
 {% load crispy_forms_tags %}
-{% block title %}Hello World!{% endblock %}
+{% block title %}Add an SSH public key{% endblock %}
 
 {% block content %}
-  <p>
-  <form enctype="multipart/form-data" class="form-horizontal" method="POST" action="#">
-  <fieldset>
-	  <legend>Add an SSH public key</legend>
-	    {{ form|crispy }}
-	  <div class="control-group">
-	    <div class="controls">
-	    	<button type="submit" class="btn">Create</button>
-	    </div>
-	  </div>
-  </fieldset>
-  {% csrf_token %}
-  </form>
-  </p>
+<h1 class="h3 mb-3">Add an SSH public key</h1>
+
+<form enctype="multipart/form-data" method="POST" action="" class="border rounded bg-white p-3" style="max-width: 40rem;">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-primary">Create</button>
+</form>
 {% endblock %}

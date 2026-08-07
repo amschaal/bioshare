@@ -1,0 +1,82 @@
+name: Documentation
+
+# Builds the user guide and publishes it to GitHub Pages.
+#
+# Requires the repository's Pages source to be set to "GitHub Actions"
+# (Settings -> Pages -> Build and deployment -> Source). While it is still set to
+# "Deploy from a branch", this workflow builds and validates but the old branch
+# content keeps being served.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - name: Install build dependencies
+        run: pip install -r docs/requirements.txt
+
+      # --strict (set in mkdocs.yml) turns broken internal links and missing nav
+      # targets into build failures rather than silently broken pages.
+      - name: Build
+        run: mkdocs build --strict
+
+      - name: Check every referenced screenshot exists
+        run: |
+          missing=0
+          # Pull image paths out of the Markdown and confirm each resolves under
+          # docs/. A missing screenshot renders as a broken image, which mkdocs
+          # itself will not catch.
+          while IFS= read -r ref; do
+            if [ ! -f "docs/$ref" ]; then
+              echo "::error::Missing image referenced in docs: $ref"
+              missing=1
+            fi
+          done < <(grep -rhoE '\]\(images/[^)]+\)' docs --include='*.md' | sed -E 's/^\]\(//; s/\)$//' | sort -u)
+          exit $missing
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    # Only publish from master; pull requests build for validation only.
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

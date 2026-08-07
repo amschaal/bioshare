@@ -3,7 +3,8 @@
 {% block title %}Tag cloud{% endblock %}
 
 {% block content %}
-<div id="tag-cloud" style="width:800px;height:800px"></div>
+<h1 class="h3 mb-3">Tag cloud</h1>
+<div id="tag-cloud" style="max-width:800px"></div>
 {% endblock %}
 
 {% block scripts %}
@@ -27,14 +28,20 @@
       .start();
 
   function draw(words) {
-    d3.select("#tag-cloud").append("svg")
+    /* SVG is decorative-with-meaning: expose it as a single labelled image
+       (WCAG 1.1.1) rather than letting AT walk dozens of rotated <text> nodes. */
+    var svg = d3.select("#tag-cloud").append("svg")
         .attr("width", 800)
         .attr("height", 800)
-      .append("g")
+        .attr("role", "img")
+        .attr("aria-label", "Tag cloud of the most-used share tags, sized by frequency.");
+    svg.append("title").text("Tag cloud of the most-used share tags, sized by frequency.");
+    svg.append("g")
         .attr("transform", "translate(150,150)")
       .selectAll("text")
         .data(words)
       .enter().append("text")
+        .attr("aria-hidden", "true")
         .style("font-size", function(d) { return d.size + "px"; })
         .style("font-family", "Impact")
         .style("fill", function(d, i) { return fill(i); })
@@ -46,5 +53,3 @@
   }
 </script>
 {% endblock%}
-
-

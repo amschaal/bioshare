@@ -1,10 +1,6 @@
 {% extends "base.html" %}
-{% load templatetag_handlebars %}
-
-{% block title %}Hello World!{% endblock %}
+{% block title %}Bioshare{% endblock %}
 
 {% block content %}
-  <h3>
-    {{message|safe}}
-  </h3>
+<h1 class="h3">{{ message|safe }}</h1>
 {% endblock %}

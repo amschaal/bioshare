@@ -1,8 +1,8 @@
-import errno
 import functools
 import logging
 import os
 import socket
+import stat as stdlib_stat
 import threading
 from django.utils import timezone
 from django.contrib.auth import authenticate
@@ -10,7 +10,7 @@ import paramiko
 from paramiko import SFTPServer, SFTPServerInterface
 from paramiko.sftp import SFTP_OK, SFTP_OP_UNSUPPORTED
 from paramiko.common import o666
-from bioshareX.models import Share
+from bioshareX.models import Share, ShareLog
 from paramiko.sftp_handle import SFTPHandle
 from bioshareX.utils import paths_contain
 from django.conf import settings
@@ -36,10 +36,10 @@ class BioshareSFTPServer(object):
     `__str__` representation for use in logging.
     """
 
-    SOCKET_BACKLOG = 10
+    SOCKET_BACKLOG = 50
 
     def __init__(self, host_key_path, get_user=None):
-        self.host_key = paramiko.RSAKey.from_private_key_file(host_key_path)
+        self.host_key = paramiko.PKey.from_path(host_key_path)
         if get_user is not None:
             self.get_user = get_user
 
@@ -52,8 +52,21 @@ class BioshareSFTPServer(object):
             conn = server_socket.accept()[0]
             self.start_sftp_session(conn)
 
+    # Algorithms considered weak/legacy that should not be negotiated
+    DISABLED_ALGORITHMS = {
+        'ciphers': ['blowfish-cbc', '3des-cbc', 'aes128-cbc', 'aes192-cbc', 'aes256-cbc'],
+        'macs': ['hmac-md5', 'hmac-md5-96', 'hmac-sha1-96'],
+        'kex': ['diffie-hellman-group1-sha1', 'diffie-hellman-group-exchange-sha1'],
+        'keys': ['ssh-dss'],
+    }
+
+    # Timeout in seconds for SSH negotiation and idle connections
+    AUTH_TIMEOUT = 30
+    TRANSPORT_TIMEOUT = 300
+
     def start_sftp_session(self, conn):
-        transport = paramiko.Transport(conn)
+        conn.settimeout(self.TRANSPORT_TIMEOUT)
+        transport = paramiko.Transport(conn, disabled_algorithms=self.DISABLED_ALGORITHMS)
         transport.add_server_key(self.host_key)
         transport.set_subsystem_handler(
             'sftp', SFTPServer, SFTPInterface)
@@ -64,29 +77,36 @@ class BioshareSFTPServer(object):
                 server=SSHInterface(self.get_user),
                 event=threading.Event())
 
+    ALLOW_ANONYMOUS = getattr(settings, 'SFTP_ALLOW_ANONYMOUS', False)
+
     def get_user(self, username, password):
         if username == 'anonymous':
-            return User.objects.get(id=-1)
+            if not self.ALLOW_ANONYMOUS:
+                return None
+            return User.objects.filter(id=-1).first()
         return authenticate(username=username, password=password)
-#         raise NotImplementedError()
 
 
 class SSHInterface(paramiko.ServerInterface):
 
+    MAX_AUTH_ATTEMPTS = 5
+
     def __init__(self, get_user):
         self.get_user = get_user
-    
+        self._auth_attempts = 0
+
     def check_auth_password(self, username, password):
-        if username == 'anonymous':
-            user = User.objects.get(id=-1)
-        else:
-            user =  authenticate(username=username, password=password)
+        self._auth_attempts += 1
+        if self._auth_attempts > self.MAX_AUTH_ATTEMPTS:
+            logging.warning(u'Auth attempt limit exceeded for %s' % username)
+            return paramiko.AUTH_FAILED
+        user = self.get_user(username, password)
         if user:
-            logging.info((u'Auth successful for %s' % username).encode('utf-8'))
+            logging.info(u'Auth successful for %s' % username)
             self.user = user
             return paramiko.AUTH_SUCCESSFUL
         else:
-            logging.info((u'Auth failed for %s' % username).encode('utf-8'))
+            logging.info(u'Auth failed for %s' % username)
             return paramiko.AUTH_FAILED
 
     def check_channel_request(self, kind, chanid):
@@ -143,7 +163,7 @@ def log_event(method):
     """
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
-        string_args = u':'.join([arg for arg in args if isinstance(arg, basestring)])
+        string_args = u':'.join([arg for arg in args if isinstance(arg, str)])
         msg = u'%s:%%s:%s:%s' % (method.__name__, self.user, string_args)
         try:
             response = method(self, *args, **kwargs)
@@ -173,7 +193,6 @@ def _SFTPHandle_chattr(self, attr):
 def _SFTPHandle_write(self, offset, data):
     #Custom Auth
     if Share.PERMISSION_WRITE not in self.permissions:
-        print('permission denied')
         raise PermissionDenied()
     #Below this is implementation from SFTPHandle
     writefile = getattr(self, 'writefile', None)
@@ -215,7 +234,6 @@ def _SFTPHandle_read(self, offset, length):
     :return: data read from the file, or an SFTP error code, as a `str`.
     """
     if Share.PERMISSION_VIEW not in self.permissions:
-        print('permission denied')
         raise PermissionDenied()
     readfile = getattr(self, 'readfile', None)
     if readfile is None:
@@ -248,6 +266,8 @@ SFTPHandle.chattr = _SFTPHandle_chattr
 SFTPHandle.write = _SFTPHandle_write
 SFTPHandle.read = _SFTPHandle_read
 
+SYMLINK_RECHECK_INTERVAL_SECONDS = getattr(settings, 'SFTP_SYMLINK_RECHECK_INTERVAL_SECONDS', 300)
+
 class SFTPInterface (SFTPServerInterface):
     def __init__(self, server):
         self.server = server
@@ -255,42 +275,58 @@ class SFTPInterface (SFTPServerInterface):
         self.shares = {}
         self.shares_accessed = set()
         self.modified_date = {}
+        self._symlink_checked = {}
         for share in Share.user_queryset(self.user,include_stats=False):
-            self.shares[share.slug_or_id] = share#{'path':share.get_realpath()}
-#         print 'user'
-#         print self.user
-#         self.ROOT = root
+            self.shares[share.slug_or_id] = share
     def session_ended(self):
         SFTPServerInterface.session_ended(self)
         Share.objects.filter(id__in=list(self.shares_accessed)).update(last_data_access=timezone.now())
     def _get_share(self,path):
         parts = path.split(os.path.sep)
         if len(parts) < 2:
-            print('bad length')
+            logging.warning('Received an invalid path: %s', path)
             raise PermissionDenied("Received an invalid path: %s"%path)
         if parts[1] not in self.shares and self.user.id == -1: #Anonymous users don't yet have a dictionary of shares.
             try:
                 share = Share.get_by_slug_or_id(parts[1])
                 self.shares[share.slug_or_id] = share
-            except:
+            except Share.DoesNotExist:
                 pass
         if parts[1] not in self.shares:
-            print('no share exists')
-            print(path)
-            raise PermissionDenied("Share does not exist: %s"%path[1])
-        return self.shares[parts[1]]
+            logging.warning('Share does not exist: {}, {}'.format(path, self.shares))
+            raise PermissionDenied("Share does not exist: {}, {}}".format(path[1], self.shares))
+        share = self.shares[parts[1]]
+        now = timezone.now()
+        last_checked = self._symlink_checked.get(share.id)
+        if not last_checked or (now - last_checked).total_seconds() > SYMLINK_RECHECK_INTERVAL_SECONDS:
+            if share.symlinks_found:
+                share.check_paths()
+            self._symlink_checked[share.id] = now
+        if share.locked:
+            raise PermissionDenied('Share is locked.  Contact the application administrator.')
+        return share
     def _path_modified(self,path):
         share = self._get_share(path)
         previous_date = self.modified_date.get(share.id,None)
         current_date = timezone.now()
         if not previous_date or (current_date-previous_date).seconds > SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS:
             self.modified_date[share.id] = current_date
-            Share.objects.filter(id=share.id,updated__lt=current_date).update(updated=current_date) 
+            Share.objects.filter(id=share.id,updated__lt=current_date).update(updated=current_date)
+    def _get_subpath(self, path): # takes /<share_id>/subpath
+        parts = path.split(os.path.sep)
+        return os.path.sep.join(parts[2:])
+    def _create_log(self, path, action, text): # takes /<share_id>/subpath for path
+        ShareLog.create(share=self._get_share(path),user=self.user,action=action,paths=[self._get_subpath(path)], text=text)
     def _get_bioshare_path_permissions(self,path):
         share = self._get_share(path)
         self.shares_accessed.add(share.id)
         permissions = share.get_user_permissions(self.user)
 #         print permissions
+        if not self.is_realpath(path): # Don't allow any write operations if it isn't a real directory under the share root
+            if Share.PERMISSION_DELETE in permissions:
+                permissions.remove(Share.PERMISSION_DELETE)
+            if Share.PERMISSION_WRITE in permissions:
+                permissions.remove(Share.PERMISSION_WRITE)
         return permissions
     def _get_path_permissions(self,path):
         permissions = self._get_bioshare_path_permissions(path)
@@ -308,11 +344,36 @@ class SFTPInterface (SFTPServerInterface):
         parts = path.split(os.path.sep)
         share = self._get_share(path)
         realpath = os.path.realpath(os.path.join(share.get_realpath(),os.path.sep.join(parts[2:])))
-        if not paths_contain(settings.DIRECTORY_WHITELIST,realpath):
-            raise PermissionDenied("Encountered a path outside the whitelist")
+        # Containment must be to THIS share's own root (plus legitimate symlink
+        # targets), NOT the global DIRECTORY_WHITELIST.  DIRECTORY_WHITELIST
+        # includes FILESYSTEM_DIRECTORIES (e.g. /data/shares), the parent of every
+        # share, so checking against it lets a `..` in an SFTP path escape into a
+        # sibling share that the session was never granted access to.  The HTTP
+        # layer avoids this by running test_path() (which rejects `..`); SFTP has
+        # no such step, so we enforce per-share containment here instead.
+        allowed_roots = [share.get_realpath()] + list(getattr(settings, 'LINK_TO_DIRECTORIES', []))
+        if not paths_contain(allowed_roots,realpath):
+            share.check_paths()
+            raise PermissionDenied("Encountered a path outside the share")
         return realpath
 #         print self.ROOT + self.canonicalize(path)
 #         return self.ROOT + self.canonicalize(path)
+    def is_realpath(self, path):
+        parts = path.split(os.path.sep)
+        share = self._get_share(path)
+        # print('is_realpath', share.is_realpath(os.path.sep.join(parts[2:])), os.path.sep.join(parts[2:]))
+        return share.is_realpath(os.path.sep.join(parts[2:]))
+    def _root_attributes(self):
+        """Synthetic attrs for the virtual SFTP root '/' (no real fs path)."""
+        now = int(timezone.now().timestamp())
+        attr = paramiko.SFTPAttributes()
+        attr.st_mode = stdlib_stat.S_IFDIR | 0o755
+        attr.st_size = 0
+        attr.st_uid = 0
+        attr.st_gid = 0
+        attr.st_atime = now
+        attr.st_mtime = now
+        return attr
     @sftp_response
     def list_shares(self):
 #         print "LIST SHARES"
@@ -320,13 +381,13 @@ class SFTPInterface (SFTPServerInterface):
             return []
         try:
             out = []
-            for id,share in self.shares.iteritems():
+            for id,share in self.shares.items():
                 try:
 #                     print id
                     attr = paramiko.SFTPAttributes.from_stat(os.stat(share.get_realpath()))
                     attr.filename = id
                     out.append(attr)
-                except Exception, e:
+                except Exception as e:
                     pass #directory may be missing
             return out
         except OSError as e:
@@ -347,9 +408,7 @@ class SFTPInterface (SFTPServerInterface):
                     attr.filename = fname
                     out.append(attr)
                 except Exception as e:
-#                     @todo: Add the file to the list anyway.  It will fail on download.
-                    print('OSError with file: '+os.path.join(path, fname))
-                    print(e)
+                    logging.warning('Error reading file attributes: %s: %s', os.path.join(path, fname), e)
             return out
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
@@ -357,6 +416,8 @@ class SFTPInterface (SFTPServerInterface):
     @sftp_response
     @permissions_required([Share.PERMISSION_VIEW])
     def stat(self, path):
+        if path == '/':
+            return self._root_attributes()
         path = self._realpath(path)
         try:
             return paramiko.SFTPAttributes.from_stat(os.stat(path))
@@ -365,6 +426,8 @@ class SFTPInterface (SFTPServerInterface):
     @sftp_response
     @permissions_required([Share.PERMISSION_VIEW])
     def lstat(self, path):
+        if path == '/':
+            return self._root_attributes()
         path = self._realpath(path)
         try:
             return paramiko.SFTPAttributes.from_stat(os.lstat(path))
@@ -372,7 +435,6 @@ class SFTPInterface (SFTPServerInterface):
             return SFTPServer.convert_errno(e.errno)
     @sftp_response
     def open(self, path, flags, attr):
-        print('OPENING')
         permissions = self._get_bioshare_path_permissions(path)
         IS_WRITE = flags & os.O_CREAT or flags & os.O_WRONLY or flags & os.O_RDWR or flags & os.O_APPEND
         if not ((not IS_WRITE and Share.PERMISSION_VIEW in permissions and Share.PERMISSION_DOWNLOAD in permissions) or  (IS_WRITE and Share.PERMISSION_WRITE in permissions and Share.PERMISSION_VIEW in permissions)):
@@ -411,7 +473,7 @@ class SFTPInterface (SFTPServerInterface):
                 # O_RDONLY (== 0)
                 fstr = 'rb'
         except Exception as e:
-            print(e.message)
+            logging.error('Error setting file flags: %s', e)
         try:
             f = os.fdopen(fd, fstr)
         except OSError as e:
@@ -430,17 +492,25 @@ class SFTPInterface (SFTPServerInterface):
         try:
             os.remove(real_path)
             self._path_modified(path)
+            self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP delete')
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
     @sftp_response
     @permissions_required([Share.PERMISSION_DELETE,Share.PERMISSION_WRITE])
     def rename(self, oldpath, newpath):
+        # Verify write permission on destination share (decorator only checks oldpath)
+        dest_permissions = self._get_bioshare_path_permissions(newpath)
+        if Share.PERMISSION_WRITE not in dest_permissions:
+            raise PermissionDenied()
         oldpath = self._realpath(oldpath)
         newpath = self._realpath(newpath)
         try:
             os.rename(oldpath, newpath)
             self._path_modified(oldpath)
+            old = os.path.basename(oldpath)
+            new = os.path.basename(newpath)
+            self._create_log(oldpath, ShareLog.ACTION_RENAMED, 'SFTP renamed {} to {}'.format(old, new))
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
@@ -453,6 +523,7 @@ class SFTPInterface (SFTPServerInterface):
             self._path_modified(path)
             if attr is not None:
                 SFTPServer.set_file_attr(real_path, attr)
+            self._create_log(path, ShareLog.ACTION_FOLDER_CREATED, 'SFTP folder created')
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
@@ -463,6 +534,7 @@ class SFTPInterface (SFTPServerInterface):
         try:
             os.rmdir(real_path)
             self._path_modified(path)
+            self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP directory deleted')
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
