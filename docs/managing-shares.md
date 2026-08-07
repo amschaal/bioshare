@@ -29,7 +29,12 @@ The **Logs** tab records what has happened to the share.
 
 ![The share activity log](images/screenshots/share-logs.png)
 
-Logged events include files being added, folders created, entries renamed, moved or
+Each entry records a **Timestamp**, the **Action**, the **User** responsible, free
+text describing what happened, and the **Paths** affected. Sort by clicking a
+column header, and narrow a busy log with the filter boxes — filtering on Paths is
+the quickest way to answer "what happened to this folder?".
+
+Logged actions include files being added, folders created, entries renamed, moved or
 deleted, symbolic links created or removed, rsync transfers, permission changes,
 emails sent to participants, and errors.
 
@@ -43,11 +48,19 @@ Two things this answers well:
 ## Emailing participants
 
 **Email** opens a dialog for messaging the people who have access to the share.
-Choose **All participants**, or **Choose specific recipients** to pick individuals,
-then supply a subject and body. This is the tidy way to say "the data is ready" or
-"I have added the second batch" without assembling an address list by hand.
 
-Messages sent this way are recorded in the activity log.
+![Emailing the people with access to a share](images/screenshots/email-participants.png)
+
+Choose **All participants**, or **Choose specific recipients** to pick individuals.
+The subject and body are pre-filled with the share's name and a direct link to it,
+so in the common case — "the data is ready" — you can send without typing anything.
+Edit the body freely; the link is just text.
+
+This is the tidy way to notify collaborators without assembling an address list by
+hand, and it guarantees the recipients are exactly the people who can actually open
+the share.
+
+Messages sent this way are recorded in the activity log as **User emailed**.
 
 ## Symbolic links
 

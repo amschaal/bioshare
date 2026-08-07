@@ -51,7 +51,8 @@ boxes from there.
 
 ## What each permission allows
 
-Each row in the table is one user or group, and each column is one permission:
+Each row in the table is one user or group — the icon beside the name distinguishes
+them — and each column is one permission:
 
 | Column | What it allows |
 |---|---|

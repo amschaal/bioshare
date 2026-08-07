@@ -62,15 +62,15 @@ ticked:
 
 ## Actions on a single file
 
-The **Actions** column at the right of each row offers:
+The **Actions** column at the right of each row offers a few icons, and which ones
+appear depends on whether the row is a file or a folder:
 
-- **Add or edit metadata** — attach notes and comma-separated tags to that
-  specific file or folder. Tags added here are searchable.
-- **Preview** — view a file's contents in the browser without downloading it.
-  Useful for checking a small text, CSV or report file.
-- **Rename** — change the name, subject to the same naming restrictions above.
-- **Create subshare** *(folders, share owner only)* — turn a folder into a share
-  in its own right. See [Subshares](creating-shares.md#subshares).
+| Action | Files | Folders |
+|---|---|---|
+| **Add or edit metadata** — attach notes and comma-separated tags to that entry. Tags appear in the Tags column and are searchable | ✓ | ✓ |
+| **Rename** — change the name, subject to the naming restrictions above | ✓ | ✓ |
+| **Preview** — view the contents in the browser without downloading. Useful for a small text, CSV or report file | ✓ | |
+| **Create subshare** *(share owner only)* — turn the folder into a share in its own right. See [Subshares](creating-shares.md#subshares) | | ✓ |
 
 ### Checksums
 
@@ -86,9 +86,21 @@ shares.
 ![Searching within a share](images/screenshots/share-search.png)
 
 Enter part of a filename to see matching files anywhere in the share, including
-inside subfolders. Search is case-insensitive by default, needs at least two
-characters, and returns a capped number of results — narrow your term if you do not
-see what you expected. **Match case** makes the search case-sensitive.
+inside subfolders. The rules are listed above the box, and are worth knowing:
+
+- **Any part of the name matches** — searching `fastq` finds `S01_L001_R1.fastq.gz`.
+  There is no need to add wildcards around your term.
+- **`*` skips characters** within the term, so `sample*.fastq` matches
+  `sample01_R1.fastq` but not `other_sample.fastq`.
+- **At least two characters** are required. Shorter queries would match most of a
+  share and are rejected rather than served slowly.
+- **Case is ignored** unless you tick **Match case**.
+
+Results are capped (50 by default), and you are told when there are more. If what
+you want is not listed, make the term more specific rather than scrolling.
+
+Folders and files are both returned; clicking a folder opens it, clicking a file
+downloads it.
 
 ## Activity log
 

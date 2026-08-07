@@ -120,6 +120,10 @@ class Command(BaseCommand):
             )
             for member in members:
                 users[member].groups.add(group)
+            # The Groups page lists only the groups the signed-in account belongs
+            # to, so without this the seeded groups exist but are invisible to the
+            # account the screenshots are taken with.
+            docs_user.groups.add(group)
             groups[name] = group
             self.stdout.write(f'  {"+" if created else "="} group {name}')
         return groups
@@ -161,6 +165,15 @@ class Command(BaseCommand):
             self._write_files(share, spec['layout'])
             self._assign_permissions(share, spec, users, groups, docs_user)
             self._create_metadata(share, spec)
+            # Without this the Size column on the home page reads "-" for every
+            # row: sizes come from ShareStats, which is only populated on demand
+            # (the "Update" link) or by a scheduled job.
+            try:
+                share.get_stats()
+            except Exception as exc:  # pragma: no cover - depends on the filesystem
+                self.stdout.write(self.style.WARNING(
+                    f'    ! could not compute stats for {share.id}: {exc}'
+                ))
 
             shares[spec['slug']] = share
             self.stdout.write(

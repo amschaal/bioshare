@@ -25,7 +25,7 @@ const OUT = path.resolve(__dirname, '..', '..', 'docs', 'images', 'screenshots')
 
 // Delay between screens. Several BioShare views are rate limited, and a tight
 // loop gets later screens served the throttle page instead of content.
-const PAUSE_MS = Number(process.env.BIOSHARE_CAPTURE_PAUSE_MS || 2500);
+const PAUSE_MS = Number(process.env.BIOSHARE_CAPTURE_PAUSE_MS || 5000);
 
 // Slug of the share to feature. `manage.py seed_docs_demo` creates it; when it is
 // absent the script falls back to whichever healthy share has the most rows.
@@ -87,8 +87,11 @@ const SCREENS = [
         },
     },
     {
+        // Note this uses the raw id, not the slug: the permissions route is
+        // ^permissions/(?P<share>[\da-zA-Z]{15})/?$ and will 404 on a slug,
+        // whereas /view/ accepts either.
         name: 'permissions',
-        url: (ctx) => `/bioshare/permissions/${ctx.shareId}/`,
+        url: (ctx) => `/bioshare/permissions/${ctx.shareRawId}/`,
         waitFor: 'table, form',
     },
     {
@@ -139,6 +142,12 @@ async function settle(page, waitFor) {
 // page -- silently, which is precisely the rot this pipeline exists to avoid.
 const BAD_PAGE_MARKERS = [
     'your request has been throttled',
+    // The in-app toast, which is not a whole error page: capturing too quickly
+    // trips the API rate limiter and leaves a red banner across the header. It
+    // is deliberately detected rather than hidden with CSS -- a toast means the
+    // page really did fail, so the right response is to slow down and re-run,
+    // not to photograph it with the evidence removed.
+    'Rate limit exceeded',
     'Unable to locate the files',
     "You don't have permission",
     'Page not found',
@@ -205,6 +214,22 @@ async function discoverShareId(page) {
     return best.id;
 }
 
+// Resolve the share's raw 15-character id. When a share has a friendly URL the
+// listing links use the slug, but some routes (notably permissions/) only match
+// the id. list.html hands the id to the page in its #list-init JSON blob.
+async function rawShareId(page, slugOrId) {
+    if (/^[0-9a-zA-Z]{15}$/.test(slugOrId)) return slugOrId;
+    await page.goto(`${BASE}/bioshare/view/${slugOrId}/`, { waitUntil: 'networkidle' });
+    await settle(page, 'table');
+    const id = await page
+        .$eval('#list-init', (el) => JSON.parse(el.textContent).share)
+        .catch(() => null);
+    if (!id) {
+        throw new Error(`Could not resolve the raw share id for "${slugOrId}"`);
+    }
+    return id;
+}
+
 (async () => {
     fs.mkdirSync(OUT, { recursive: true });
 
@@ -230,8 +255,9 @@ async function discoverShareId(page) {
     const failures = [];
 
     try {
-        const ctx = { shareId: await discoverShareId(page) };
-        console.log(`Using share ${ctx.shareId}\n`);
+        const shareId = await discoverShareId(page);
+        const ctx = { shareId, shareRawId: await rawShareId(page, shareId) };
+        console.log(`Using share ${ctx.shareId} (id ${ctx.shareRawId})\n`);
 
         for (const screen of SCREENS) {
             const url = BASE + screen.url(ctx);
