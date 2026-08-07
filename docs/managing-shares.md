@@ -15,9 +15,19 @@ stop working, so avoid it once a share is in circulation.
 
 ## Storage used
 
-The share information panel shows **Share size**, but it is not recalculated on
-every page load — that would be expensive on a large share. Click **Update** beside
-it to compute the current figure.
+The share information panel shows **Share size** along with when that figure was
+calculated, for example *2.3MB (updated Aug. 7, 2026, 11:47 a.m.)*. It is not
+recalculated on every page load — walking a large share is expensive — so treat the
+timestamp as part of the answer.
+
+An **Update** link appears next to it to recompute on demand, but only when both are
+true:
+
+- you have **Admin** permission on the share, and
+- the size is either unknown or more than an hour old.
+
+So if you have just uploaded data and no link is offered, the figure was computed
+within the last hour. Wait, then reload.
 
 The home page also reports your overall storage. That total comes from statistics
 refreshed on a schedule rather than live, so it can lag recent uploads; the note

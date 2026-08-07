@@ -19,7 +19,7 @@ The panel beneath it summarises the share:
 | **Sharing** | How many users and groups have access. Click **Sharing** to see them |
 | **Description** | Free text set by the owner |
 | **Tags** | Labels used to categorise and find the share |
-| **Share size** | Total size. This is not computed continuously — click **Update** to calculate it now |
+| **Share size** | Total size, with the time it was calculated. It is not recomputed on every visit — see [Storage used](managing-shares.md#storage-used) |
 
 ## The file list
 
