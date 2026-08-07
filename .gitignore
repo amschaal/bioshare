@@ -21,3 +21,6 @@ static_files/dev/
 # session cookie -- never commit.
 tools/screenshots/auth.json
 tools/screenshots/node_modules/
+
+# mkdocs build output (see docs/requirements.txt, .github/workflows/docs.yml).
+/site/
