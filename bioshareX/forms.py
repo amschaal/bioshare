@@ -181,8 +181,13 @@ class SSHKeyForm(forms.Form):
         if file.size > self.MAX_KEY_BYTES:
             raise forms.ValidationError("That file is too large to be an SSH public key.")
         # ssh-keygen -l rejects malformed and non-key files outright; exit codes
-        # other than 1 (e.g. 255) also mean failure, so test against 0.
-        return_code = subprocess.call(['ssh-keygen','-l','-f',file.temporary_file_path()], timeout=settings.SUBPROCESS_TIMEOUT)
+        # other than 1 (e.g. 255) also mean failure, so test against 0. Its
+        # output is discarded: on success it prints the fingerprint and on
+        # failure a diagnostic, and both would otherwise land in the server log
+        # (or the test runner's output) on every upload. Only the status matters.
+        return_code = subprocess.call(['ssh-keygen','-l','-f',file.temporary_file_path()],
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                      timeout=settings.SUBPROCESS_TIMEOUT)
         if return_code != 0:
             raise forms.ValidationError("Not a valid SSH public key!")
         try:

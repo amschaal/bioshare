@@ -79,6 +79,11 @@ class TestServeForeverResilience(TestCase):
         """Drive serve_forever over a scripted accept() sequence, then stop.
 
         Each entry is either an exception to raise or a (conn, address) tuple.
+
+        Every path through the loop is required to log, both because a silent
+        crash-turned-continue leaves no breadcrumb to debug and because
+        assertLogs captures the records instead of letting the tracebacks print
+        over the test runner's output.
         """
         listening = mock.Mock()
         accepted = []
@@ -101,8 +106,10 @@ class TestServeForeverResilience(TestCase):
             self.sleep = stack.enter_context(mock.patch.object(sftp_server.time, 'sleep'))
             if patches:
                 stack.enter_context(mock.patch.multiple(BioshareSFTPServer, **patches))
+            logs = stack.enter_context(self.assertLogs(level='WARNING'))
             with self.assertRaises(_StopLoop):
                 self.server.serve_forever('0.0.0.0', 2233)
+        self.logs = logs.output
         return accepted
 
     def test_accept_error_does_not_kill_the_loop(self):
@@ -114,6 +121,7 @@ class TestServeForeverResilience(TestCase):
             start_sftp_session=lambda self_, c: started.append(c))
         self.assertEqual(started, [conn])
         self.assertFalse(conn.closed)  # handed to paramiko, not closed by us
+        self.assertIn('SFTP accept() failed', self.logs[0])
 
     def test_non_oserror_from_accept_also_survived(self):
         """The loop catches Exception, not just OSError: nothing may escape it."""
@@ -122,6 +130,7 @@ class TestServeForeverResilience(TestCase):
         self._run_loop([RuntimeError('unexpected'), (conn, ('10.0.0.1', 1))],
                        start_sftp_session=lambda self_, c: started.append(c))
         self.assertEqual(started, [conn])
+        self.assertIn('SFTP accept() failed', self.logs[0])
 
     def test_fd_exhaustion_backs_off_instead_of_spinning(self):
         self._run_loop([OSError(errno.EMFILE, 'too many open files')])
@@ -146,6 +155,7 @@ class TestServeForeverResilience(TestCase):
         self.assertEqual(calls, [bad, good])
         self.assertTrue(bad.closed)     # we still owned it, so we closed it
         self.assertFalse(good.closed)   # paramiko owns this one
+        self.assertIn('SFTP session setup failed', self.logs[0])
 
     def test_thread_exhaustion_does_not_kill_the_daemon(self):
         """The realistic crash: Transport.start_server() calls Thread.start(),
@@ -163,6 +173,7 @@ class TestServeForeverResilience(TestCase):
                        start_sftp_session=start)
         self.assertEqual(seen, [first, second])
         self.assertTrue(first.closed)
+        self.assertIn('SFTP session setup failed', self.logs[0])
 
     def test_connection_refused_past_session_ceiling(self):
         self.server._sessions = {_FakeTransport(): 0.0
@@ -173,6 +184,7 @@ class TestServeForeverResilience(TestCase):
                        start_sftp_session=lambda self_, c: started.append(c))
         self.assertEqual(started, [])
         self.assertTrue(conn.closed)
+        self.assertIn('Refusing SFTP connection', self.logs[0])
 
     def test_capacity_reclaimed_from_finished_sessions(self):
         """Dead transports must not permanently consume the session budget."""
@@ -198,10 +210,12 @@ class TestSessionReaper(TestCase):
             stalled: now - sftp_server.SFTP_AUTH_TIMEOUT_SECONDS - 1,
             fresh: now,
         }
-        self.assertEqual(self.server._sweep_sessions(), [stalled])
+        with self.assertLogs(level='WARNING') as logs:
+            self.assertEqual(self.server._sweep_sessions(), [stalled])
         self.assertTrue(stalled.closed)
         self.assertFalse(fresh.closed)
         self.assertEqual(list(self.server._sessions), [fresh])
+        self.assertIn('did not authenticate', logs.output[0])
 
     def test_leaves_authenticated_sessions_alone(self):
         """A long transfer is old but authenticated, and must not be cut off."""
@@ -227,9 +241,11 @@ class TestSessionReaper(TestCase):
 
         with mock.patch.object(sftp_server.time, 'sleep'), \
                 mock.patch.object(BioshareSFTPServer, '_sweep_sessions', sweep):
-            with self.assertRaises(_StopLoop):
-                self.server._reap_sessions_forever()
+            with self.assertLogs(level='ERROR') as logs:
+                with self.assertRaises(_StopLoop):
+                    self.server._reap_sessions_forever()
         self.assertEqual(len(sweeps), 2)  # it kept going after the failure
+        self.assertIn('SFTP session reaper error', logs.output[0])
 
 
 class _PresentedKey:
@@ -285,9 +301,11 @@ class TestPublicKeyAuth(ShareTestBase):
     def test_unparseable_stored_key_is_skipped_not_fatal(self):
         """A row predating validation must not break auth for the good key."""
         SSHKey.objects.create(user=self.owner, name='legacy', key='garbage')
-        user = self.server.get_user_by_key(self.owner.username,
-                                           _PresentedKey(self.key_line))
+        with self.assertLogs(level='WARNING') as logs:
+            user = self.server.get_user_by_key(self.owner.username,
+                                               _PresentedKey(self.key_line))
         self.assertEqual(user, self.owner)
+        self.assertIn('unparseable stored SSH key', logs.output[0])
 
     def test_matching_is_independent_of_comment_and_whitespace(self):
         body = self.key_line.split()[1]
@@ -338,21 +356,27 @@ class TestSSHInterfaceAuth(TestCase):
             self.assertEqual(interface.check_auth_password('bob', 'wrong'),
                              paramiko.AUTH_FAILED)
         interface.get_user = lambda u, p: 'right-this-time'
-        self.assertEqual(interface.check_auth_password('bob', 'correct'),
-                         paramiko.AUTH_FAILED)
+        with self.assertLogs(level='WARNING') as logs:
+            self.assertEqual(interface.check_auth_password('bob', 'correct'),
+                             paramiko.AUTH_FAILED)
+        self.assertIn('Auth attempt limit exceeded', logs.output[0])
 
     def test_key_budget_bounded_too(self):
         interface = self._interface(key_user=None)
         for _ in range(SSHInterface.MAX_PUBLICKEY_ATTEMPTS):
             interface.check_auth_publickey('bob', object())
         interface.get_user_by_key = lambda u, k: 'right-this-time'
-        self.assertEqual(interface.check_auth_publickey('bob', object()),
-                         paramiko.AUTH_FAILED)
+        with self.assertLogs(level='WARNING') as logs:
+            self.assertEqual(interface.check_auth_publickey('bob', object()),
+                             paramiko.AUTH_FAILED)
+        self.assertIn('Public key attempt limit exceeded', logs.output[0])
 
     def test_resolver_error_fails_closed(self):
         def boom(username, key):
             raise RuntimeError('database is on fire')
         interface = SSHInterface(get_user=lambda u, p: None, get_user_by_key=boom)
-        self.assertEqual(interface.check_auth_publickey('bob', object()),
-                         paramiko.AUTH_FAILED)
+        with self.assertLogs(level='ERROR') as logs:
+            self.assertEqual(interface.check_auth_publickey('bob', object()),
+                             paramiko.AUTH_FAILED)
         self.assertFalse(hasattr(interface, 'user'))
+        self.assertIn('Error resolving public key', logs.output[0])
