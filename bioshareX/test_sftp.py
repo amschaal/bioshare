@@ -23,6 +23,7 @@ Run with:  python manage.py test bioshareX.test_sftp
 import base64
 import contextlib
 import errno
+import logging
 from unittest import mock
 
 import paramiko
@@ -299,13 +300,31 @@ class TestPublicKeyAuth(ShareTestBase):
             'anonymous', _PresentedKey(self.key_line)))
 
     def test_unparseable_stored_key_is_skipped_not_fatal(self):
-        """A row predating validation must not break auth for the good key."""
+        """A row predating validation must be stepped over, not raised through.
+
+        Deleting the good key first is what makes this deterministic: the loop
+        returns on the first match and the queryset has no explicit ordering, so
+        with both rows present the garbage one may never be reached at all.
+        """
+        self.stored.delete()
         SSHKey.objects.create(user=self.owner, name='legacy', key='garbage')
         with self.assertLogs(level='WARNING') as logs:
             user = self.server.get_user_by_key(self.owner.username,
                                                _PresentedKey(self.key_line))
-        self.assertEqual(user, self.owner)
+        self.assertIsNone(user)
         self.assertIn('unparseable stored SSH key', logs.output[0])
+
+    def test_unparseable_row_does_not_block_a_valid_key(self):
+        """Whichever order the two rows come back in, the good one still wins."""
+        SSHKey.objects.create(user=self.owner, name='legacy', key='garbage')
+        # The garbage row may or may not be reached before the match, so whether
+        # a warning is emitted is not something this test can assert either way.
+        # Mute instead, so the outcome doesn't depend on row order.
+        logging.disable(logging.WARNING)
+        self.addCleanup(logging.disable, logging.NOTSET)
+        user = self.server.get_user_by_key(self.owner.username,
+                                           _PresentedKey(self.key_line))
+        self.assertEqual(user, self.owner)
 
     def test_matching_is_independent_of_comment_and_whitespace(self):
         body = self.key_line.split()[1]
