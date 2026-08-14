@@ -78,6 +78,19 @@ SFTP_HOST_KEY = '/tmp/host_key'
 SFTP_LOG_FILE = '/home/bioshare/sftp.log'
 #The share modified date can be updated whenever modifications are made over SFTP.  Set the minimum number of seconds between updates.
 SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS = 60
+#Maximum number of simultaneous SSH connections.  Each one costs a file descriptor
+#and at least one thread, so this is what keeps a connection flood from exhausting
+#the process fd limit and taking the daemon down for everyone.
+SFTP_MAX_SESSIONS = 100
+#Seconds a connection may stay open without authenticating before it is dropped.
+#paramiko applies no server-side auth timeout of its own, so without this an idle
+#peer holds its slot indefinitely.
+SFTP_AUTH_TIMEOUT_SECONDS = 30
+#How often to sweep for stalled and finished sessions.
+SFTP_SESSION_SWEEP_INTERVAL_SECONDS = 5
+#Keepalive interval for established connections, so clients that vanished without
+#closing (NAT timeouts, sleeping laptops) release their slot.  0 disables.
+SFTP_KEEPALIVE_SECONDS = 60
 
 # Caching using memcached
 CACHES = {

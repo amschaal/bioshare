@@ -1,22 +1,38 @@
+import errno
 import functools
 import logging
 import os
 import socket
 import stat as stdlib_stat
 import threading
+import time
 from django.utils import timezone
 from django.contrib.auth import authenticate
 import paramiko
 from paramiko import SFTPServer, SFTPServerInterface
 from paramiko.sftp import SFTP_OK, SFTP_OP_UNSUPPORTED
 from paramiko.common import o666
-from bioshareX.models import Share, ShareLog
+from bioshareX.models import Share, ShareLog, SSHKey
 from paramiko.sftp_handle import SFTPHandle
 from bioshareX.utils import paths_contain
 from django.conf import settings
 from django.contrib.auth.models import User
 
 SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS = getattr(settings, 'SFTP_UPDATE_SHARE_MODIFIED_DATE_FREQUENCY_SECONDS',60)
+
+# Ceiling on live SSH transports. Every connection costs a file descriptor and
+# at least one thread, and neither is reclaimed until the client goes away, so
+# without a bound a connection flood exhausts the process fd limit -- at which
+# point accept() starts failing for everyone. SOCKET_BACKLOG bounds only the
+# pending-accept queue, not live sessions.
+SFTP_MAX_SESSIONS = getattr(settings, 'SFTP_MAX_SESSIONS', 100)
+# Seconds a connection may stay open without completing authentication.
+SFTP_AUTH_TIMEOUT_SECONDS = getattr(settings, 'SFTP_AUTH_TIMEOUT_SECONDS', 30)
+# How often the reaper sweeps for stalled and finished sessions.
+SFTP_SESSION_SWEEP_INTERVAL_SECONDS = getattr(settings, 'SFTP_SESSION_SWEEP_INTERVAL_SECONDS', 5)
+# Keepalive interval for established transports; detects clients that vanished
+# without closing (NAT timeouts, killed laptops) so their slot is released.
+SFTP_KEEPALIVE_SECONDS = getattr(settings, 'SFTP_KEEPALIVE_SECONDS', 60)
 
 class BioshareSFTPServer(object):
     """
@@ -38,44 +54,151 @@ class BioshareSFTPServer(object):
 
     SOCKET_BACKLOG = 50
 
-    def __init__(self, host_key_path, get_user=None):
+    # Seconds to pause after an accept() failure caused by resource exhaustion.
+    # Those errors recur instantly, so continuing without a pause would spin the
+    # accept loop at full speed and log-flood the disk.
+    ACCEPT_ERROR_BACKOFF_SECONDS = 1
+
+    # accept() errors that mean "out of a resource" rather than "that one client
+    # went away", and so warrant backing off before trying again.
+    _EXHAUSTION_ERRNOS = frozenset(
+        e for e in (getattr(errno, name, None)
+                    for name in ('EMFILE', 'ENFILE', 'ENOBUFS', 'ENOMEM'))
+        if e is not None)
+
+    def __init__(self, host_key_path, get_user=None, get_user_by_key=None):
         self.host_key = paramiko.PKey.from_path(host_key_path)
         if get_user is not None:
             self.get_user = get_user
+        if get_user_by_key is not None:
+            self.get_user_by_key = get_user_by_key
+        # Transport -> monotonic timestamp of the accept() that produced it.
+        # Read and written by both the accept loop and the reaper thread.
+        self._sessions = {}
+        self._sessions_lock = threading.Lock()
 
     def serve_forever(self, host, port):
         server_socket = socket.socket()
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
         server_socket.bind((host, port))
         server_socket.listen(self.SOCKET_BACKLOG)
+        threading.Thread(target=self._reap_sessions_forever, name='sftp-session-reaper',
+                         daemon=True).start()
+        logging.info('SFTP server listening on %s:%s (max %s sessions)', host, port, SFTP_MAX_SESSIONS)
         while True:
-            conn = server_socket.accept()[0]
-            self.start_sftp_session(conn)
+            # Nothing in this loop may be allowed to escape: this thread is the
+            # only acceptor, and startup.sh backgrounds `manage.py start_sftp`
+            # with no supervisor, so an exception here takes SFTP down for every
+            # user until the container is restarted.
+            try:
+                conn, address = server_socket.accept()
+            except Exception as e:
+                # accept() itself fails on ECONNABORTED (peer reset between SYN
+                # and accept) and on fd exhaustion. The former is routine; the
+                # latter repeats until something frees a descriptor.
+                logging.exception('SFTP accept() failed')
+                if getattr(e, 'errno', None) in self._EXHAUSTION_ERRNOS:
+                    time.sleep(self.ACCEPT_ERROR_BACKOFF_SECONDS)
+                continue
+            try:
+                if not self._has_session_capacity():
+                    logging.warning('Refusing SFTP connection from %s: %s live sessions',
+                                    address, SFTP_MAX_SESSIONS)
+                    conn.close()
+                    continue
+                self.start_sftp_session(conn)
+            except Exception:
+                # Only reachable if setup failed, in which case paramiko never
+                # took ownership of the socket and we still have to close it.
+                # (Handshake and auth failures are *not* seen here: start_server
+                # returns as soon as the negotiation thread is running, so those
+                # surface as paramiko.transport log records instead.)
+                logging.exception('SFTP session setup failed for %s', address)
+                conn.close()
 
-    # Algorithms considered weak/legacy that should not be negotiated
+    # Algorithms considered weak/legacy that should not be negotiated.
+    # `keys` covers the host key we present; `pubkeys` covers client keys offered
+    # for publickey auth. SSHKey.KEY_TYPES already refuses to store an ssh-dss
+    # key, so this is belt-and-braces -- but it rejects one at negotiation rather
+    # than after a pointless database lookup.
     DISABLED_ALGORITHMS = {
         'ciphers': ['blowfish-cbc', '3des-cbc', 'aes128-cbc', 'aes192-cbc', 'aes256-cbc'],
         'macs': ['hmac-md5', 'hmac-md5-96', 'hmac-sha1-96'],
         'kex': ['diffie-hellman-group1-sha1', 'diffie-hellman-group-exchange-sha1'],
         'keys': ['ssh-dss'],
+        'pubkeys': ['ssh-dss'],
     }
 
-    # Timeout in seconds for SSH negotiation and idle connections
-    AUTH_TIMEOUT = 30
-    TRANSPORT_TIMEOUT = 300
-
     def start_sftp_session(self, conn):
-        conn.settimeout(self.TRANSPORT_TIMEOUT)
+        # Note: no conn.settimeout() here. Transport.__init__ immediately
+        # replaces any socket timeout with its own 0.1s active-check interval,
+        # so setting one has no effect. Liveness is handled by set_keepalive()
+        # below and by _reap_sessions_forever().
         transport = paramiko.Transport(conn, disabled_algorithms=self.DISABLED_ALGORITHMS)
         transport.add_server_key(self.host_key)
         transport.set_subsystem_handler(
             'sftp', SFTPServer, SFTPInterface)
+        if SFTP_KEEPALIVE_SECONDS:
+            transport.set_keepalive(SFTP_KEEPALIVE_SECONDS)
         # The SFTP session runs in a separate thread. We pass in `event`
         # so `start_server` doesn't block; we're not actually interested
         # in waiting for the event though.
         transport.start_server(
-                server=SSHInterface(self.get_user),
+                server=SSHInterface(self.get_user, self.get_user_by_key),
                 event=threading.Event())
+        self._register_session(transport)
+        return transport
+
+    def _has_session_capacity(self):
+        """Drop finished sessions and report whether there is room for one more."""
+        with self._sessions_lock:
+            for transport in [t for t in self._sessions if not t.is_active()]:
+                del self._sessions[transport]
+            return len(self._sessions) < SFTP_MAX_SESSIONS
+
+    def _register_session(self, transport):
+        with self._sessions_lock:
+            self._sessions[transport] = time.monotonic()
+
+    def _sweep_sessions(self):
+        """Forget finished sessions and close ones stuck before authentication.
+
+        paramiko has no server-side auth timeout -- Transport.auth_timeout is
+        only consulted by the *client* -- so a peer that completes the handshake
+        and then simply stops holds a thread and a file descriptor forever. That
+        is what lets an idle attacker fill SFTP_MAX_SESSIONS, and past the
+        process fd limit it is what makes accept() start failing.
+
+        Returns the transports it closed, for logging and tests.
+        """
+        now = time.monotonic()
+        stalled = []
+        with self._sessions_lock:
+            for transport, started in list(self._sessions.items()):
+                if not transport.is_active():
+                    del self._sessions[transport]
+                elif (not transport.is_authenticated()
+                        and now - started > SFTP_AUTH_TIMEOUT_SECONDS):
+                    del self._sessions[transport]
+                    stalled.append(transport)
+        for transport in stalled:
+            logging.warning('Closing SFTP connection that did not authenticate within %ss',
+                            SFTP_AUTH_TIMEOUT_SECONDS)
+            try:
+                transport.close()
+            except Exception:
+                logging.exception('Error closing stalled SFTP transport')
+        return stalled
+
+    def _reap_sessions_forever(self):
+        while True:
+            time.sleep(SFTP_SESSION_SWEEP_INTERVAL_SECONDS)
+            try:
+                self._sweep_sessions()
+            except Exception:
+                # The reaper is the only thing reclaiming slots; letting it die
+                # would silently reintroduce the exhaustion it exists to prevent.
+                logging.exception('SFTP session reaper error')
 
     ALLOW_ANONYMOUS = getattr(settings, 'SFTP_ALLOW_ANONYMOUS', False)
 
@@ -86,14 +209,66 @@ class BioshareSFTPServer(object):
             return User.objects.filter(id=-1).first()
         return authenticate(username=username, password=password)
 
+    def get_user_by_key(self, username, key):
+        """Resolve a User from a public key paramiko received from the client.
+
+        `authenticate()` is unusable here because there is no password, which
+        means the is_active check ModelBackend.user_can_authenticate() normally
+        applies has to be made explicitly -- otherwise a deactivated account
+        would keep SFTP access for as long as one of its keys was on file.
+
+        Anonymous access is not reachable this way: it is a password-path
+        concept and has no key to present.
+        """
+        if username == 'anonymous':
+            return None
+        user = User.objects.filter(username=username, is_active=True).first()
+        if user is None:
+            return None
+        # Public keys are not secrets, so a plain comparison is fine. Comparing
+        # the parsed wire-format blob rather than the stored text sidesteps
+        # comments and whitespace, and means the algorithm name the client chose
+        # (rsa-sha2-512 vs ssh-rsa) doesn't affect the match.
+        presented = key.asbytes()
+        for ssh_key in SSHKey.objects.filter(user=user):
+            try:
+                stored = ssh_key.blob
+            except ValueError:
+                logging.warning('Ignoring unparseable stored SSH key id=%s for %s',
+                                ssh_key.id, username)
+                continue
+            if stored == presented:
+                return user
+        return None
+
 
 class SSHInterface(paramiko.ServerInterface):
 
+    # Password auth runs Django's password hasher (PBKDF2, ~100ms of CPU per
+    # call), so its budget is deliberately tight.
     MAX_AUTH_ATTEMPTS = 5
+    # Public key auth gets its own, larger budget rather than sharing the above.
+    # A stock OpenSSH client offers every key in ~/.ssh before falling back to a
+    # password, and paramiko calls check_auth_publickey *twice* per key -- once
+    # for the client's unsigned "would you accept this?" probe, once with the
+    # signature. Sharing one counter would therefore lock a legitimate user with
+    # three keys out of the password fallback they were heading for anyway. A
+    # key comparison is a single indexed query, so a looser bound costs little.
+    MAX_PUBLICKEY_ATTEMPTS = 20
 
-    def __init__(self, get_user):
+    def __init__(self, get_user, get_user_by_key=None):
         self.get_user = get_user
+        self.get_user_by_key = get_user_by_key
         self._auth_attempts = 0
+        self._publickey_attempts = 0
+
+    def get_allowed_auths(self, username):
+        # paramiko's default advertises password only, so clients never try a
+        # key. Listing publickey first is what makes them offer one before
+        # prompting.
+        if self.get_user_by_key is None:
+            return 'password'
+        return 'publickey,password'
 
     def check_auth_password(self, username, password):
         self._auth_attempts += 1
@@ -108,6 +283,32 @@ class SSHInterface(paramiko.ServerInterface):
         else:
             logging.info(u'Auth failed for %s' % username)
             return paramiko.AUTH_FAILED
+
+    def check_auth_publickey(self, username, key):
+        if self.get_user_by_key is None:
+            return paramiko.AUTH_FAILED
+        self._publickey_attempts += 1
+        if self._publickey_attempts > self.MAX_PUBLICKEY_ATTEMPTS:
+            logging.warning(u'Public key attempt limit exceeded for %s' % username)
+            return paramiko.AUTH_FAILED
+        try:
+            user = self.get_user_by_key(username, key)
+        except Exception:
+            # A database error here must not be reported as a successful auth,
+            # and must not escape into paramiko's auth handler either.
+            logging.exception(u'Error resolving public key for %s' % username)
+            return paramiko.AUTH_FAILED
+        if user:
+            # Returning AUTH_SUCCESSFUL only tells paramiko the key is
+            # acceptable; it then verifies the client's signature over the
+            # session blob and fails the auth itself if that doesn't check out.
+            # No channel can be opened unless that verification passes, so
+            # setting self.user on the unsigned probe is safe.
+            logging.info(u'Public key auth successful for %s' % username)
+            self.user = user
+            return paramiko.AUTH_SUCCESSFUL
+        logging.info(u'Public key auth failed for %s' % username)
+        return paramiko.AUTH_FAILED
 
     def check_channel_request(self, kind, chanid):
         if kind == 'session':

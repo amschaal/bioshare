@@ -1,3 +1,5 @@
+import base64
+import binascii
 import os
 import re
 import subprocess
@@ -475,8 +477,22 @@ class SSHKey(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
     key = models.TextField(blank=False,null=False)
+
+    # Public key algorithms accepted for storage. Everything here is offered by
+    # paramiko as a client key type and understood by OpenSSH, so one stored key
+    # serves both the rsync path (authorized_keys) and SFTP publickey auth.
+    # ssh-dss is deliberately absent: it is disabled at SSH negotiation too, in
+    # BioshareSFTPServer.DISABLED_ALGORITHMS.
+    KEY_TYPES = (
+        'ssh-rsa',
+        'ssh-ed25519',
+        'ecdsa-sha2-nistp256',
+        'ecdsa-sha2-nistp384',
+        'ecdsa-sha2-nistp521',
+    )
+
     def create_authorized_key(self):
-        key = self.get_key()
+        key_type, key = self.parse_key(self.key)
         username = self.user.username
         # The username is interpolated into an authorized_keys line whose forced
         # command="... rsync <username>" restricts the key. Any CR/LF, quote, or
@@ -485,17 +501,44 @@ class SSHKey(models.Model):
         # usernames are emails today and can't contain these).
         if any(c in username for c in '\r\n"\\\t '):
             raise Exception('Illegal characters in username for authorized_keys')
-        return 'command="%s %s/manage.py rsync %s" ssh-rsa %s %s' % (settings.PYTHON_BIN, settings.CURRENT_DIR, username, key, username)
+        return 'command="%s %s/manage.py rsync %s" %s %s %s' % (settings.PYTHON_BIN, settings.CURRENT_DIR, username, key_type, key, username)
     def get_key(self):
         return self.extract_key(self.key)
+    @property
+    def blob(self):
+        """The key in SSH wire format, for comparison against a key presented
+        over the wire (paramiko hands us those as `PKey.asbytes()`)."""
+        return base64.b64decode(self.get_key())
+    @classmethod
+    def parse_key(cls, full_key):
+        """Split an authorized_keys-style line into (key_type, base64 body).
+
+        Replaces an ssh-rsa-only regex that also required a trailing comment, so
+        ed25519/ecdsa keys and comment-less keys are now storable. Raises
+        ValueError on anything that doesn't parse; callers that surface this to
+        a user are expected to catch it.
+        """
+        fields = (full_key or '').strip().split()
+        if len(fields) < 2:
+            raise ValueError('Unable to parse key')
+        key_type, body = fields[0], fields[1]
+        if key_type not in cls.KEY_TYPES:
+            raise ValueError('Unsupported key type: %s' % key_type)
+        try:
+            decoded = base64.b64decode(body, validate=True)
+        except (binascii.Error, ValueError):
+            raise ValueError('Key body is not valid base64')
+        # The wire format repeats the algorithm name as its first length-prefixed
+        # string. Requiring the two to agree means a stored key can never claim
+        # one type while carrying another -- which would otherwise produce an
+        # authorized_keys line OpenSSH rejects, or a mismatch at SFTP auth.
+        expected = len(key_type).to_bytes(4, 'big') + key_type.encode()
+        if not decoded.startswith(expected):
+            raise ValueError('Key body does not match its declared type')
+        return key_type, body
     @staticmethod
     def extract_key(full_key):
-        import re
-        match = re.match('ssh-rsa (?P<key>[A-Za-z0-9\+\/=]{300,}) .*', full_key)
-        if match is None:
-            raise Exception('Unable to parse key')
-        matches = match.groupdict()
-        return matches['key']
+        return SSHKey.parse_key(full_key)[1]
 
 class ShareLog(models.Model):
     ACTION_FILE_ADDED = 'File Added'

@@ -29,7 +29,7 @@ from guardian.shortcuts import get_perms
 
 from bioshareX.models import (EmailFooter, MetaData, Message, Share,
                               ShareLog, SSHKey, Tag)
-from bioshareX.test_base import AJAX, ShareTestBase
+from bioshareX.test_base import AJAX, ShareTestBase, make_public_key
 
 
 class TestUserDirectoryEndpoints(ShareTestBase):
@@ -720,28 +720,53 @@ class TestRestViewsets(ShareTestBase):
 
 class TestSSHKeys(ShareTestBase):
 
-    FAKE_KEY = 'ssh-rsa %s comment' % ('A' * 372)
+    FAKE_KEY = make_public_key()
+    FAKE_BODY = FAKE_KEY.split()[1]
+    OTHER_KEY = make_public_key(filler=b'\xcd')
+    OTHER_BODY = OTHER_KEY.split()[1]
 
     def test_create_authorized_key_line_format(self):
         key = SSHKey.objects.create(user=self.owner, name='k', key=self.FAKE_KEY)
         line = key.create_authorized_key()
         self.assertIn('command="', line)
         self.assertIn('rsync %s' % self.owner.username, line)
-        self.assertIn('A' * 372, line)
+        self.assertIn(self.FAKE_BODY, line)
+
+    def test_create_authorized_key_preserves_key_type(self):
+        """The line must carry the key's own algorithm, not a hardcoded ssh-rsa."""
+        ed25519 = make_public_key('ssh-ed25519')
+        key = SSHKey.objects.create(user=self.owner, name='k', key=ed25519)
+        self.assertIn('ssh-ed25519 %s' % ed25519.split()[1], key.create_authorized_key())
 
     def test_create_authorized_key_rejects_illegal_username(self):
         evil = User(username='evil"user', email='x@example.com')
         key = SSHKey(user=evil, name='k', key=self.FAKE_KEY)
-        with self.assertRaises(Exception):
+        with self.assertRaisesMessage(Exception, 'Illegal characters in username'):
             key.create_authorized_key()
+
+    def test_parse_key_accepts_modern_types_and_missing_comment(self):
+        for key_type in ('ssh-rsa', 'ssh-ed25519', 'ecdsa-sha2-nistp256'):
+            for comment in ('laptop@example.com', ''):
+                line = make_public_key(key_type, comment=comment)
+                self.assertEqual(SSHKey.parse_key(line), (key_type, line.split()[1]))
+
+    def test_parse_key_rejects_bad_input(self):
+        body = self.FAKE_BODY
+        for bad in ('',
+                    'ssh-rsa',                     # no body
+                    'ssh-dss %s x' % body,         # disabled algorithm
+                    'ssh-rsa not-base64!! x',      # undecodable body
+                    'ssh-ed25519 %s x' % body):    # body contradicts declared type
+            with self.assertRaises(ValueError, msg=bad):
+                SSHKey.parse_key(bad)
 
     def test_delete_ssh_key_removes_db_row_and_authorized_keys_line(self):
         key = SSHKey.objects.create(user=self.owner, name='mine', key=self.FAKE_KEY)
         fd, keys_file = tempfile.mkstemp()
         try:
             with os.fdopen(fd, 'w') as f:
-                f.write('command="x" ssh-rsa %s %s\n' % ('A' * 372, self.owner.username))
-                f.write('command="x" ssh-rsa %s other\n' % ('B' * 372))
+                f.write('command="x" ssh-rsa %s %s\n' % (self.FAKE_BODY, self.owner.username))
+                f.write('command="x" ssh-rsa %s other\n' % self.OTHER_BODY)
             self.login(self.owner)
             with mock.patch('bioshareX.api.views.AUTHORIZED_KEYS_FILE', keys_file):
                 response = self.client.post(reverse('api_delete_ssh_key'), {'id': key.id})
@@ -749,8 +774,8 @@ class TestSSHKeys(ShareTestBase):
             self.assertFalse(SSHKey.objects.filter(id=key.id).exists())
             with open(keys_file) as f:
                 remaining = f.read()
-            self.assertNotIn('A' * 372, remaining)
-            self.assertIn('B' * 372, remaining)  # other keys untouched
+            self.assertNotIn(self.FAKE_BODY, remaining)
+            self.assertIn(self.OTHER_BODY, remaining)  # other keys untouched
         finally:
             os.unlink(keys_file)
 
@@ -758,24 +783,39 @@ class TestSSHKeys(ShareTestBase):
     @override_settings(FILE_UPLOAD_HANDLERS=[
         'django.core.files.uploadhandler.TemporaryFileUploadHandler'])
     def test_create_ssh_key_via_view(self):
-        keydir = tempfile.mkdtemp()
-        try:
-            keypath = os.path.join(keydir, 'id_rsa')
-            subprocess.check_call(['ssh-keygen', '-q', '-t', 'rsa', '-b', '3072',
-                                   '-N', '', '-f', keypath])
-            keys_file = os.path.join(keydir, 'authorized_keys')
-            open(keys_file, 'w').close()
-            self.login(self.owner)
-            with mock.patch('settings.settings.AUTHORIZED_KEYS_FILE', keys_file):
-                with open(keypath + '.pub', 'rb') as pub:
-                    response = self.client.post(reverse('create_ssh_key'),
-                                                {'name': 'laptop', 'rsa_key': pub})
-            self.assertEqual(response.status_code, 302)
-            key = SSHKey.objects.get(user=self.owner, name='laptop')
-            with open(keys_file) as f:
-                self.assertIn(key.get_key(), f.read())
-        finally:
-            shutil.rmtree(keydir, ignore_errors=True)
+        """Both a legacy RSA key and the type ssh-keygen produces by default."""
+        for keytype, keygen_args in (('rsa', ['-b', '3072']), ('ed25519', [])):
+            with self.subTest(keytype=keytype):
+                keydir = tempfile.mkdtemp()
+                try:
+                    keypath = os.path.join(keydir, 'id_' + keytype)
+                    subprocess.check_call(['ssh-keygen', '-q', '-t', keytype,
+                                           '-N', '', '-f', keypath] + keygen_args)
+                    keys_file = os.path.join(keydir, 'authorized_keys')
+                    open(keys_file, 'w').close()
+                    self.login(self.owner)
+                    with mock.patch('settings.settings.AUTHORIZED_KEYS_FILE', keys_file):
+                        with open(keypath + '.pub', 'rb') as pub:
+                            response = self.client.post(reverse('create_ssh_key'),
+                                                        {'name': keytype, 'rsa_key': pub})
+                    self.assertEqual(response.status_code, 302)
+                    key = SSHKey.objects.get(user=self.owner, name=keytype)
+                    with open(keys_file) as f:
+                        self.assertIn(key.get_key(), f.read())
+                finally:
+                    shutil.rmtree(keydir, ignore_errors=True)
+
+    @skipUnless(shutil.which('ssh-keygen'), 'ssh-keygen not available')
+    @override_settings(FILE_UPLOAD_HANDLERS=[
+        'django.core.files.uploadhandler.TemporaryFileUploadHandler'])
+    def test_create_ssh_key_rejects_non_key_upload(self):
+        self.login(self.owner)
+        upload = io.BytesIO(b'this is not a public key\n')
+        upload.name = 'notes.txt'
+        response = self.client.post(reverse('create_ssh_key'),
+                                    {'name': 'junk', 'rsa_key': upload})
+        self.assertEqual(response.status_code, 200)  # redisplayed with errors
+        self.assertFalse(SSHKey.objects.filter(user=self.owner, name='junk').exists())
 
 
 class TestEmailFooters(ShareTestBase):

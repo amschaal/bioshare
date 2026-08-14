@@ -28,6 +28,7 @@ override_settings.
 Run the whole suite with:  python manage.py test bioshareX
 """
 
+import base64
 import json
 import os
 import shutil
@@ -45,6 +46,32 @@ from bioshareX.models import Filesystem, Share
 # permission failures come back as JSON errors instead of redirects.
 AJAX = {'HTTP_X_REQUESTED_WITH': 'XMLHttpRequest'}
 PASSWORD = 'test-password-123'
+
+
+def ssh_wire_string(value):
+    """Encode bytes as an SSH wire-format string (uint32 length + payload)."""
+    return len(value).to_bytes(4, 'big') + value
+
+
+def make_public_key(key_type='ssh-rsa', comment='comment', filler=b'\xab'):
+    """Build a structurally valid authorized_keys line without shelling out.
+
+    SSHKey.parse_key checks that the base64 body really is an SSH public key
+    blob whose first field repeats the declared algorithm, so a fixture cannot
+    just be a run of base64-looking characters. The key material itself is
+    filler -- nothing here verifies a signature -- but the framing is real.
+    """
+    blob = ssh_wire_string(key_type.encode())
+    if key_type == 'ssh-rsa':
+        blob += ssh_wire_string(b'\x01\x00\x01')          # exponent 65537
+        blob += ssh_wire_string(b'\x00' + filler * 256)   # 2048-bit modulus
+    elif key_type == 'ssh-ed25519':
+        blob += ssh_wire_string(filler * 32)
+    else:
+        blob += ssh_wire_string(key_type.rsplit('-', 1)[-1].encode())
+        blob += ssh_wire_string(b'\x04' + filler * 64)
+    line = '%s %s' % (key_type, base64.b64encode(blob).decode())
+    return '%s %s' % (line, comment) if comment else line
 
 
 @override_settings(RATELIMIT_ENABLE=False)

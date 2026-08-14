@@ -164,23 +164,38 @@ class MetaDataForm(forms.Form):
 
 class SSHKeyForm(forms.Form):
     name = forms.CharField(max_length=50)
-    rsa_key  = forms.FileField()
+    # Field name kept as rsa_key for the existing view/template/POST contract,
+    # but the label no longer is: ed25519 and ecdsa keys are accepted now too.
+    rsa_key = forms.FileField(
+        label='Public key file',
+        help_text='Your .pub file. RSA, Ed25519 and ECDSA keys are accepted.')
+    # A public key line is a few hundred bytes; anything larger is not one, and
+    # reading it into memory to parse would be pointless work.
+    MAX_KEY_BYTES = 16384
+
     def clean_rsa_key(self):
         import subprocess
         file = self.cleaned_data['rsa_key']
         if not file:
-            raise forms.ValidationError("SSH RSA key required")
+            raise forms.ValidationError("SSH public key required")
+        if file.size > self.MAX_KEY_BYTES:
+            raise forms.ValidationError("That file is too large to be an SSH public key.")
+        # ssh-keygen -l rejects malformed and non-key files outright; exit codes
+        # other than 1 (e.g. 255) also mean failure, so test against 0.
         return_code = subprocess.call(['ssh-keygen','-l','-f',file.temporary_file_path()], timeout=settings.SUBPROCESS_TIMEOUT)
-        if return_code == 1:
-            raise forms.ValidationError("Not a valid SSH RSA key!")
-        contents = file.read().decode('utf-8')
-        if contents[:7] != 'ssh-rsa':
-            raise forms.ValidationError("Only ssh-rsa keys are accepted")
-        if len(SSHKey.objects.filter(key__contains=SSHKey.extract_key(contents))) != 0:
+        if return_code != 0:
+            raise forms.ValidationError("Not a valid SSH public key!")
+        try:
+            contents = file.read().decode('utf-8')
+        except UnicodeDecodeError:
+            raise forms.ValidationError("Not a valid SSH public key!")
+        try:
+            key_type, body = SSHKey.parse_key(contents)
+        except ValueError as e:
+            raise forms.ValidationError(str(e))
+        if SSHKey.objects.filter(key__contains=body).exists():
             raise forms.ValidationError("This key is already in use.")
-#             if "fred@example.com" not in data:
-#                 raise forms.ValidationError("You have forgotten about Fred!")
-        
+
         # Always return the cleaned data, whether you have changed it or
         # not.
         return contents
