@@ -1,7 +1,7 @@
 """
 Tests for the paramiko SFTP daemon in sftp/server.py.
 
-Two concerns are covered here:
+Four concerns are covered here:
 
   * **Availability** -- the accept loop in ``BioshareSFTPServer.serve_forever``
     is the single acceptor for the whole daemon, and ``startup.sh`` backgrounds
@@ -14,6 +14,16 @@ Two concerns are covered here:
     nothing else does, and that the per-method attempt budgets don't lock out a
     legitimate client.
 
+  * **Permission caching** -- a bulk transfer used to cost one guardian query
+    per file opened. These tests assert the memo holds within its window, and
+    pin down what it costs: a revocation is not seen until the window passes,
+    while locking the share still bites immediately.
+
+  * **Upload buffering** -- writes are no longer flushed per block, which moves
+    the reporting of a failed write from the write to the close. These tests
+    assert the bytes still land, and that a failure draining the buffer reaches
+    both the client and the log rather than passing as a complete upload.
+
 They live in bioshareX/ rather than sftp/ so ``manage.py test bioshareX`` picks
 them up; the sftp package is not in INSTALLED_APPS.
 
@@ -24,15 +34,18 @@ import base64
 import contextlib
 import errno
 import logging
+import os
 from unittest import mock
 
 import paramiko
 from django.test import TestCase
+from guardian.shortcuts import remove_perm
+from paramiko.sftp import SFTP_OK
 
-from bioshareX.models import SSHKey
+from bioshareX.models import Share, SSHKey
 from bioshareX.test_base import ShareTestBase, make_public_key
 from sftp import server as sftp_server
-from sftp.server import BioshareSFTPServer, SSHInterface
+from sftp.server import BioshareSFTPServer, PermissionDenied, SSHInterface
 
 
 class _StopLoop(BaseException):
@@ -399,3 +412,291 @@ class TestSSHInterfaceAuth(TestCase):
                              paramiko.AUTH_FAILED)
         self.assertFalse(hasattr(interface, 'user'))
         self.assertIn('Error resolving public key', logs.output[0])
+
+
+class _FakeSession:
+    """Stands in for the SSHInterface the SFTP subsystem is handed."""
+
+    def __init__(self, user):
+        self.user = user
+
+
+class _FlushFails:
+    """
+    Wraps an open file so that flush() fails the way a full filesystem makes it
+    fail, while close() still records that the descriptor was released.
+    """
+
+    def __init__(self, wrapped, error):
+        self._wrapped = wrapped
+        self._error = error
+        self.close_called = False
+
+    def flush(self):
+        raise self._error
+
+    def close(self):
+        self.close_called = True
+        self._wrapped.close()
+
+    def __getattr__(self, name):
+        return getattr(self._wrapped, name)
+
+
+class _SFTPInterfaceTestCase(ShareTestBase):
+
+    def interface_for(self, user):
+        return sftp_server.SFTPInterface(_FakeSession(user))
+
+    def path(self, subpath='hello.txt', share=None):
+        return '/%s/%s' % ((share or self.share).slug_or_id, subpath)
+
+    @contextlib.contextmanager
+    def no_cache(self):
+        """Run with the memo disabled, as SFTP_PERMISSION_CACHE_SECONDS = 0 does."""
+        with mock.patch.object(sftp_server, 'SFTP_PERMISSION_CACHE_SECONDS', 0):
+            yield
+
+
+class TestPermissionCaching(_SFTPInterfaceTestCase):
+    """
+    Permissions used to be read from guardian on every open() and every
+    operation behind permissions_required, so a bulk transfer cost one query
+    per file. See SFTP_PERMISSION_CACHE_SECONDS.
+    """
+
+    def test_repeated_lookups_do_not_re_query(self):
+        interface = self.interface_for(self.writer)
+        interface._get_bioshare_path_permissions(self.path())
+        # The point of the change: opening 500 more files costs no queries.
+        with self.assertNumQueries(0):
+            for _ in range(500):
+                interface._get_bioshare_path_permissions(self.path())
+
+    def test_a_zero_window_disables_the_memo_entirely(self):
+        with self.no_cache():
+            interface = self.interface_for(self.writer)
+            self.assertIn(Share.PERMISSION_WRITE,
+                          interface._get_bioshare_path_permissions(self.path()))
+            remove_perm(Share.PERMISSION_WRITE, self.writer, self.share)
+            self.assertNotIn(Share.PERMISSION_WRITE,
+                             interface._get_bioshare_path_permissions(self.path()))
+
+    def test_a_revocation_inside_the_window_is_not_seen_until_it_expires(self):
+        """
+        The cost of caching, asserted rather than left to folklore: a
+        permission revoked mid-session keeps working for up to
+        SFTP_PERMISSION_CACHE_SECONDS. Locking the share is the immediate
+        escape hatch -- see TestLockStateFreshness.
+        """
+        interface = self.interface_for(self.writer)
+        self.assertIn(Share.PERMISSION_WRITE,
+                      interface._get_bioshare_path_permissions(self.path()))
+
+        remove_perm(Share.PERMISSION_WRITE, self.writer, self.share)
+
+        # Still granted, because the window has not passed.
+        self.assertIn(Share.PERMISSION_WRITE,
+                      interface._get_bioshare_path_permissions(self.path()))
+        # Gone as soon as it has.
+        with self.no_cache():
+            self.assertNotIn(Share.PERMISSION_WRITE,
+                             interface._get_bioshare_path_permissions(self.path()))
+
+    def test_narrowing_one_result_does_not_narrow_the_next(self):
+        """
+        _get_bioshare_path_permissions strips WRITE and DELETE in place for
+        paths that aren't real. Were it handed the cached list itself, that
+        removal would persist, and one request for a path under a symlink would
+        silently strip write access for the rest of the session.
+        """
+        interface = self.interface_for(self.writer)
+        interface._share_permissions(self.share).remove(Share.PERMISSION_WRITE)
+        self.assertIn(Share.PERMISSION_WRITE,
+                      interface._share_permissions(self.share))
+
+    def test_each_share_is_memoised_separately(self):
+        second = self.make_share(self.owner, name='Second')
+        self.grant(self.writer, Share.PERMISSION_VIEW, share=second)
+        self.write_share_file('other.txt', share=second)
+        interface = self.interface_for(self.writer)
+
+        self.assertIn(Share.PERMISSION_WRITE,
+                      interface._get_bioshare_path_permissions(self.path()))
+        self.assertNotIn(Share.PERMISSION_WRITE,
+                         interface._get_bioshare_path_permissions(
+                             self.path('other.txt', share=second)))
+
+
+class TestLockStateFreshness(_SFTPInterfaceTestCase):
+    """
+    A session's Share objects are loaded once at connect time, so before
+    _refresh_lock_state an administrator locking a share had no effect at all
+    on a transfer already in progress.
+    """
+
+    def lock_in_database(self):
+        """Lock without touching the session's in-memory Share, as the web UI does."""
+        Share.objects.filter(id=self.share.id).update(locked=True)
+
+    def test_a_share_locked_mid_session_stops_being_served(self):
+        interface = self.interface_for(self.writer)
+        self.assertTrue(interface._get_share(self.path()))
+        self.lock_in_database()
+        with self.no_cache():
+            with self.assertRaises(PermissionDenied):
+                interface._get_share(self.path())
+
+    def test_locking_overrides_a_still_warm_permission_memo(self):
+        interface = self.interface_for(self.writer)
+        interface._get_bioshare_path_permissions(self.path())
+        self.lock_in_database()
+        with self.no_cache():
+            with self.assertRaises(PermissionDenied):
+                interface._get_bioshare_path_permissions(self.path())
+
+    def test_the_lock_flag_is_not_re_read_on_every_operation(self):
+        interface = self.interface_for(self.writer)
+        interface._get_share(self.path())
+        with self.assertNumQueries(0):
+            for _ in range(100):
+                interface._get_share(self.path())
+
+    def test_a_share_deleted_mid_session_is_denied(self):
+        interface = self.interface_for(self.writer)
+        interface._get_share(self.path())
+        Share.objects.filter(id=self.share.id).delete()
+
+        with self.no_cache():
+            with self.assertLogs(level='WARNING') as logs:
+                with self.assertRaises(PermissionDenied):
+                    interface._get_share(self.path())
+        self.assertIn('Share disappeared', logs.output[0])
+
+
+class TestUploadBuffering(_SFTPInterfaceTestCase):
+    """
+    Writes are no longer flushed per block (SFTP_WRITE_BUFFER_SIZE), which
+    moves the reporting of a failed write from the write to the close.
+    """
+
+    def open_handle(self, subpath, flags, user=None):
+        interface = self.interface_for(user or self.writer)
+        handle = interface.open(self.path(subpath), flags, None)
+        self.assertNotIsInstance(handle, int, 'open() failed: %r' % (handle,))
+        return handle
+
+    def open_for_write(self, subpath='upload.bin'):
+        handle = self.open_handle(subpath, os.O_WRONLY | os.O_CREAT | os.O_TRUNC)
+        return handle, os.path.join(self.share.get_path(), subpath)
+
+    def test_blocks_are_buffered_rather_than_written_straight_through(self):
+        handle, real_path = self.open_for_write()
+        for i in range(4):
+            self.assertEqual(handle.write(i * 32768, b'x' * 32768), SFTP_OK)
+        self.assertEqual(os.path.getsize(real_path), 0)
+        handle.close()
+        self.assertEqual(os.path.getsize(real_path), 4 * 32768)
+
+    def test_a_block_larger_than_the_buffer_still_lands(self):
+        handle, real_path = self.open_for_write()
+        payload = b'y' * (sftp_server.SFTP_WRITE_BUFFER_SIZE * 2)
+        self.assertEqual(handle.write(0, payload), SFTP_OK)
+        handle.close()
+        with open(real_path, 'rb') as f:
+            self.assertEqual(f.read(), payload)
+
+    def test_fstat_on_the_handle_accounts_for_buffered_bytes(self):
+        """A client checking its own upload's size must not see it lag."""
+        handle, _ = self.open_for_write()
+        handle.write(0, b'z' * 1024)
+        self.assertEqual(handle.stat().st_size, 1024)
+        handle.close()
+
+    def test_a_failed_flush_on_close_is_reported_and_logged(self):
+        """
+        paramiko answers CMD_CLOSE with SFTP_OK unless close() raises, so
+        swallowing this would report a truncated upload as a complete one.
+        """
+        handle, _ = self.open_for_write()
+        handle.write(0, b'w' * 1024)
+        handle.readfile = handle.writefile = _FlushFails(
+            handle.writefile, OSError(errno.ENOSPC, 'No space left on device'))
+
+        with self.assertLogs(level='ERROR') as logs:
+            with self.assertRaises(OSError):
+                handle.close()
+
+        self.assertIn('upload.bin', logs.output[0])
+        self.assertIn('No space left', logs.output[0])
+        # The descriptor is released even though the flush failed.
+        self.assertTrue(handle.writefile.close_called)
+
+    def test_uploads_are_buffered_above_the_client_block_size(self):
+        """
+        Python writes anything larger than the buffer straight to the fd, so
+        this only pays off while the buffer exceeds the client's block size --
+        which is why dropping the per-block flush() on its own changed nothing.
+        """
+        self.assertGreater(sftp_server.SFTP_WRITE_BUFFER_SIZE, 32768)
+
+    def test_downloads_keep_pythons_default_buffer(self):
+        """
+        A large read buffer means readahead, which would multiply the cost of
+        the scattered small reads sshfs and rclone's VFS layer make.
+        """
+        buffering = []
+        real_fdopen = os.fdopen
+
+        def record(fd, mode, *args):
+            if mode in ('rb', 'wb'):
+                buffering.append((mode, args[0] if args else None))
+            return real_fdopen(fd, mode, *args)
+
+        with mock.patch.object(sftp_server.os, 'fdopen', record):
+            self.open_handle('hello.txt', os.O_RDONLY, user=self.downloader).close()
+            self.open_for_write()[0].close()
+
+        self.assertEqual(buffering,
+                         [('rb', -1), ('wb', sftp_server.SFTP_WRITE_BUFFER_SIZE)])
+
+
+class TestSessionTeardown(_SFTPInterfaceTestCase):
+
+    def test_one_failing_handle_does_not_strand_the_others(self):
+        """
+        A full filesystem fails every session's flush at once, and paramiko
+        closes the handle table in a bare loop (sftp_server.py:172-175) that the
+        first raising handle aborts -- leaving every later handle's descriptor
+        open, which is the exhaustion SFTP_MAX_SESSIONS exists to prevent.
+        """
+        interface = self.interface_for(self.writer)
+        handles = []
+        for name in ('a.bin', 'b.bin', 'c.bin'):
+            handle = interface.open(self.path(name), os.O_WRONLY | os.O_CREAT, None)
+            self.assertNotIsInstance(handle, int, 'open() failed: %r' % (handle,))
+            handle.write(0, b'data')
+            handles.append(handle)
+
+        broken = handles[1]
+        broken.readfile = broken.writefile = _FlushFails(
+            broken.writefile, OSError(errno.ENOSPC, 'No space left on device'))
+
+        # Bypass SFTPServer.__init__; only these three attributes are touched,
+        # plus the channel SubsystemHandler.finish_subsystem closes (name-mangled
+        # because it is set in that class's own __init__).
+        server = sftp_server.SFTPServer.__new__(sftp_server.SFTPServer)
+        server.server = mock.Mock()
+        server._SubsystemHandler__channel = mock.Mock()
+        server.file_table = {str(i): h for i, h in enumerate(handles)}
+        server.folder_table = {}
+
+        with self.assertLogs(level='ERROR') as logs:
+            sftp_server._SFTPServer_finish_subsystem(server)
+
+        self.assertTrue(any('Error closing an SFTP handle' in line
+                            for line in logs.output), logs.output)
+        self.assertTrue(handles[0].writefile.closed)
+        self.assertTrue(handles[2].writefile.closed)
+        self.assertTrue(broken.writefile.close_called)
+        self.assertEqual(server.file_table, {})

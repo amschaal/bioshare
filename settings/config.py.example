@@ -91,6 +91,17 @@ SFTP_SESSION_SWEEP_INTERVAL_SECONDS = 5
 #Keepalive interval for established connections, so clients that vanished without
 #closing (NAT timeouts, sleeping laptops) release their slot.  0 disables.
 SFTP_KEEPALIVE_SECONDS = 60
+#How long a share's permissions and lock flag are reused within one SFTP session
+#before being re-read.  Without this every file opened costs a permission query,
+#so a 10,000 file transfer made 10,000 of them.  The cost is that a permission
+#revoked mid-session, or a share locked mid-session, takes up to this long to
+#take effect.  0 checks every time, as before.
+SFTP_PERMISSION_CACHE_SECONDS = 60
+#Buffer size for uploads.  Only helps above the client's block size -- Python
+#writes anything larger than the buffer straight to disk -- so keep it well
+#above the ~32KB blocks typical clients send.  Costs one buffer per open upload
+#handle.  Downloads deliberately keep Python's default.
+SFTP_WRITE_BUFFER_SIZE = 256 * 1024
 
 # Caching using memcached
 CACHES = {

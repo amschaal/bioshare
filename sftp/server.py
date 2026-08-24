@@ -34,6 +34,21 @@ SFTP_SESSION_SWEEP_INTERVAL_SECONDS = getattr(settings, 'SFTP_SESSION_SWEEP_INTE
 # without closing (NAT timeouts, killed laptops) so their slot is released.
 SFTP_KEEPALIVE_SECONDS = getattr(settings, 'SFTP_KEEPALIVE_SECONDS', 60)
 
+# Buffer size for handles opened write-only, i.e. uploads.
+#
+# This only pays off above the client's block size.  Python's BufferedWriter
+# passes any write larger than its buffer straight through to the fd, so with
+# the 8KB default and rclone's ~32KB blocks every block was a syscall no matter
+# what -- which is why dropping the per-block flush() alone changed nothing.
+# At 256KB those 32KB blocks coalesce roughly 8:1.
+#
+# Costs one buffer per open upload handle, so the worst case is roughly
+# SFTP_MAX_SESSIONS * concurrent uploads per session * this.  Read handles keep
+# the default: a big read buffer means readahead, which would help sequential
+# downloads but multiply the cost of the scattered small reads sshfs and
+# rclone's VFS layer make.
+SFTP_WRITE_BUFFER_SIZE = getattr(settings, 'SFTP_WRITE_BUFFER_SIZE', 256 * 1024)
+
 class BioshareSFTPServer(object):
     """
     Create an SFTP server which serves the files in `root` and authenticates
@@ -378,6 +393,14 @@ def log_event(method):
 
 def _SFTPHandle_stat(self):
     try:
+        # os.fstat reports what the kernel has, which since writes stopped being
+        # flushed per block is short of what the client has sent us.  A client
+        # that fstats its own upload handle to check progress would see the size
+        # lag by up to SFTP_WRITE_BUFFER_SIZE, so drain first.  This is per
+        # fstat request, not per block, so it costs nothing on the hot path.
+        writefile = getattr(self, 'writefile', None)
+        if writefile is not None:
+            writefile.flush()
         return paramiko.SFTPAttributes.from_stat(os.fstat(self.readfile.fileno()))
     except OSError as e:
         return SFTPServer.convert_errno(e.errno)
@@ -408,7 +431,10 @@ def _SFTPHandle_write(self, offset, data):
                 writefile.seek(offset)
                 self.__tell = offset
         writefile.write(data)
-        writefile.flush()
+        # Deliberately not flushed here.  Flushing every block defeated the
+        # buffering os.fdopen sets up in open(); the buffer is drained on close
+        # instead, and _SFTPHandle_close makes sure a failure there still
+        # reaches the client.
     except IOError as e:
         self.__tell = None
         return SFTPServer.convert_errno(e.errno)
@@ -461,13 +487,85 @@ def _SFTPHandle___init__(self, flags=0,permissions=[]):
     self.__files = {}
     self.__tell = None
     
+def _SFTPHandle_close(self):
+    """
+    Drain the write buffer, then close as paramiko normally would.
+
+    Writes are no longer flushed per block, so the tail of an upload -- and any
+    error writing it, ENOSPC and EDQUOT above all -- surfaces here rather than
+    on the write that filled the disk.  paramiko's CMD_CLOSE handler sends
+    SFTP_OK as soon as close() returns and has no branch for a close that
+    failed (sftp_server.py:393-396), so letting the exception escape is the only
+    way to tell the client its upload did not land: the request loop catches it
+    and replies SFTP_FAILURE for this same request number
+    (sftp_server.py:156-164).  Swallowing it here would report a truncated
+    upload as a complete one.
+    """
+    writefile = getattr(self, 'writefile', None)
+    try:
+        if writefile is not None:
+            writefile.flush()
+    except (OSError, IOError) as e:
+        # The client gets SFTP_FAILURE, which carries no errno, so this log line
+        # is the only record of which file failed and why.
+        logging.error('Error flushing %s on close: %s', getattr(self, 'filename', None), e)
+        raise
+    finally:
+        # Release the descriptor even if the flush failed.  If this raises too
+        # it is the same underlying error, and it still reaches the client.
+        _SFTPHandle_close_original(self)
+
+def _SFTPServer_finish_subsystem(self):
+    """
+    Close whatever handles the session left open, one failure at a time.
+
+    _SFTPHandle_close raises when the final flush fails -- that is what tells a
+    client its upload was truncated.  At teardown there is no client left to
+    tell, and paramiko closes the handle tables in a bare loop
+    (sftp_server.py:172-175) that the first raising handle aborts, leaving the
+    descriptor behind every remaining handle open.  A full filesystem fails
+    every session's flush at once, so that would turn one ENOSPC into exactly
+    the descriptor exhaustion SFTP_MAX_SESSIONS and the reaper exist to prevent.
+
+    Otherwise identical to paramiko's version.
+    """
+    self.server.session_ended()
+    super(SFTPServer, self).finish_subsystem()
+    # close any file handles that were left open
+    # (so we can return them to the OS quickly)
+    for table in (self.file_table, self.folder_table):
+        for handle in table.values():
+            try:
+                handle.close()
+            except Exception as e:
+                logging.error('Error closing an SFTP handle at session end: %s', e)
+    self.file_table = {}
+    self.folder_table = {}
+
+_SFTPHandle_close_original = SFTPHandle.close
+
 SFTPHandle.__init__ = _SFTPHandle___init__
+SFTPHandle.close = _SFTPHandle_close
+SFTPServer.finish_subsystem = _SFTPServer_finish_subsystem
 SFTPHandle.stat = _SFTPHandle_stat
 SFTPHandle.chattr = _SFTPHandle_chattr
 SFTPHandle.write = _SFTPHandle_write
 SFTPHandle.read = _SFTPHandle_read
 
 SYMLINK_RECHECK_INTERVAL_SECONDS = getattr(settings, 'SFTP_SYMLINK_RECHECK_INTERVAL_SECONDS', 300)
+
+# How long a share's permission set and lock flag may be reused within one
+# session before being re-read.  Every open() and every permissions_required
+# operation ran a fresh guardian lookup, so transferring 10,000 files cost on
+# the order of 10,000 permission queries -- the main reason a many-small-files
+# transfer is slower over SFTP than over rsync.  Memoising collapses that to
+# one lookup per share per interval.
+#
+# The tradeoff: a permission revoked mid-session takes up to this long to take
+# effect.  Keep it short -- most of the benefit is in collapsing the thousands
+# of queries a single bulk transfer makes over a few seconds, which even a very
+# small window captures.  Set it to 0 to check every time, as before.
+SFTP_PERMISSION_CACHE_SECONDS = getattr(settings, 'SFTP_PERMISSION_CACHE_SECONDS', 60)
 
 class SFTPInterface (SFTPServerInterface):
     def __init__(self, server):
@@ -477,6 +575,11 @@ class SFTPInterface (SFTPServerInterface):
         self.shares_accessed = set()
         self.modified_date = {}
         self._symlink_checked = {}
+        # share.id -> (timezone.now() at the lookup, permission list).  See
+        # SFTP_PERMISSION_CACHE_SECONDS.
+        self._permissions_checked = {}
+        # share.id -> timezone.now() at the last lock-flag re-read.
+        self._lock_checked = {}
         for share in Share.user_queryset(self.user,include_stats=False):
             self.shares[share.slug_or_id] = share
     def session_ended(self):
@@ -503,9 +606,58 @@ class SFTPInterface (SFTPServerInterface):
             if share.symlinks_found:
                 share.check_paths()
             self._symlink_checked[share.id] = now
+        self._refresh_lock_state(share)
         if share.locked:
             raise PermissionDenied('Share is locked.  Contact the application administrator.')
         return share
+    def _refresh_lock_state(self, share):
+        """
+        Re-read `share.locked` from the database, at most once per
+        SFTP_PERMISSION_CACHE_SECONDS.
+
+        The Share objects in self.shares are loaded once, when the session
+        starts, so their `locked` flag is whatever it was at connect time.  The
+        only thing that updated it mid-session was check_paths() finding an
+        illegal symlink, and that runs only for shares that already have
+        symlinks.  For everything else an administrator locking a share had no
+        effect at all on a session already in progress.
+
+        That matters more now that permissions are cached: locking is the
+        immediate escape hatch that makes a bounded staleness window on
+        permissions acceptable, so it has to actually be immediate -- or at
+        least no staler than the cache it backstops.
+        """
+        now = timezone.now()
+        last_checked = self._lock_checked.get(share.id)
+        if last_checked and (now - last_checked).total_seconds() < SFTP_PERMISSION_CACHE_SECONDS:
+            return
+        self._lock_checked[share.id] = now
+        locked = Share.objects.filter(id=share.id).values_list('locked', flat=True).first()
+        if locked is None:
+            # The row is gone underneath us.  Deny rather than carry on against
+            # a share that no longer exists.
+            logging.warning('Share disappeared during an SFTP session: %s', share.id)
+            share.locked = True
+        else:
+            share.locked = locked
+    def _share_permissions(self, share):
+        """
+        This user's permissions on `share`, re-read at most once per
+        SFTP_PERMISSION_CACHE_SECONDS.
+        """
+        now = timezone.now()
+        cached = self._permissions_checked.get(share.id)
+        if cached and (now - cached[0]).total_seconds() < SFTP_PERMISSION_CACHE_SECONDS:
+            permissions = cached[1]
+        else:
+            permissions = share.get_user_permissions(self.user)
+            self._permissions_checked[share.id] = (now, permissions)
+        # Callers narrow the result in place -- see _get_bioshare_path_permissions,
+        # which removes WRITE and DELETE for paths that aren't real -- so hand out
+        # a copy.  Returning the cached list itself would let the first caller's
+        # narrowing leak into every later caller's answer, which for a path under
+        # a symlink would silently strip write access from the whole session.
+        return list(permissions)
     def _path_modified(self,path):
         share = self._get_share(path)
         previous_date = self.modified_date.get(share.id,None)
@@ -521,8 +673,7 @@ class SFTPInterface (SFTPServerInterface):
     def _get_bioshare_path_permissions(self,path):
         share = self._get_share(path)
         self.shares_accessed.add(share.id)
-        permissions = share.get_user_permissions(self.user)
-#         print permissions
+        permissions = self._share_permissions(share)
         if not self.is_realpath(path): # Don't allow any write operations if it isn't a real directory under the share root
             if Share.PERMISSION_DELETE in permissions:
                 permissions.remove(Share.PERMISSION_DELETE)
@@ -676,7 +827,11 @@ class SFTPInterface (SFTPServerInterface):
         except Exception as e:
             logging.error('Error setting file flags: %s', e)
         try:
-            f = os.fdopen(fd, fstr)
+            # Uploads get a buffer bigger than the client's block size; see
+            # SFTP_WRITE_BUFFER_SIZE.  Read-write modes keep the default, since
+            # a large buffer there would penalise seeking clients.
+            buffering = SFTP_WRITE_BUFFER_SIZE if fstr in ('wb', 'ab') else -1
+            f = os.fdopen(fd, fstr, buffering)
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
         fobj = SFTPHandle(flags,permissions=permissions)
