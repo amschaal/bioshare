@@ -32,6 +32,7 @@ Run with:  python manage.py test bioshareX.test_sftp
 
 import base64
 import contextlib
+import datetime
 import errno
 import logging
 import os
@@ -39,11 +40,12 @@ from unittest import mock
 
 import paramiko
 from django.test import TestCase
+from django.utils import timezone
 from guardian.shortcuts import remove_perm
 from paramiko.sftp import (CMD_CLOSE, SFTP_BAD_MESSAGE, SFTP_FAILURE, SFTP_OK,
                            SFTP_OP_UNSUPPORTED, SFTP_PERMISSION_DENIED)
 
-from bioshareX.models import Share, SSHKey
+from bioshareX.models import Share, ShareLog, SSHKey
 from bioshareX.test_base import ShareTestBase, make_public_key
 from sftp import server as sftp_server
 from sftp.server import BioshareSFTPServer, PermissionDenied, SSHInterface
@@ -949,3 +951,139 @@ class TestSetModificationTimeOnAnOpenHandle(_SFTPInterfaceTestCase):
         self.assertEqual(handle.chattr(attrs(size=0)), SFTP_OP_UNSUPPORTED)
         handle.close()
         self.assertEqual(os.path.getsize(self.real()), len(b'Hello bioshare!\n'))
+
+
+class TestRename(_SFTPInterfaceTestCase):
+    """
+    rclone uploads to <name>.<hash>.partial and renames on completion, so every
+    single file in a transfer goes through here.
+    """
+
+    def setUp(self):
+        super().setUp()
+        # rename requires write AND delete; the base writer holds only write.
+        self.grant(self.writer, Share.PERMISSION_DELETE)
+
+    def real(self, subpath):
+        return os.path.join(self.share.get_path(), subpath)
+
+    def test_a_rename_reports_success(self):
+        """
+        The regression: rename reassigned oldpath to the real filesystem path
+        and then passed it to _path_modified, which re-resolves the share from
+        an SFTP path and so went looking for a share called 'data'. os.rename
+        had already run, so the file moved and the client was told it had not --
+        rclone reported 'partial file rename failed' for every file in the
+        transfer.
+        """
+        interface = self.interface_for(self.writer)
+        self.write_share_file('upload.partial', b'contents')
+        result = interface.rename(self.path('upload.partial'), self.path('upload.txt'))
+        self.assertEqual(result, SFTP_OK)
+        self.assertTrue(os.path.exists(self.real('upload.txt')))
+        self.assertFalse(os.path.exists(self.real('upload.partial')))
+
+    def test_a_rename_is_logged_against_the_share(self):
+        interface = self.interface_for(self.writer)
+        self.write_share_file('upload.partial', b'contents')
+        interface.rename(self.path('upload.partial'), self.path('upload.txt'))
+
+        log = ShareLog.objects.filter(share=self.share,
+                                      action=ShareLog.ACTION_RENAMED).last()
+        self.assertIsNotNone(log, 'no ShareLog written')
+        self.assertIn('upload.partial', log.text)
+        self.assertIn('upload.txt', log.text)
+        # The subpath within the share, not /data/shares/<id>/... -- a real
+        # filesystem path is what the bug would have recorded here.
+        self.assertEqual(log.paths, ['upload.partial'])
+
+    def test_a_rename_updates_the_share_modified_date(self):
+        was = timezone.now() - datetime.timedelta(days=1)
+        Share.objects.filter(id=self.share.id).update(updated=was)
+
+        interface = self.interface_for(self.writer)
+        self.write_share_file('upload.partial', b'contents')
+        interface.rename(self.path('upload.partial'), self.path('upload.txt'))
+
+        self.share.refresh_from_db()
+        self.assertGreater(self.share.updated, was)
+
+    def test_renaming_into_a_share_without_write_is_refused(self):
+        elsewhere = self.make_share(self.other, name='Someone elses share')
+        self.grant(self.writer, Share.PERMISSION_VIEW, share=elsewhere)
+        interface = self.interface_for(self.writer)
+        self.write_share_file('upload.partial', b'contents')
+
+        result = interface.rename(self.path('upload.partial'),
+                                  self.path('landing.txt', share=elsewhere))
+
+        self.assertEqual(result, SFTP_PERMISSION_DENIED)
+        self.assertTrue(os.path.exists(self.real('upload.partial')))
+        self.assertFalse(os.path.exists(
+            os.path.join(elsewhere.get_path(), 'landing.txt')))
+
+    def test_renaming_something_that_is_not_there(self):
+        interface = self.interface_for(self.writer)
+        result = interface.rename(self.path('nope.partial'), self.path('nope.txt'))
+        self.assertEqual(result, paramiko.SFTP_NO_SUCH_FILE)
+
+    def test_a_read_only_session_cannot_rename(self):
+        interface = self.interface_for(self.downloader)
+        self.write_share_file('upload.partial', b'contents')
+        self.assertEqual(
+            interface.rename(self.path('upload.partial'), self.path('upload.txt')),
+            SFTP_PERMISSION_DENIED)
+        self.assertTrue(os.path.exists(self.real('upload.partial')))
+
+
+class TestUnknownShareIsDenied(_SFTPInterfaceTestCase):
+
+    def test_an_unknown_share_is_denied_not_reported_as_a_server_fault(self):
+        """
+        The message this raises never formatted: a stray '}' made str.format
+        raise ValueError, which sftp_response did not catch, so paramiko's
+        catch-all answered SFTP_FAILURE. A path naming a share the session
+        cannot see came back as a server fault rather than a denial -- and it is
+        what turned the rename bug into an opaque 'Failure'.
+        """
+        interface = self.interface_for(self.writer)
+        with self.assertLogs(level='WARNING'):
+            with self.assertRaises(PermissionDenied):
+                interface._get_share('/data/shares/somewhere/else')
+
+    def test_the_denial_names_the_share_it_could_not_find(self):
+        interface = self.interface_for(self.writer)
+        with self.assertLogs(level='WARNING'):
+            with self.assertRaises(PermissionDenied) as caught:
+                interface._get_share('/nosuchshare/file.txt')
+        self.assertIn('nosuchshare', str(caught.exception))
+
+
+class TestUnexpectedErrorsAreLogged(_SFTPInterfaceTestCase):
+
+    def test_an_unexpected_exception_is_logged_and_reported(self):
+        """
+        paramiko answers SFTP_FAILURE for anything that escapes an operation,
+        but logs the traceback at DEBUG while start_sftp runs the root logger at
+        INFO. Thousands of failed renames left nothing on the server to diagnose
+        them by.
+        """
+        interface = self.interface_for(self.owner)
+        with mock.patch.object(sftp_server.SFTPInterface, '_realpath',
+                               side_effect=ValueError('something unforeseen')):
+            with self.assertLogs(level='ERROR') as logs:
+                result = interface.remove(self.path())
+
+        self.assertEqual(result, SFTP_FAILURE)
+        self.assertIn('Unhandled error in SFTP remove', logs.output[0])
+        self.assertIn('something unforeseen', logs.output[0])
+
+    def test_ordinary_denials_are_not_logged_as_errors(self):
+        """A denial is a normal outcome, not a server fault."""
+        interface = self.interface_for(self.downloader)
+        with self.assertLogs(level='ERROR') as logs:
+            # assertLogs fails outright with no records, so emit one of our own
+            # and assert nothing joined it.
+            logging.getLogger().error('sentinel')
+            self.assertEqual(interface.remove(self.path()), SFTP_PERMISSION_DENIED)
+        self.assertEqual(len(logs.output), 1, logs.output)

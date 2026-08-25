@@ -347,6 +347,15 @@ def sftp_response(fn):
             return SFTPServer.convert_errno(e.errno)
         except PermissionDenied:
             return paramiko.SFTP_PERMISSION_DENIED
+        except Exception:
+            # A bug in the operation, not a client error. paramiko's request
+            # loop already answers SFTP_FAILURE for anything that escapes, but
+            # it logs the traceback at DEBUG (sftp_server.py:158-160) while
+            # start_sftp runs the root logger at INFO -- so the client saw a
+            # failure and the server recorded nothing at all. That is how
+            # thousands of failed renames left no trace to diagnose them by.
+            logging.exception('Unhandled error in SFTP %s', fn.__name__)
+            return paramiko.SFTP_FAILURE
         if value is None:
             return paramiko.SFTP_OK
         else:
@@ -361,6 +370,10 @@ class permissions_required(object):
         self.path_arg_index = path_arg_ind
         self.operator = operator
     def __call__(self, f):
+        # functools.wraps, as sftp_response and log_event already do: without it
+        # every decorated operation is named 'wrapped_f' in tracebacks, and in
+        # sftp_response's unhandled-error log line.
+        @functools.wraps(f)
         def wrapped_f(*args,**kwargs):
             interface = args[0]
             path = args[self.path_arg_index]
@@ -684,7 +697,7 @@ class SFTPInterface (SFTPServerInterface):
                 pass
         if parts[1] not in self.shares:
             logging.warning('Share does not exist: {}, {}'.format(path, self.shares))
-            raise PermissionDenied("Share does not exist: {}, {}}".format(path[1], self.shares))
+            raise PermissionDenied("Share does not exist: {}".format(parts[1]))
         share = self.shares[parts[1]]
         now = timezone.now()
         last_checked = self._symlink_checked.get(share.id)
@@ -945,13 +958,18 @@ class SFTPInterface (SFTPServerInterface):
         dest_permissions = self._get_bioshare_path_permissions(newpath)
         if Share.PERMISSION_WRITE not in dest_permissions:
             raise PermissionDenied()
-        oldpath = self._realpath(oldpath)
-        newpath = self._realpath(newpath)
+        # Kept in separate names rather than reassigned: _path_modified and
+        # _create_log take the SFTP path (/<share>/subpath) and re-resolve the
+        # share from it, so handing them a real filesystem path sent them
+        # looking for a share called 'data'. Every other operation here already
+        # keeps the two apart -- see remove and mkdir.
+        real_oldpath = self._realpath(oldpath)
+        real_newpath = self._realpath(newpath)
         try:
-            os.rename(oldpath, newpath)
+            os.rename(real_oldpath, real_newpath)
             self._path_modified(oldpath)
-            old = os.path.basename(oldpath)
-            new = os.path.basename(newpath)
+            old = os.path.basename(real_oldpath)
+            new = os.path.basename(real_newpath)
             self._create_log(oldpath, ShareLog.ACTION_RENAMED, 'SFTP renamed {} to {}'.format(old, new))
         except OSError as e:
             return SFTPServer.convert_errno(e.errno)
