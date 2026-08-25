@@ -391,6 +391,33 @@ def log_event(method):
         return response
     return wrapper
 
+def _may_set_mtime(attr):
+    """
+    Whether an SFTPAttributes a client wants applied should be honoured.
+
+    Only the modification time is applied. Ownership and mode are not: shares
+    have their own conventions (FILES_OWNER, FILES_GROUP, UMASK) that the web
+    application depends on, and letting an SFTP client rewrite them is how a
+    file ends up unreadable through the browser. A request that asks for those
+    *alongside* an mtime still succeeds and still sets the mtime -- `sftp -p`
+    sends both, and failing the whole transfer over the half we decline would
+    be the same mistake as refusing SetModTime outright.
+
+    A size is refused rather than ignored. set_file_attr implements it as
+    open(filename, 'w+'), which truncates the file to zero before truncating it
+    to the requested length, and quietly returning OK for a truncate that never
+    happened would be a lie a client can act on. Clients that want to truncate
+    can open() with O_TRUNC, which goes through the write permission check and
+    the modification tracking.
+    """
+    if attr._flags & attr.FLAG_SIZE:
+        return False
+    if not attr._flags & attr.FLAG_AMTIME:
+        # Nothing we support was asked for -- most likely a bare chmod. Saying
+        # OK here would report success for doing nothing at all.
+        return False
+    return True
+
 def _SFTPHandle_stat(self):
     try:
         # os.fstat reports what the kernel has, which since writes stopped being
@@ -406,13 +433,30 @@ def _SFTPHandle_stat(self):
         return SFTPServer.convert_errno(e.errno)
 
 def _SFTPHandle_chattr(self, attr):
+    """
+    Set the modification time on an already-open handle (CMD_FSETSTAT).
+
+    This used to hand the whole attribute set to SFTPServer.set_file_attr with
+    no authorisation check of any kind. paramiko routes CMD_FSETSTAT straight to
+    the handle (sftp_server.py:489-499) without going near the share, so this
+    function is the only place the check can happen -- and set_file_attr acts on
+    FLAG_SIZE by doing open(filename, 'w+'), which truncates. A session holding
+    a handle opened for *reading*, which needs only view + download, could
+    therefore truncate the file to nothing. It could also chmod it.
+
+    See _may_set_mtime for what is and isn't honoured.
+    """
+    if Share.PERMISSION_WRITE not in self.permissions:
+        return paramiko.SFTP_PERMISSION_DENIED
+    if not _may_set_mtime(attr):
+        return SFTP_OP_UNSUPPORTED
     # python doesn't have equivalents to fchown or fchmod, so we have to
     # use the stored filename
     try:
-        SFTPServer.set_file_attr(self.filename, attr)
-        return SFTP_OK
+        os.utime(self.filename, (attr.st_atime, attr.st_mtime))
     except OSError as e:
         return SFTPServer.convert_errno(e.errno)
+    return SFTP_OK
 
 def _SFTPHandle_write(self, offset, data):
     #Custom Auth
@@ -937,14 +981,26 @@ class SFTPInterface (SFTPServerInterface):
             return SFTPServer.convert_errno(e.errno)
         return SFTP_OK
     @sftp_response
+    @permissions_required([Share.PERMISSION_WRITE])
     def chattr(self, path, attr):
-        return SFTP_OP_UNSUPPORTED
-#         path = self._realpath(path)
-#         try:
-#             SFTPServer.set_file_attr(path, attr)
-#         except OSError as e:
-#             return SFTPServer.convert_errno(e.errno)
-#         return SFTP_OK
+        """
+        Set the modification time on a path (CMD_SETSTAT).
+
+        Refusing this outright made the server unusable with rclone: it sets the
+        modtime after every upload and treats the failure as a failed copy, so a
+        1GB file would transfer completely and then be discarded. It also left
+        mtime-based sync comparison unavailable to every other client.
+
+        See _may_set_mtime for what is and isn't honoured.
+        """
+        if not _may_set_mtime(attr):
+            return SFTP_OP_UNSUPPORTED
+        real_path = self._realpath(path)
+        try:
+            os.utime(real_path, (attr.st_atime, attr.st_mtime))
+        except OSError as e:
+            return SFTPServer.convert_errno(e.errno)
+        self._path_modified(path)
     @sftp_response
     def symlink(self, target_path, path):
         return SFTP_OP_UNSUPPORTED

@@ -40,8 +40,8 @@ from unittest import mock
 import paramiko
 from django.test import TestCase
 from guardian.shortcuts import remove_perm
-from paramiko.sftp import (CMD_CLOSE, SFTP_BAD_MESSAGE, SFTP_FAILURE,
-                           SFTP_OK, SFTP_PERMISSION_DENIED)
+from paramiko.sftp import (CMD_CLOSE, SFTP_BAD_MESSAGE, SFTP_FAILURE, SFTP_OK,
+                           SFTP_OP_UNSUPPORTED, SFTP_PERMISSION_DENIED)
 
 from bioshareX.models import Share, SSHKey
 from bioshareX.test_base import ShareTestBase, make_public_key
@@ -800,3 +800,152 @@ class TestCloseStatus(_SFTPInterfaceTestCase):
                 sftp_server._SFTPServer_process(server, opcode, 1, _CloseMessage(b'x'))
         self.assertEqual(original.call_count, 2)
         self.assertEqual(server.sent, [])
+
+
+def attrs(mtime=None, mode=None, size=None, atime=None):
+    """Build the SFTPAttributes a client sends with SETSTAT / FSETSTAT."""
+    attr = paramiko.SFTPAttributes()
+    attr._flags = 0
+    if mtime is not None:
+        attr.st_atime = atime if atime is not None else mtime
+        attr.st_mtime = mtime
+        attr._flags |= attr.FLAG_AMTIME
+    if mode is not None:
+        attr.st_mode = mode
+        attr._flags |= attr.FLAG_PERMISSIONS
+    if size is not None:
+        attr.st_size = size
+        attr._flags |= attr.FLAG_SIZE
+    return attr
+
+
+A_TIME = 1400000000  # 2014-05-13, safely distinct from anything the tests create
+
+
+class TestSetModificationTime(_SFTPInterfaceTestCase):
+    """
+    Refusing CMD_SETSTAT outright made the server unusable with rclone, which
+    sets the modtime after every upload and discards the transfer if it fails.
+    """
+
+    def real(self, subpath='hello.txt'):
+        return os.path.join(self.share.get_path(), subpath)
+
+    def test_a_client_can_set_the_modification_time(self):
+        interface = self.interface_for(self.writer)
+        self.assertEqual(interface.chattr(self.path(), attrs(mtime=A_TIME)), SFTP_OK)
+        self.assertEqual(int(os.stat(self.real()).st_mtime), A_TIME)
+
+    def test_the_access_time_comes_along(self):
+        interface = self.interface_for(self.writer)
+        interface.chattr(self.path(), attrs(mtime=A_TIME, atime=A_TIME + 60))
+        self.assertEqual(int(os.stat(self.real()).st_atime), A_TIME + 60)
+
+    def test_it_requires_write_permission(self):
+        """Setting an mtime is a modification, so view alone must not do it."""
+        before = os.stat(self.real()).st_mtime
+        interface = self.interface_for(self.downloader)
+        self.assertEqual(interface.chattr(self.path(), attrs(mtime=A_TIME)),
+                         SFTP_PERMISSION_DENIED)
+        self.assertEqual(os.stat(self.real()).st_mtime, before)
+
+    def test_a_bare_chmod_is_still_refused(self):
+        """
+        Shares have their own ownership and mode conventions that the web
+        application depends on. Reporting OK for a chmod we did not perform
+        would be worse than refusing it.
+        """
+        before = os.stat(self.real()).st_mode
+        interface = self.interface_for(self.writer)
+        self.assertEqual(interface.chattr(self.path(), attrs(mode=0o777)),
+                         SFTP_OP_UNSUPPORTED)
+        self.assertEqual(os.stat(self.real()).st_mode, before)
+
+    def test_a_mode_alongside_an_mtime_does_not_fail_the_request(self):
+        """
+        `sftp -p` sends both. Failing the whole transfer over the half we
+        decline would repeat the mistake that broke rclone.
+        """
+        before = os.stat(self.real()).st_mode
+        interface = self.interface_for(self.writer)
+        self.assertEqual(interface.chattr(self.path(), attrs(mtime=A_TIME, mode=0o777)),
+                         SFTP_OK)
+        self.assertEqual(int(os.stat(self.real()).st_mtime), A_TIME)
+        self.assertEqual(os.stat(self.real()).st_mode, before)
+
+    def test_a_size_is_refused_rather_than_ignored(self):
+        """
+        set_file_attr implements a size change as open(filename, 'w+'), which
+        truncates. Silently returning OK for a truncate that did not happen
+        would be a lie the client can act on.
+        """
+        interface = self.interface_for(self.writer)
+        self.assertEqual(interface.chattr(self.path(), attrs(size=0)),
+                         SFTP_OP_UNSUPPORTED)
+        self.assertEqual(os.path.getsize(self.real()), len(b'Hello bioshare!\n'))
+
+    def test_a_size_is_refused_even_alongside_an_mtime(self):
+        interface = self.interface_for(self.writer)
+        self.assertEqual(interface.chattr(self.path(), attrs(mtime=A_TIME, size=0)),
+                         SFTP_OP_UNSUPPORTED)
+        self.assertEqual(os.path.getsize(self.real()), len(b'Hello bioshare!\n'))
+
+    def test_a_locked_share_still_refuses(self):
+        interface = self.interface_for(self.writer)
+        Share.objects.filter(id=self.share.id).update(locked=True)
+        with self.no_cache():
+            self.assertEqual(interface.chattr(self.path(), attrs(mtime=A_TIME)),
+                             SFTP_PERMISSION_DENIED)
+
+
+class TestSetModificationTimeOnAnOpenHandle(_SFTPInterfaceTestCase):
+    """
+    CMD_FSETSTAT is routed straight to the handle without going near the share
+    (paramiko sftp_server.py:489-499), so the handle is the only place
+    authorisation can be checked -- and it never was.
+    """
+
+    def real(self, subpath='hello.txt'):
+        return os.path.join(self.share.get_path(), subpath)
+
+    def open_as(self, user, flags=os.O_RDONLY, subpath='hello.txt'):
+        handle = self.interface_for(user).open(self.path(subpath), flags, None)
+        self.assertNotIsInstance(handle, int, 'open() failed: %r' % (handle,))
+        return handle
+
+    def test_a_writer_can_set_the_modification_time(self):
+        handle = self.open_as(self.writer, os.O_WRONLY | os.O_CREAT)
+        self.assertEqual(handle.chattr(attrs(mtime=A_TIME)), SFTP_OK)
+        handle.close()
+        self.assertEqual(int(os.stat(self.real()).st_mtime), A_TIME)
+
+    def test_a_read_only_handle_cannot_truncate_the_file(self):
+        """
+        The hole this closes: opening for reading needs only view + download,
+        and FSETSTAT with a size reached set_file_attr, which truncates. A user
+        with no write permission could empty any file they could download.
+        """
+        handle = self.open_as(self.downloader)
+        self.assertEqual(handle.chattr(attrs(size=0)), SFTP_PERMISSION_DENIED)
+        handle.close()
+        self.assertEqual(os.path.getsize(self.real()), len(b'Hello bioshare!\n'))
+
+    def test_a_read_only_handle_cannot_chmod_the_file(self):
+        before = os.stat(self.real()).st_mode
+        handle = self.open_as(self.downloader)
+        self.assertEqual(handle.chattr(attrs(mode=0o777)), SFTP_PERMISSION_DENIED)
+        handle.close()
+        self.assertEqual(os.stat(self.real()).st_mode, before)
+
+    def test_a_read_only_handle_cannot_set_the_modification_time_either(self):
+        before = os.stat(self.real()).st_mtime
+        handle = self.open_as(self.downloader)
+        self.assertEqual(handle.chattr(attrs(mtime=A_TIME)), SFTP_PERMISSION_DENIED)
+        handle.close()
+        self.assertEqual(os.stat(self.real()).st_mtime, before)
+
+    def test_a_writer_still_cannot_truncate_through_fsetstat(self):
+        handle = self.open_as(self.writer, os.O_WRONLY | os.O_CREAT)
+        self.assertEqual(handle.chattr(attrs(size=0)), SFTP_OP_UNSUPPORTED)
+        handle.close()
+        self.assertEqual(os.path.getsize(self.real()), len(b'Hello bioshare!\n'))

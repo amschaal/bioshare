@@ -29,10 +29,10 @@ Typical use, from a client machine (not the devcontainer):
     ./tools/sftp_benchmark.py run ... --label before --results before.json
     ./tools/sftp_benchmark.py compare before.json after.json
 
-Requires rclone on the client. Two rclone features are switched off because the
-server does not implement them (plan §5) -- see the flags in rclone() -- which
-leaves it comparing by size alone; that is fine here, since every run writes to
-a fresh directory.
+Requires rclone on the client, and a daemon new enough to accept SETSTAT (it is
+how rclone sets the modtime after an upload; before that landed it discarded
+every transfer). Checksum verification stays off -- there is no exec channel to
+compute one, plan §5.
 
 Wall-clock is noisy; for §3 specifically the
 permission-lookup count from
@@ -137,19 +137,12 @@ def remote_for(args, path):
 def rclone(args, source, dest, extra=None):
     cmd = ['rclone', 'copy', source, dest,
            '--stats', '5s', '--stats-one-line',
-           # Two things this server does not implement, both plan §5. Without
-           # either flag rclone treats the gap as a transfer failure rather
-           # than falling back, so a benchmark cannot get off the ground.
-           #
-           #   no exec channel  -> cannot ask for a remote checksum
-           #   chattr refuses   -> cannot set the modtime after an upload
-           #
-           # They leave rclone comparing by size alone, which is fine here: each
-           # run writes to a fresh directory, so there is never anything on the
-           # far end to compare against. Both are constant across passes, so the
-           # A/B is unaffected. Drop whichever one §5 lands.
+           # No exec channel on this server (plan §5), so rclone cannot ask for
+           # a remote checksum; without this it errors instead of falling back.
+           # Setting modtimes does work -- chattr honours it -- so rclone
+           # compares by size and modtime, which costs nothing here since every
+           # run writes to a fresh directory anyway.
            '--sftp-disable-hashcheck',
-           '--sftp-set-modtime=false',
            '--transfers', str(args.transfers)]
     if args.verbose:
         cmd.append('-vv')
