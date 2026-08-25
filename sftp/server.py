@@ -344,6 +344,19 @@ def sftp_response(fn):
         try:
             value = fn(*args, **kwargs)
         except (OSError, IOError) as e:
+            # SFTP v3 has four status codes and convert_errno folds almost every
+            # errno into SFTP_FAILURE, so the client is told "Failure" and
+            # nothing else -- paramiko sends the status code alone, with no
+            # description, for every operation but close. The errno exists only
+            # here. Log it, or diagnosing a failed transfer means guessing.
+            #
+            # ENOENT is routine: clients stat paths that do not exist as a
+            # matter of course, and logging that at WARNING would bury the
+            # interesting failures under it.
+            if e.errno in (errno.ENOENT, errno.ENOTDIR):
+                logging.debug('SFTP %s: %s', fn.__name__, e)
+            else:
+                logging.warning('SFTP %s failed: %s', fn.__name__, e)
             return SFTPServer.convert_errno(e.errno)
         except PermissionDenied:
             return paramiko.SFTP_PERMISSION_DENIED
@@ -944,12 +957,11 @@ class SFTPInterface (SFTPServerInterface):
 #         if not Share.PERMISSION_DELETE in self._get_bioshare_path_permissions(path):
 #             return PermissionDenied()
         real_path = self._realpath(path)
-        try:
-            os.remove(real_path)
-            self._path_modified(path)
-            self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP delete')
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
+        # No local OSError handler: sftp_response converts it identically, and
+        # logs the errno on the way past. Catching it here would swallow that.
+        os.remove(real_path)
+        self._path_modified(path)
+        self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP delete')
         return SFTP_OK
     @sftp_response
     @permissions_required([Share.PERMISSION_DELETE,Share.PERMISSION_WRITE])
@@ -965,14 +977,11 @@ class SFTPInterface (SFTPServerInterface):
         # keeps the two apart -- see remove and mkdir.
         real_oldpath = self._realpath(oldpath)
         real_newpath = self._realpath(newpath)
-        try:
-            os.rename(real_oldpath, real_newpath)
-            self._path_modified(oldpath)
-            old = os.path.basename(real_oldpath)
-            new = os.path.basename(real_newpath)
-            self._create_log(oldpath, ShareLog.ACTION_RENAMED, 'SFTP renamed {} to {}'.format(old, new))
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
+        os.rename(real_oldpath, real_newpath)
+        self._path_modified(oldpath)
+        old = os.path.basename(real_oldpath)
+        new = os.path.basename(real_newpath)
+        self._create_log(oldpath, ShareLog.ACTION_RENAMED, 'SFTP renamed {} to {}'.format(old, new))
         return SFTP_OK
     @sftp_response
     @permissions_required([Share.PERMISSION_WRITE])
@@ -980,23 +989,31 @@ class SFTPInterface (SFTPServerInterface):
         real_path = self._realpath(path)
         try:
             os.mkdir(real_path)
-            self._path_modified(path)
-            if attr is not None:
-                SFTPServer.set_file_attr(real_path, attr)
-            self._create_log(path, ShareLog.ACTION_FOLDER_CREATED, 'SFTP folder created')
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
+        except FileExistsError:
+            # "Make sure this directory exists" is what clients actually mean
+            # here, and with more than one transfer in flight they race each
+            # other to create a shared parent: rclone checks whether the
+            # directory is there and then creates it, so concurrent workers all
+            # pass the check and all but one get EEXIST. Failing that aborts a
+            # file copy over nothing.
+            #
+            # Still a failure if the name is taken by something that is not a
+            # directory -- that is a real conflict, not a race.
+            if os.path.isdir(real_path):
+                return SFTP_OK
+            raise
+        self._path_modified(path)
+        if attr is not None:
+            SFTPServer.set_file_attr(real_path, attr)
+        self._create_log(path, ShareLog.ACTION_FOLDER_CREATED, 'SFTP folder created')
         return SFTP_OK
     @sftp_response
     @permissions_required([Share.PERMISSION_DELETE])
     def rmdir(self, path):
         real_path = self._realpath(path)
-        try:
-            os.rmdir(real_path)
-            self._path_modified(path)
-            self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP directory deleted')
-        except OSError as e:
-            return SFTPServer.convert_errno(e.errno)
+        os.rmdir(real_path)
+        self._path_modified(path)
+        self._create_log(path, ShareLog.ACTION_DELETED, 'SFTP directory deleted')
         return SFTP_OK
     @sftp_response
     @permissions_required([Share.PERMISSION_WRITE])

@@ -1087,3 +1087,83 @@ class TestUnexpectedErrorsAreLogged(_SFTPInterfaceTestCase):
             logging.getLogger().error('sentinel')
             self.assertEqual(interface.remove(self.path()), SFTP_PERMISSION_DENIED)
         self.assertEqual(len(logs.output), 1, logs.output)
+
+
+class TestMkdir(_SFTPInterfaceTestCase):
+
+    def real(self, subpath):
+        return os.path.join(self.share.get_path(), subpath)
+
+    def test_a_directory_is_created(self):
+        interface = self.interface_for(self.writer)
+        self.assertEqual(interface.mkdir(self.path('new'), None), SFTP_OK)
+        self.assertTrue(os.path.isdir(self.real('new')))
+
+    def test_creating_a_directory_that_is_already_there_succeeds(self):
+        """
+        Clients mean "make sure this exists". With more than one transfer in
+        flight they race on a shared parent -- rclone checks and then creates,
+        so every worker passes the check and all but one gets EEXIST. Failing
+        that aborted a file copy over nothing.
+        """
+        interface = self.interface_for(self.writer)
+        self.assertEqual(interface.mkdir(self.path('docs'), None), SFTP_OK)
+        self.assertTrue(os.path.isdir(self.real('docs')))
+
+    def test_concurrent_creates_all_succeed(self):
+        interface = self.interface_for(self.writer)
+        results = [interface.mkdir(self.path('shared'), None) for _ in range(5)]
+        self.assertEqual(results, [SFTP_OK] * 5)
+
+    def test_a_file_in_the_way_is_still_a_failure(self):
+        """A real conflict, not a race -- this must not be smoothed over."""
+        interface = self.interface_for(self.writer)
+        with self.assertLogs(level='WARNING') as logs:
+            result = interface.mkdir(self.path('hello.txt'), None)
+        self.assertEqual(result, SFTP_FAILURE)
+        self.assertFalse(os.path.isdir(self.real('hello.txt')))
+        self.assertIn('SFTP mkdir failed', logs.output[0])
+
+    def test_it_requires_write_permission(self):
+        interface = self.interface_for(self.downloader)
+        self.assertEqual(interface.mkdir(self.path('new'), None),
+                         SFTP_PERMISSION_DENIED)
+        self.assertFalse(os.path.exists(self.real('new')))
+
+
+class TestOSErrorsAreLogged(_SFTPInterfaceTestCase):
+    """
+    SFTP v3 has four status codes and convert_errno folds nearly every errno
+    into SFTP_FAILURE, so a client is told 'Failure' and nothing else. The errno
+    exists only on the server -- three failures in a row were diagnosed by
+    guesswork before it was written down.
+    """
+
+    def test_a_failing_operation_logs_its_errno(self):
+        interface = self.interface_for(self.deleter)
+        # A directory is not removable with os.remove: EISDIR.
+        with self.assertLogs(level='WARNING') as logs:
+            result = interface.remove(self.path('docs'))
+        self.assertEqual(result, SFTP_FAILURE)
+        self.assertIn('SFTP remove failed', logs.output[0])
+        self.assertIn('directory', logs.output[0].lower())
+
+    def test_a_missing_file_is_not_logged_as_a_warning(self):
+        """
+        Clients stat and remove paths that do not exist as a matter of course.
+        Logging that at WARNING would bury the failures worth reading.
+        """
+        interface = self.interface_for(self.deleter)
+        with self.assertLogs(level='WARNING') as logs:
+            logging.getLogger().warning('sentinel')
+            self.assertEqual(interface.remove(self.path('nope.txt')),
+                             paramiko.SFTP_NO_SUCH_FILE)
+        self.assertEqual(len(logs.output), 1, logs.output)
+
+    def test_rmdir_reports_a_non_empty_directory(self):
+        interface = self.interface_for(self.deleter)
+        with self.assertLogs(level='WARNING') as logs:
+            result = interface.rmdir(self.path('docs'))
+        self.assertEqual(result, SFTP_FAILURE)
+        self.assertIn('SFTP rmdir failed', logs.output[0])
+        self.assertTrue(os.path.isdir(os.path.join(self.share.get_path(), 'docs')))

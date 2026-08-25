@@ -61,9 +61,48 @@ def die(message):
     sys.exit('error: %s' % message)
 
 
+def free_bytes(path):
+    """Free space on the filesystem holding `path`, or its nearest parent."""
+    while not os.path.exists(path):
+        parent = os.path.dirname(path.rstrip(os.sep))
+        if parent == path:
+            break
+        path = parent
+    stat = os.statvfs(path)
+    return stat.f_bavail * stat.f_frsize
+
+
+def require_space(path, needed, what):
+    """
+    Refuse to start rather than fill the disk.
+
+    Both times this benchmark was first run it ran the filesystem out of space,
+    and both times the failure reached the client as a bare SFTP "Failure" --
+    once from a write, once from a mkdir -- which is an expensive way to learn
+    you needed a df. The remote side cannot be checked from here at all: this
+    server implements no statvfs (plan §5), so `rclone about` has nothing to
+    ask.
+    """
+    available = free_bytes(path)
+    if available >= needed:
+        return
+    die('not enough space for %s.\n'
+        '  %s has %s free, this needs about %s.\n'
+        '  Free some space, or use a smaller corpus (--big-gb / --small-count).\n'
+        '  Remember the share needs at least as much again for the uploaded\n'
+        '  copy, on whatever filesystem backs it -- which may well be this one.'
+        % (what, path, human(available), human(needed)))
+
+
 # -- corpus ------------------------------------------------------------------
 
 def build_corpus(corpus_dir, big_gb, small_count, small_bytes):
+    # Before makedirs, not after: on a full disk that call is itself the first
+    # thing to fail, with an ENOSPC traceback instead of an explanation.
+    needed = big_gb * 1024 ** 3 + small_count * small_bytes
+    already = tree_size(corpus_dir)[0] if os.path.isdir(corpus_dir) else 0
+    require_space(corpus_dir, int((needed - already) * 1.05), 'the corpus')
+
     os.makedirs(corpus_dir, exist_ok=True)
 
     big_path = os.path.join(corpus_dir, 'big.bin')
@@ -176,6 +215,12 @@ def run_matrix(args):
         if not os.path.exists(corpora[name]) and not args.dry_run:
             die('corpus %r missing -- run the "build" subcommand first' % name)
 
+    # Downloads land locally, so the client needs room for a second copy of
+    # everything the run transfers.
+    corpus_bytes = sum(tree_size(corpora[n])[0] for n in chosen) if not args.dry_run else 0
+    if args.direction != UP:
+        require_space(args.corpus_dir, int(corpus_bytes * 1.05), 'the downloaded copy')
+
     # A fresh remote subdirectory per run, so rclone never skips a file it
     # already sees on the far end, and so nothing existing is ever deleted.
     stamp = time.strftime('%Y%m%d-%H%M%S')
@@ -186,6 +231,9 @@ def run_matrix(args):
 
     print('remote scratch:   /%s/%s' % (args.share, run_root))
     print('local  scratch:   %s' % download_root)
+    if corpus_bytes:
+        print('transferring:     %s (the share needs at least this much free;' % human(corpus_bytes))
+        print('                  no statvfs on this server, so it cannot be checked from here)')
     print()
 
     runs = []
