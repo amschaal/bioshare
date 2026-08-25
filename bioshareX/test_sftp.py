@@ -40,7 +40,8 @@ from unittest import mock
 import paramiko
 from django.test import TestCase
 from guardian.shortcuts import remove_perm
-from paramiko.sftp import SFTP_OK
+from paramiko.sftp import (CMD_CLOSE, SFTP_BAD_MESSAGE, SFTP_FAILURE,
+                           SFTP_OK, SFTP_PERMISSION_DENIED)
 
 from bioshareX.models import Share, SSHKey
 from bioshareX.test_base import ShareTestBase, make_public_key
@@ -700,3 +701,102 @@ class TestSessionTeardown(_SFTPInterfaceTestCase):
         self.assertTrue(handles[2].writefile.closed)
         self.assertTrue(broken.writefile.close_called)
         self.assertEqual(server.file_table, {})
+
+
+class _CloseMessage:
+    """The CMD_CLOSE payload paramiko hands _process: just a handle."""
+
+    def __init__(self, handle):
+        self.handle = handle
+
+    def get_binary(self):
+        return self.handle
+
+
+class TestCloseStatus(_SFTPInterfaceTestCase):
+    """
+    Since writes stopped being flushed per block, close() is where a failed
+    upload surfaces -- so the close response is the client's only report, and
+    it has to carry the reason. See _SFTPServer_process.
+    """
+
+    def sftp_server(self):
+        server = sftp_server.SFTPServer.__new__(sftp_server.SFTPServer)
+        server.file_table = {}
+        server.folder_table = {}
+        server.sent = []
+        server._send_status = lambda number, code, desc=None: server.sent.append((code, desc))
+        return server
+
+    def open_upload(self, subpath='upload.bin'):
+        interface = self.interface_for(self.writer)
+        handle = interface.open(self.path(subpath), os.O_WRONLY | os.O_CREAT, None)
+        self.assertNotIsInstance(handle, int, 'open() failed: %r' % (handle,))
+        handle.write(0, b'payload')
+        return handle
+
+    def close_through_process(self, server, handle):
+        server.file_table[b'H'] = handle
+        sftp_server._SFTPServer_process(server, CMD_CLOSE, 1, _CloseMessage(b'H'))
+
+    def test_a_clean_close_still_reports_success(self):
+        server = self.sftp_server()
+        self.close_through_process(server, self.open_upload())
+        self.assertEqual(server.sent, [(SFTP_OK, None)])
+
+    def test_a_full_filesystem_reports_why_not_just_failure(self):
+        """
+        SFTP v3 has no status code for ENOSPC, so the code is SFTP_FAILURE
+        either way -- but the description is what rclone prints, and 'Failure'
+        alone sends the operator to the server log.
+        """
+        handle = self.open_upload()
+        handle.readfile = handle.writefile = _FlushFails(
+            handle.writefile, OSError(errno.ENOSPC, 'No space left on device'))
+
+        server = self.sftp_server()
+        with self.assertLogs(level='ERROR'):
+            self.close_through_process(server, handle)
+
+        self.assertEqual(server.sent, [(SFTP_FAILURE, 'No space left on device')])
+
+    def test_the_errno_still_selects_the_status_code(self):
+        handle = self.open_upload()
+        handle.readfile = handle.writefile = _FlushFails(
+            handle.writefile, OSError(errno.EACCES, 'Permission denied'))
+
+        server = self.sftp_server()
+        with self.assertLogs(level='ERROR'):
+            self.close_through_process(server, handle)
+
+        self.assertEqual(server.sent, [(SFTP_PERMISSION_DENIED, 'Permission denied')])
+
+    def test_a_failed_close_does_not_leave_the_handle_behind(self):
+        """
+        paramiko's version deletes the handle only after close() returns, so a
+        close that raised left it in the table for finish_subsystem to close a
+        second time.
+        """
+        handle = self.open_upload()
+        handle.readfile = handle.writefile = _FlushFails(
+            handle.writefile, OSError(errno.ENOSPC, 'No space left on device'))
+
+        server = self.sftp_server()
+        with self.assertLogs(level='ERROR'):
+            self.close_through_process(server, handle)
+
+        self.assertEqual(server.file_table, {})
+        self.assertTrue(handle.writefile.close_called)
+
+    def test_an_unknown_handle_is_rejected(self):
+        server = self.sftp_server()
+        sftp_server._SFTPServer_process(server, CMD_CLOSE, 1, _CloseMessage(b'nope'))
+        self.assertEqual(server.sent, [(SFTP_BAD_MESSAGE, 'Invalid handle')])
+
+    def test_every_other_request_is_left_to_paramiko(self):
+        server = self.sftp_server()
+        with mock.patch.object(sftp_server, '_SFTPServer_process_original') as original:
+            for opcode in (CMD_CLOSE + 1, CMD_CLOSE + 2):
+                sftp_server._SFTPServer_process(server, opcode, 1, _CloseMessage(b'x'))
+        self.assertEqual(original.call_count, 2)
+        self.assertEqual(server.sent, [])

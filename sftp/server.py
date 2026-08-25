@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.contrib.auth import authenticate
 import paramiko
 from paramiko import SFTPServer, SFTPServerInterface
-from paramiko.sftp import SFTP_OK, SFTP_OP_UNSUPPORTED
+from paramiko.sftp import CMD_CLOSE, SFTP_BAD_MESSAGE, SFTP_OK, SFTP_OP_UNSUPPORTED
 from paramiko.common import o666
 from bioshareX.models import Share, ShareLog, SSHKey
 from paramiko.sftp_handle import SFTPHandle
@@ -542,11 +542,53 @@ def _SFTPServer_finish_subsystem(self):
     self.file_table = {}
     self.folder_table = {}
 
+def _SFTPServer_process(self, t, request_number, msg):
+    """
+    Answer CMD_CLOSE ourselves, so a failed upload can say why it failed.
+    Every other request goes to paramiko untouched.
+
+    paramiko replies SFTP_OK the moment close() returns and has no branch for a
+    close that failed (sftp_server.py:387-400).  When _SFTPHandle_close raises,
+    the request loop's catch-all does reply SFTP_FAILURE -- the client correctly
+    learns the upload did not land -- but with the generic description
+    "Failure".  Since writes stopped being flushed per block, that is the entire
+    response a client gets for a full filesystem, and the errno survives only in
+    the server's own log.
+
+    SFTP v3 has no status code for ENOSPC; convert_errno folds it into
+    SFTP_FAILURE along with everything else, so the code cannot carry the
+    reason.  The description can -- _send_status accepts one and clients print
+    it -- which turns rclone's `sftp: "Failure"` into `sftp: "No space left on
+    device"` without inventing anything off-protocol.
+    """
+    if t != CMD_CLOSE:
+        return _SFTPServer_process_original(self, t, request_number, msg)
+
+    handle = msg.get_binary()
+    if handle in self.folder_table:
+        del self.folder_table[handle]
+        return self._send_status(request_number, SFTP_OK)
+    if handle in self.file_table:
+        # Drop the handle before closing rather than after: paramiko's version
+        # leaves a handle whose close() raised in the table, where
+        # finish_subsystem later closes it a second time.
+        file_obj = self.file_table.pop(handle)
+        try:
+            file_obj.close()
+        except (OSError, IOError) as e:
+            return self._send_status(request_number,
+                                     SFTPServer.convert_errno(e.errno),
+                                     e.strerror or str(e))
+        return self._send_status(request_number, SFTP_OK)
+    return self._send_status(request_number, SFTP_BAD_MESSAGE, 'Invalid handle')
+
+_SFTPServer_process_original = SFTPServer._process
 _SFTPHandle_close_original = SFTPHandle.close
 
 SFTPHandle.__init__ = _SFTPHandle___init__
 SFTPHandle.close = _SFTPHandle_close
 SFTPServer.finish_subsystem = _SFTPServer_finish_subsystem
+SFTPServer._process = _SFTPServer_process
 SFTPHandle.stat = _SFTPHandle_stat
 SFTPHandle.chattr = _SFTPHandle_chattr
 SFTPHandle.write = _SFTPHandle_write
