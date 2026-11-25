@@ -224,28 +224,35 @@ def delete_ssh_key(request):
         id = request.POST.get('id')
         key = SSHKey.objects.get(user=request.user,id=id)
 #        subprocess.call(['/bin/chmod','600',AUTHORIZED_KEYS_FILE])
-        keystring = key.get_key()
+        # stored_body rather than get_key(): a row that no longer parses must
+        # still be deletable, along with whatever line it has in authorized_keys.
+        keystring = key.stored_body
 #         remove_me = keystring.replace('/','\\/')#re.escape(key.extract_key())
 #         command = ['/bin/sed','-i','/%s/d'%remove_me,AUTHORIZED_KEYS_FILE]
 #         subprocess.check_call(command)
-        # Hold an exclusive lock across the read-modify-write so concurrent key
-        # deletes can't clobber each other's changes to authorized_keys.
-        import fcntl
-        with open(AUTHORIZED_KEYS_FILE,"r+") as f:
-            fcntl.flock(f, fcntl.LOCK_EX)
-            try:
-                lines = f.readlines()
-                f.seek(0)
-                f.truncate()
-                for line in lines:
-                    if line.find(keystring) ==-1:
-                        f.write(line)
-                f.flush()
-            finally:
-                fcntl.flock(f, fcntl.LOCK_UN)
+        if keystring:
+            # Hold an exclusive lock across the read-modify-write so concurrent key
+            # deletes can't clobber each other's changes to authorized_keys.
+            import fcntl
+            with open(AUTHORIZED_KEYS_FILE,"r+") as f:
+                fcntl.flock(f, fcntl.LOCK_EX)
+                try:
+                    lines = f.readlines()
+                    f.seek(0)
+                    f.truncate()
+                    for line in lines:
+                        # A whole field must equal the body. Matching it as a
+                        # substring removed every line it was a prefix of, which
+                        # for a short enough body was everyone's.
+                        if keystring not in line.split():
+                            f.write(line)
+                    f.flush()
+                finally:
+                    fcntl.flock(f, fcntl.LOCK_UN)
 #        subprocess.call(['/bin/chmod','400',AUTHORIZED_KEYS_FILE])
+        # Only the row fetched above, which is the requester's own. This used to
+        # be followed by a key__contains delete across all users.
         key.delete()
-        SSHKey.objects.filter(key__contains=keystring).delete()
         response = {'status':'success','deleted':id}
     except Exception as e:
         response = {'status':'error','message':'Unable to delete ssh key'+str(e)}

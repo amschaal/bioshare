@@ -56,10 +56,11 @@ def ssh_wire_string(value):
 def make_public_key(key_type='ssh-rsa', comment='comment', filler=b'\xab'):
     """Build a structurally valid authorized_keys line without shelling out.
 
-    SSHKey.parse_key checks that the base64 body really is an SSH public key
-    blob whose first field repeats the declared algorithm, so a fixture cannot
-    just be a run of base64-looking characters. The key material itself is
-    filler -- nothing here verifies a signature -- but the framing is real.
+    SSHKey.parse_key checks that the base64 body really is a complete SSH
+    public key blob of the declared algorithm, field for field, so a fixture
+    cannot just be a run of base64-looking characters. The key material itself
+    is filler -- nothing here verifies a signature -- but the framing is real.
+    `filler` needs its high bit set for the RSA modulus to be a minimal mpint.
     """
     blob = ssh_wire_string(key_type.encode())
     if key_type == 'ssh-rsa':
@@ -68,8 +69,10 @@ def make_public_key(key_type='ssh-rsa', comment='comment', filler=b'\xab'):
     elif key_type == 'ssh-ed25519':
         blob += ssh_wire_string(filler * 32)
     else:
-        blob += ssh_wire_string(key_type.rsplit('-', 1)[-1].encode())
-        blob += ssh_wire_string(b'\x04' + filler * 64)
+        curve = key_type.rsplit('-', 1)[-1]
+        coordinate = {'nistp256': 32, 'nistp384': 48, 'nistp521': 66}[curve]
+        blob += ssh_wire_string(curve.encode())
+        blob += ssh_wire_string(b'\x04' + filler * (2 * coordinate))
     line = '%s %s' % (key_type, base64.b64encode(blob).decode())
     return '%s %s' % (line, comment) if comment else line
 

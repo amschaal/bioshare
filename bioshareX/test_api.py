@@ -10,6 +10,7 @@ path/symlink traversal internals live in test_path_security.py.
 Run with:  python manage.py test bioshareX.test_api
 """
 
+import base64
 import hashlib
 import io
 import json
@@ -29,7 +30,8 @@ from guardian.shortcuts import get_perms
 
 from bioshareX.models import (EmailFooter, MetaData, Message, Share,
                               ShareLog, SSHKey, Tag)
-from bioshareX.test_base import AJAX, ShareTestBase, make_public_key
+from bioshareX.test_base import (AJAX, ShareTestBase, make_public_key,
+                                 ssh_wire_string)
 
 
 class TestUserDirectoryEndpoints(ShareTestBase):
@@ -745,10 +747,16 @@ class TestSSHKeys(ShareTestBase):
             key.create_authorized_key()
 
     def test_parse_key_accepts_modern_types_and_missing_comment(self):
-        for key_type in ('ssh-rsa', 'ssh-ed25519', 'ecdsa-sha2-nistp256'):
+        for key_type in SSHKey.KEY_TYPES:
             for comment in ('laptop@example.com', ''):
                 line = make_public_key(key_type, comment=comment)
                 self.assertEqual(SSHKey.parse_key(line), (key_type, line.split()[1]))
+
+    def test_parse_key_tolerates_surrounding_whitespace(self):
+        """A .pub file ends in a newline, and Windows tools add a CR."""
+        line = make_public_key('ssh-ed25519', comment='two words')
+        self.assertEqual(SSHKey.parse_key('  %s \r\n\n' % line),
+                         ('ssh-ed25519', line.split()[1]))
 
     def test_parse_key_rejects_bad_input(self):
         body = self.FAKE_BODY
@@ -759,6 +767,79 @@ class TestSSHKeys(ShareTestBase):
                     'ssh-ed25519 %s x' % body):    # body contradicts declared type
             with self.assertRaises(ValueError, msg=bad):
                 SSHKey.parse_key(bad)
+
+    def test_parse_key_rejects_anything_but_a_whole_key(self):
+        """The body has to be a complete key, not merely start like one.
+
+        'AAAAC3NzaC1lZDI1NTE5' is the ssh-ed25519 algorithm name and nothing
+        else. It used to be accepted, and it is a prefix of every ed25519 key.
+        """
+        encode = lambda blob: base64.b64encode(blob).decode()
+        ed25519 = base64.b64decode(make_public_key('ssh-ed25519').split()[1])
+        rsa_name = ssh_wire_string(b'ssh-rsa')
+        exponent = ssh_wire_string(b'\x01\x00\x01')
+        modulus = b'\x00' + b'\xab' * 256
+        ecdsa_name = ssh_wire_string(b'ecdsa-sha2-nistp256')
+        for label, bad in (
+                ('name only', 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5'),
+                ('truncated', 'ssh-ed25519 %s' % encode(ed25519[:-3])),
+                ('trailing bytes', 'ssh-ed25519 %s' % encode(ed25519 + b'\x00' * 3)),
+                ('extra field', 'ssh-ed25519 %s' % encode(ed25519 + ssh_wire_string(b'xx'))),
+                ('rsa without a modulus', 'ssh-rsa %s' % encode(rsa_name + exponent)),
+                ('rsa modulus too small', 'ssh-rsa %s' % encode(
+                    rsa_name + exponent + ssh_wire_string(b'\x00' + b'\xab' * 64))),
+                ('rsa negative modulus', 'ssh-rsa %s' % encode(
+                    rsa_name + exponent + ssh_wire_string(modulus[1:]))),
+                ('rsa padded modulus', 'ssh-rsa %s' % encode(
+                    rsa_name + exponent + ssh_wire_string(b'\x00' + modulus))),
+                ('ecdsa wrong curve', 'ecdsa-sha2-nistp256 %s' % encode(
+                    ecdsa_name + ssh_wire_string(b'nistp384')
+                    + ssh_wire_string(b'\x04' + b'\xab' * 64))),
+                ('ecdsa short point', 'ecdsa-sha2-nistp256 %s' % encode(
+                    ecdsa_name + ssh_wire_string(b'nistp256')
+                    + ssh_wire_string(b'\x04' + b'\xab' * 63))),
+                ('ecdsa compressed point', 'ecdsa-sha2-nistp256 %s' % encode(
+                    ecdsa_name + ssh_wire_string(b'nistp256')
+                    + ssh_wire_string(b'\x02' + b'\xab' * 64)))):
+            with self.subTest(label):
+                with self.assertRaises(ValueError):
+                    SSHKey.parse_key(bad)
+
+    def test_parse_key_rejects_a_second_spelling_of_the_same_key(self):
+        """Two texts must never name one key, or the duplicate check is moot.
+
+        A nistp256 blob does not fill its last base64 group, so the final
+        character before the padding carries bits that nothing reads.
+        """
+        key_type = 'ecdsa-sha2-nistp256'
+        body = make_public_key(key_type).split()[1]
+        self.assertTrue(body.endswith('=') and not body.endswith('=='))
+        alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+        respelled = body[:-2] + alphabet[alphabet.index(body[-2]) ^ 1] + '='
+        self.assertNotEqual(respelled, body)
+        self.assertEqual(base64.b64decode(respelled), base64.b64decode(body))
+        self.assertEqual(SSHKey.parse_key('%s %s' % (key_type, body)), (key_type, body))
+        with self.assertRaises(ValueError):
+            SSHKey.parse_key('%s %s' % (key_type, respelled))
+
+    def test_parse_key_rejects_more_than_one_line(self):
+        """Otherwise the line parsed need not be the one ssh-keygen vouched for."""
+        good = make_public_key('ssh-ed25519')
+        for bad in ('ssh-ed25519 AAAAC3NzaC1lZDI1NTE5\n%s\n' % good,
+                    '%s\n%s\n' % (good, self.FAKE_KEY),
+                    '%s\r%s' % (good, good),
+                    '# a comment\n%s\n' % good):
+            with self.assertRaises(ValueError, msg=bad):
+                SSHKey.parse_key(bad)
+
+    def test_with_body_matches_the_whole_body_only(self):
+        mine = SSHKey.objects.create(user=self.owner, name='legacy',
+                                     key='%s\n' % self.FAKE_KEY)  # comment and newline
+        SSHKey.objects.create(user=self.other, name='prefix',
+                              key='ssh-rsa %s' % self.FAKE_BODY[:40])
+        SSHKey.objects.create(user=self.other, name='other', key=self.OTHER_KEY)
+        self.assertEqual(SSHKey.with_body(self.FAKE_BODY), [mine])
+        self.assertEqual(SSHKey.with_body(self.FAKE_BODY[:39]), [])
 
     def test_delete_ssh_key_removes_db_row_and_authorized_keys_line(self):
         key = SSHKey.objects.create(user=self.owner, name='mine', key=self.FAKE_KEY)
@@ -778,6 +859,107 @@ class TestSSHKeys(ShareTestBase):
             self.assertIn(self.OTHER_BODY, remaining)  # other keys untouched
         finally:
             os.unlink(keys_file)
+
+    def test_delete_ssh_key_leaves_keys_it_is_a_prefix_of(self):
+        """Deleting your own key must not take anyone else's with it.
+
+        The body was matched as a substring, in authorized_keys and then across
+        every user's rows, so a stored body that was a prefix of other keys
+        deleted them all. parse_key no longer admits such a body, but deletion
+        must not depend on that: the row here is written directly.
+        """
+        victim_key = make_public_key('ssh-ed25519')
+        victim_body = victim_key.split()[1]
+        prefix = 'AAAAC3NzaC1lZDI1NTE5'
+        self.assertTrue(victim_body.startswith(prefix))
+        victim = SSHKey.objects.create(user=self.owner, name='victim', key=victim_key)
+        attacker = SSHKey.objects.create(user=self.other, name='prefix',
+                                         key='ssh-ed25519 %s' % prefix)
+        fd, keys_file = tempfile.mkstemp()
+        try:
+            with os.fdopen(fd, 'w') as f:
+                f.write('command="x" ssh-ed25519 %s %s\n' % (victim_body, self.owner.username))
+                f.write('command="x" ssh-ed25519 %s %s\n' % (prefix, self.other.username))
+            self.login(self.other)
+            with mock.patch('bioshareX.api.views.AUTHORIZED_KEYS_FILE', keys_file):
+                response = self.client.post(reverse('api_delete_ssh_key'), {'id': attacker.id})
+            self.assertEqual(self.json_of(response)['status'], 'success')
+            self.assertFalse(SSHKey.objects.filter(id=attacker.id).exists())
+            self.assertTrue(SSHKey.objects.filter(id=victim.id).exists())
+            with open(keys_file) as f:
+                remaining = f.read()
+            self.assertEqual(remaining, 'command="x" ssh-ed25519 %s %s\n'
+                             % (victim_body, self.owner.username))
+        finally:
+            os.unlink(keys_file)
+
+    def test_delete_ssh_key_copes_with_a_row_that_no_longer_parses(self):
+        """Rows predating validation have to stay deletable, line and all."""
+        legacy_body = 'A' * 372  # what the old regex accepted: not a real blob
+        with self.assertRaises(ValueError):
+            SSHKey.parse_key('ssh-rsa %s c' % legacy_body)
+        legacy = SSHKey.objects.create(user=self.owner, name='legacy',
+                                       key='ssh-rsa %s c\n' % legacy_body)
+        garbage = SSHKey.objects.create(user=self.owner, name='garbage', key='garbage')
+        fd, keys_file = tempfile.mkstemp()
+        try:
+            with os.fdopen(fd, 'w') as f:
+                f.write('command="x" ssh-rsa %s %s\n' % (legacy_body, self.owner.username))
+                f.write('command="x" ssh-rsa %s other\n' % self.OTHER_BODY)
+            self.login(self.owner)
+            with mock.patch('bioshareX.api.views.AUTHORIZED_KEYS_FILE', keys_file):
+                for key in (legacy, garbage):
+                    response = self.client.post(reverse('api_delete_ssh_key'), {'id': key.id})
+                    self.assertEqual(self.json_of(response)['status'], 'success')
+            self.assertFalse(SSHKey.objects.filter(user=self.owner).exists())
+            with open(keys_file) as f:
+                self.assertEqual(f.read(), 'command="x" ssh-rsa %s other\n' % self.OTHER_BODY)
+        finally:
+            os.unlink(keys_file)
+
+    def _upload_key(self, user, name, contents, keys_file):
+        self.login(user)
+        upload = io.BytesIO(contents)
+        upload.name = 'id.pub'
+        with mock.patch('settings.settings.AUTHORIZED_KEYS_FILE', keys_file):
+            return self.client.post(reverse('create_ssh_key'),
+                                    {'name': name, 'rsa_key': upload})
+
+    @skipUnless(shutil.which('ssh-keygen'), 'ssh-keygen not available')
+    @override_settings(FILE_UPLOAD_HANDLERS=[
+        'django.core.files.uploadhandler.TemporaryFileUploadHandler'])
+    def test_create_ssh_key_stores_only_what_was_validated(self):
+        """One key per upload, stored as "type body", and one owner per key."""
+        keydir = tempfile.mkdtemp()
+        try:
+            keypath = os.path.join(keydir, 'id_ed25519')
+            subprocess.check_call(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '',
+                                   '-C', 'a comment', '-f', keypath])
+            with open(keypath + '.pub', 'rb') as pub:
+                public = pub.read()
+            key_type, body = public.decode().split()[:2]
+            keys_file = os.path.join(keydir, 'authorized_keys')
+            open(keys_file, 'w').close()
+
+            # ssh-keygen passes a file if any line in it is a key, so a bogus
+            # first line used to ride in behind a real second one.
+            response = self._upload_key(
+                self.other, 'smuggled', b'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5\n' + public, keys_file)
+            self.assertEqual(response.status_code, 200)  # redisplayed with errors
+            self.assertFalse(SSHKey.objects.filter(name='smuggled').exists())
+
+            response = self._upload_key(self.owner, 'mine', public, keys_file)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(SSHKey.objects.get(user=self.owner, name='mine').key,
+                             '%s %s' % (key_type, body))
+
+            response = self._upload_key(self.other, 'again', public, keys_file)
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(SSHKey.objects.filter(name='again').exists())
+            with open(keys_file) as f:
+                self.assertEqual(f.read().count(body), 1)
+        finally:
+            shutil.rmtree(keydir, ignore_errors=True)
 
     @skipUnless(shutil.which('ssh-keygen'), 'ssh-keygen not available')
     @override_settings(FILE_UPLOAD_HANDLERS=[

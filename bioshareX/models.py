@@ -505,20 +505,63 @@ class SSHKey(models.Model):
     def get_key(self):
         return self.extract_key(self.key)
     @property
+    def stored_body(self):
+        """The base64 body as stored, taken without validating it, or None.
+
+        get_key() raises for a row that no longer parses -- one predating
+        validation, or one the stricter parse_key now refuses. Such a row may
+        still have a line in authorized_keys, written from this same field, so
+        deleting it has to be able to name that line. Only ever compare this
+        for equality: unvalidated, it is not safe to match as a substring.
+        """
+        fields = (self.key or '').split()
+        return fields[1] if len(fields) > 1 else None
+    @classmethod
+    def with_body(cls, body):
+        """Stored keys whose body is exactly `body`.
+
+        `key__contains` only narrows the candidates: rows written before keys
+        were normalised carry a comment, so the column cannot be compared whole,
+        and a substring match alone would also hit any key that merely contains
+        this one's text.
+        """
+        return [key for key in cls.objects.filter(key__contains=body)
+                if key.stored_body == body]
+    @property
     def blob(self):
         """The key in SSH wire format, for comparison against a key presented
         over the wire (paramiko hands us those as `PKey.asbytes()`)."""
         return base64.b64decode(self.get_key())
+
+    # Smallest RSA modulus OpenSSH itself will load (SSH_RSA_MINIMUM_MODULUS_SIZE).
+    RSA_MIN_BITS = 1024
+    # Bytes per coordinate; a point is 0x04 followed by two of them (RFC 5656 §3.1).
+    ECDSA_COORDINATE_BYTES = {'nistp256': 32, 'nistp384': 48, 'nistp521': 66}
+
     @classmethod
     def parse_key(cls, full_key):
-        """Split an authorized_keys-style line into (key_type, base64 body).
+        """Split one authorized_keys-style line into (key_type, base64 body).
 
         Replaces an ssh-rsa-only regex that also required a trailing comment, so
         ed25519/ecdsa keys and comment-less keys are now storable. Raises
         ValueError on anything that doesn't parse; callers that surface this to
         a user are expected to catch it.
+
+        The body is accepted only if it is the canonical encoding of a complete
+        key of the declared type. That makes "same text" and "same key" the
+        same thing, which the duplicate check and deletion both depend on. A
+        body holding just the algorithm name used to pass, and is a textual
+        prefix of every real key of that type.
         """
-        fields = (full_key or '').strip().split()
+        # One key per input. Taking the first two tokens of a longer file would
+        # parse a line the upload form's ssh-keygen check never vouched for:
+        # ssh-keygen accepts a file if any one line in it is a key.
+        lines = (full_key or '').strip().splitlines()
+        if not lines:
+            raise ValueError('Unable to parse key')
+        if len(lines) > 1:
+            raise ValueError('Expected a single public key on one line')
+        fields = lines[0].split()
         if len(fields) < 2:
             raise ValueError('Unable to parse key')
         key_type, body = fields[0], fields[1]
@@ -528,14 +571,60 @@ class SSHKey(models.Model):
             decoded = base64.b64decode(body, validate=True)
         except (binascii.Error, ValueError):
             raise ValueError('Key body is not valid base64')
-        # The wire format repeats the algorithm name as its first length-prefixed
-        # string. Requiring the two to agree means a stored key can never claim
-        # one type while carrying another -- which would otherwise produce an
-        # authorized_keys line OpenSSH rejects, or a mismatch at SFTP auth.
-        expected = len(key_type).to_bytes(4, 'big') + key_type.encode()
-        if not decoded.startswith(expected):
-            raise ValueError('Key body does not match its declared type')
+        # b64decode ignores the unused low bits of a padded final group, so
+        # several texts decode to one blob. Accept only the one b64encode gives.
+        if base64.b64encode(decoded).decode() != body:
+            raise ValueError('Key body is not valid base64')
+        cls._check_blob(key_type, decoded)
         return key_type, body
+    @staticmethod
+    def _wire_fields(blob):
+        """Split a wire-format blob into its length-prefixed strings, requiring
+        that they account for every byte."""
+        fields, offset = [], 0
+        while offset < len(blob):
+            length = int.from_bytes(blob[offset:offset + 4], 'big')
+            offset += 4
+            if offset > len(blob) or length > len(blob) - offset:
+                raise ValueError('Key body is truncated')
+            fields.append(blob[offset:offset + length])
+            offset += length
+        return fields
+    @staticmethod
+    def _is_positive_mpint(value):
+        """A non-zero, non-negative mpint in its minimal form (RFC 4251 §5)."""
+        if not value or value[0] & 0x80:
+            return False
+        return value[0] != 0 or (len(value) > 1 and bool(value[1] & 0x80))
+    @classmethod
+    def _check_blob(cls, key_type, blob):
+        """Raise ValueError unless `blob` is a whole public key of `key_type`:
+        the fields that type defines (RFC 4253 §6.6, RFC 5656 §3.1, RFC 8709 §4),
+        each well formed, and nothing else."""
+        fields = cls._wire_fields(blob)
+        # The wire format repeats the algorithm name as its first string.
+        # Requiring the two to agree means a stored key can never claim one type
+        # while carrying another -- which would otherwise produce an
+        # authorized_keys line OpenSSH rejects, or a mismatch at SFTP auth.
+        if not fields or fields[0] != key_type.encode():
+            raise ValueError('Key body does not match its declared type')
+        params = fields[1:]
+        if key_type == 'ssh-rsa':
+            # exponent, then modulus
+            complete = (len(params) == 2
+                        and all(cls._is_positive_mpint(param) for param in params)
+                        and int.from_bytes(params[1], 'big').bit_length() >= cls.RSA_MIN_BITS)
+        elif key_type == 'ssh-ed25519':
+            complete = len(params) == 1 and len(params[0]) == 32
+        else:
+            # curve name, then an uncompressed point
+            curve = key_type.rsplit('-', 1)[-1]
+            complete = (len(params) == 2
+                        and params[0] == curve.encode()
+                        and len(params[1]) == 1 + 2 * cls.ECDSA_COORDINATE_BYTES[curve]
+                        and params[1][:1] == b'\x04')
+        if not complete:
+            raise ValueError('Key body is not a complete %s public key' % key_type)
     @staticmethod
     def extract_key(full_key):
         return SSHKey.parse_key(full_key)[1]

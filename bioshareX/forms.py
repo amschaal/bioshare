@@ -198,12 +198,13 @@ class SSHKeyForm(forms.Form):
             key_type, body = SSHKey.parse_key(contents)
         except ValueError as e:
             raise forms.ValidationError(str(e))
-        if SSHKey.objects.filter(key__contains=body).exists():
+        if SSHKey.with_body(body):
             raise forms.ValidationError("This key is already in use.")
 
-        # Always return the cleaned data, whether you have changed it or
-        # not.
-        return contents
+        # Store what was validated and nothing else. The raw upload could carry
+        # a comment or stray whitespace, and every reader of SSHKey.key would
+        # then have to re-derive these two fields from text nobody checked.
+        return '%s %s' % (key_type, body)
 
 class UploadFileForm(forms.Form):
     title = forms.CharField(max_length=100)
