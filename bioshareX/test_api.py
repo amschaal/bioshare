@@ -11,6 +11,7 @@ Run with:  python manage.py test bioshareX.test_api
 """
 
 import base64
+import datetime
 import hashlib
 import io
 import json
@@ -718,6 +719,18 @@ class TestRestViewsets(ShareTestBase):
         self.assertEqual(response.status_code, 200)
         response = self.client.get('/bioshare/api/messages/', {'active': 'true'})
         self.assertNotIn(message.id, [m['id'] for m in response.json()['results']])
+
+    def test_active_messages_exclude_inactive_and_expired(self):
+        shown = Message.objects.create(title='Shown')
+        inactive = Message.objects.create(title='Draft', active=False)
+        expired = Message.objects.create(
+            title='Old news', expires=datetime.date.today() - datetime.timedelta(days=1))
+        self.login(self.viewer)
+        response = self.client.get('/bioshare/api/messages/', {'active': 'true'})
+        ids = [m['id'] for m in response.json()['results']]
+        self.assertIn(shown.id, ids)
+        self.assertNotIn(inactive.id, ids)
+        self.assertNotIn(expired.id, ids)
 
 
 class TestSSHKeys(ShareTestBase):
